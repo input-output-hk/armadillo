@@ -1,7 +1,5 @@
 package io.iohk.armadillo
 
-import io.iohk.armadillo.Armadillo.JsonRpcCodec
-import io.iohk.armadillo.JsonRpcIO.idPlain
 import sttp.monad.MonadError
 import sttp.tapir.Codec.{JsonCodec, id}
 import sttp.tapir.CodecFormat.{Json, TextPlain}
@@ -29,8 +27,11 @@ object Armadillo {
       output = JsonRpcOutput.emptyOutput,
       error = JsonRpcOutput.emptyOutput
     )
-  def jsonRpcBody[T: JsonCodec]: JsonRpcIO[T] = JsonRpcIO.Single(implicitly[JsonCodec[T]], Info.empty[T])
+  def jsonRpcBody[T: JsonCodec](name: String): JsonRpcIO[T] = JsonRpcIO.Single(implicitly[JsonCodec[T]], Info.empty[T], name)
 
+  case class JsonRpcRequest[Raw](jsonrpc: String, method: String, params: Vector[Raw], id: Int)
+
+  case class JsonRpcResponse[Raw](jsonrpc: String, result: Raw, id: Int)
 }
 
 case class MethodName(value: String) extends AnyVal
@@ -100,7 +101,7 @@ object JsonRpcIO {
 
   case class Empty[T](codec: JsonCodec[Unit], info: Info[T]) extends JsonRpcIO[T]
 
-  case class Single[T](codec: JsonCodec[T], info: Info[T]) extends JsonRpcIO[T]
+  case class Single[T](codec: JsonCodec[T], info: Info[T], name: String) extends JsonRpcIO[T]
 }
 
 abstract class JsonRpcServerEndpoint[F[_]] {

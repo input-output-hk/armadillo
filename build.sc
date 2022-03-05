@@ -39,7 +39,8 @@ object example extends CommonModule {
     ivy"org.http4s::http4s-dsl::0.23.10",
     ivy"org.http4s::http4s-circe::0.23.10",
     ivy"org.http4s::http4s-blaze-server::0.23.10",
-    ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::0.20.0"
+    ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::0.20.0",
+    ivy"com.softwaremill.sttp.tapir::tapir-cats::0.20.0"
   )
 }
 
