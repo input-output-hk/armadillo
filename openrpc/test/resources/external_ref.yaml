@@ -1,0 +1,14 @@
+openrpc: 1.2.1
+info:
+  version: 1.0.0
+  title: Demo Pet Store
+methods:
+- name: ext
+  params:
+  - name: problem
+    required: true
+    schema:
+      $ref: https://example.com/models/model.yaml#/Problem
+  result:
+    name: empty result
+    schema: {}

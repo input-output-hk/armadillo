@@ -1,0 +1,22 @@
+openrpc: 1.2.1
+info:
+  version: 1.0.0
+  title: Demo Pet Store
+methods:
+- name: getPetByNumber
+  params:
+  - name: number1
+    required: true
+    schema:
+      type: integer
+      format: int32
+      minimum: 1.0
+  - name: number2
+    required: true
+    schema:
+      type: integer
+      format: int32
+      maximum: 10.0
+  result:
+    name: empty result
+    schema: {}

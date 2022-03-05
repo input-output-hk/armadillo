@@ -1,0 +1,22 @@
+openrpc: 1.2.1
+info:
+  version: 1.0.0
+  title: Demo Pet Store
+methods:
+- name: getPetByNumber
+  params:
+  - name: enum
+    required: true
+    schema:
+      $ref: '#/components/schemas/Enum'
+  result:
+    name: empty result
+    schema: {}
+components:
+  schemas:
+    Enum:
+      title: Enum
+      type: string
+      enum:
+      - Val1
+      - Val2

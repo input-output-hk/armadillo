@@ -1,0 +1,44 @@
+{
+  "openrpc": "1.2.1",
+  "info": {
+    "version": "1.0.0",
+    "title": "Demo Pet Store"
+  },
+  "methods": [
+    {
+      "name": "hello",
+      "params": [
+        {
+          "name": "param1",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32",
+            "examples": [
+              42
+            ]
+          }
+        },
+        {
+          "name": "param2",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "examples": [
+              "test"
+            ]
+          }
+        }
+      ],
+      "result": {
+        "name": "response",
+        "schema": {
+          "type": "string",
+          "examples": [
+            "ok"
+          ]
+        }
+      }
+    }
+  ]
+}

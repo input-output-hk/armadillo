@@ -1,0 +1,80 @@
+openrpc: 1.2.1
+info:
+  version: 1.0.0
+  title: Demo Pet Store
+methods:
+- name: createPet
+  params:
+  - name: animal
+    required: true
+    schema:
+      $ref: '#/components/schemas/Animal'
+  result:
+    name: empty result
+    schema: {}
+components:
+  schemas:
+    Amphibian:
+      title: Amphibian
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+    Animal:
+      title: Animal
+      oneOf:
+      - $ref: '#/components/schemas/Amphibian'
+      - $ref: '#/components/schemas/Bird'
+      - $ref: '#/components/schemas/Fish'
+      - $ref: '#/components/schemas/Invertebrate'
+      - $ref: '#/components/schemas/Mammal'
+      - $ref: '#/components/schemas/Reptile'
+    Bird:
+      title: Bird
+      required:
+      - name
+      - canFly
+      type: object
+      properties:
+        name:
+          type: string
+        canFly:
+          type: boolean
+    Fish:
+      title: Fish
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+    Invertebrate:
+      title: Invertebrate
+      required:
+      - name
+      - numberOfLegs
+      type: object
+      properties:
+        name:
+          type: string
+        numberOfLegs:
+          type: integer
+          format: int32
+    Mammal:
+      title: Mammal
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+    Reptile:
+      title: Reptile
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string

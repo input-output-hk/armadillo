@@ -1,0 +1,15 @@
+openrpc: 1.2.1
+info:
+  version: 1.0.0
+  title: Demo Pet Store
+methods:
+- name: getPetByNumber
+  params:
+  - name: parameter
+    required: true
+    schema:
+      type: string
+      description: Value needs to be correct
+  result:
+    name: empty result
+    schema: {}

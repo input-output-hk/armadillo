@@ -1,0 +1,37 @@
+openrpc: 1.2.1
+info:
+  version: 1.0.0
+  title: Demo Pet Store
+methods:
+- name: createPet
+  params:
+  - name: param1
+    required: true
+    schema:
+      $ref: '#/components/schemas/G_String'
+  - name: param2
+    required: true
+    schema:
+      $ref: '#/components/schemas/G_Int'
+  result:
+    name: empty result
+    schema: {}
+components:
+  schemas:
+    G_Int:
+      title: G_Int
+      required:
+      - data
+      type: object
+      properties:
+        data:
+          type: integer
+          format: int32
+    G_String:
+      title: G_String
+      required:
+      - data
+      type: object
+      properties:
+        data:
+          type: string

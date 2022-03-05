@@ -1,0 +1,30 @@
+openrpc: 1.2.1
+info:
+  version: 1.0.0
+  title: Demo Pet Store
+methods:
+- name: hello
+  tags:
+  - name: The name of the tag
+    summary: A short summary of the tag
+    description: A verbose explanation for the tag
+    externalDocs:
+      url: http://example.com
+      description: A verbose explanation of the target documentation
+  summary: A short summary of what the method does
+  description: A verbose explanation of the method behavior
+  params:
+  - name: param1
+    summary: A short summary of the content that is being described
+    description: A verbose explanation of the content descriptor behavior
+    required: true
+    schema:
+      type: integer
+      format: int32
+    deprecated: true
+  result:
+    name: response
+    summary: A short summary of the content that is being described
+    description: A verbose explanation of the content descriptor behavior
+    schema:
+      type: string

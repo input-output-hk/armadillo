@@ -1,0 +1,30 @@
+openrpc: 1.2.1
+info:
+  version: 1.0.0
+  title: Demo Pet Store
+methods:
+- name: createPet
+  params: []
+  result:
+    name: p1
+    schema:
+      $ref: '#/components/schemas/F2OrNull'
+components:
+  schemas:
+    F2:
+      title: F2
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/F2'
+    F2OrNull:
+      title: F2OrNull
+      oneOf:
+      - $ref: '#/components/schemas/F2'
+      - $ref: '#/components/schemas/Null'
+    'Null':
+      title: 'Null'
+      type: object
+      description: 'null'
