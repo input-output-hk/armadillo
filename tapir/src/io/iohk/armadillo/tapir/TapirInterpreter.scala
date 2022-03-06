@@ -1,10 +1,7 @@
 package io.iohk.armadillo.tapir
 
-import cats.implicits.catsSyntaxApplicativeError
-import cats.syntax.all.*
-import io.iohk.armadillo
 import io.iohk.armadillo.*
-import io.iohk.armadillo.Armadillo.{JsonRpcCodec, JsonRpcRequest, JsonRpcResponse}
+import io.iohk.armadillo.Armadillo.{JsonRpcRequest, JsonRpcResponse}
 import io.iohk.armadillo.tapir.TapirInterpreter.RichDecodeResult
 import io.iohk.armadillo.tapir.Utils.RichEndpointInput
 import sttp.monad.MonadError

@@ -6,15 +6,19 @@ import io.circe.generic.semiauto.*
 import io.iohk.armadillo.Armadillo.{JsonRpcRequest, JsonRpcResponse}
 import io.iohk.armadillo.tapir.JsonSupport
 import sttp.tapir.Codec.JsonCodec
+import sttp.tapir.SchemaType.SCoproduct
 import sttp.tapir.json.circe.circeCodec
 import sttp.tapir.{DecodeResult, Schema}
 
 class CirceJsonSupport extends JsonSupport[Json] {
-
-  implicit val jsonSchema: Schema[Json] = Schema.schemaForString.as
+  // Json is a coproduct with unknown implementations
+  implicit val schemaForCirceJson: Schema[Json] =
+    Schema(
+      SCoproduct(Nil, None)(_ => None),
+      None
+    )
 
   override def requestCodec: JsonCodec[JsonRpcRequest[Json]] = {
-
     val outerSchema: Schema[JsonRpcRequest[Json]] = Schema.derived[JsonRpcRequest[Json]]
     val outerEncoder: Encoder[JsonRpcRequest[Json]] = deriveEncoder[JsonRpcRequest[Json]]
     val outerDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
