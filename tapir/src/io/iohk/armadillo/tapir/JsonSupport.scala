@@ -1,6 +1,6 @@
 package io.iohk.armadillo.tapir
 
-import io.iohk.armadillo.Armadillo.{JsonRpcCodec, JsonRpcRequest, JsonRpcResponse}
+import io.iohk.armadillo.Armadillo.{JsonRpcRequest, JsonRpcResponse}
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.DecodeResult
 
