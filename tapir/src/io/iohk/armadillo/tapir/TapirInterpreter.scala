@@ -2,10 +2,12 @@ package io.iohk.armadillo.tapir
 
 import io.iohk.armadillo.*
 import io.iohk.armadillo.Armadillo.{JsonRpcRequest, JsonRpcResponse}
+import io.iohk.armadillo.tapir.Utils.RichEndpointInput
 import sttp.monad.MonadError
 import sttp.monad.syntax.*
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.EndpointIO.Info
+import sttp.tapir.internal.ParamsAsVector
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.{CodecFormat, DecodeResult, EndpointIO, RawBodyType, Schema}
 
@@ -30,22 +32,24 @@ class TapirInterpreter[F[_]](jsonSupport: JsonSupport)(implicit
       )
       .out(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.responseCodec, Info.empty))
       .errorOut(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.responseCodec, Info.empty))
-      .serverLogic { envelop =>
+      .serverLogic[F] { envelop =>
         println("entered serverLogic")
         val matchedEndpoint = jsonRpcEndpoints.find(_.endpoint.methodName.value == envelop.method) match {
           case Some(value) => value
           case None        => throw new IllegalStateException("Cannot happen because filtering codec passes through only matching methods")
         }
         println(s"matchedEndpoint :$matchedEndpoint")
-        val matchedBody = envelop.params.asInstanceOf[Vector[matchedEndpoint.I]]
-        matchedEndpoint.logic(monadError)(matchedBody.head).map {
+        val matchedBody = envelop.params.asInstanceOf[matchedEndpoint.I]
+        matchedEndpoint.logic(monadError)(matchedBody).map {
           case Left(value) =>
-            val errorCodec = getCodec(matchedEndpoint.endpoint.error)
-            Left(JsonRpcResponse("2.0", jsonSupport.parse(errorCodec.encode(value)), 1))
+//            val errorCodec = getCodec(matchedEndpoint.endpoint.error)
+//            Left(JsonRpcResponse("2.0", jsonSupport.parse(errorCodec.encode(value)), 1))
+            ???
           case Right(value) =>
             println(s"right response value: $value")
-            val outputCodec = getCodec(matchedEndpoint.endpoint.output)
-            Right(JsonRpcResponse("2.0", jsonSupport.parse(outputCodec.encode(value)), 1))
+//            val outputCodec = getCodec(matchedEndpoint.endpoint.output)
+//            Right(JsonRpcResponse("2.0", jsonSupport.parse(outputCodec.encode(value)), 1))
+            ???
         }
       }
     List(endpoint)
@@ -65,22 +69,34 @@ class TapirInterpreter[F[_]](jsonSupport: JsonSupport)(implicit
             endpoints.find(_.methodName.value == envelop.method) match {
               case Some(jsonRpcEndpoint) =>
                 println("Found")
-                val bodyCodec: JsonCodec[_] = getCodec(jsonRpcEndpoint.input)
-                val bodyAsString = jsonSupport.stringify(envelop.params.head)
-                println(s"bodyAsString: $bodyAsString")
-                val r = bodyCodec
-                  .rawDecode(bodyAsString)
-                  .map { decodedParams =>
-                    println("decoded")
-                    JsonRpcRequest(
-                      jsonrpc = envelop.jsonrpc,
-                      method = envelop.method,
-                      params = Vector(decodedParams.asInstanceOf[jsonSupport.Raw]),
-                      id = envelop.id
-                    )
-                  }
-                println(r)
-                r
+                val combinedDecoder = jsonSupport.combineDecode(jsonRpcEndpoint.input.asVectorOfBasicInputs.map(_.codec))
+                val combinedDecodeResult = combinedDecoder.apply(envelop.params)
+                combinedDecodeResult.map { paramsVector =>
+                  val params = ParamsAsVector(paramsVector).asAny
+                  JsonRpcRequest(
+                    jsonrpc = envelop.jsonrpc,
+                    method = envelop.method,
+                    params = params.asInstanceOf[jsonSupport.Raw],
+                    id = envelop.id
+                  )
+                }
+
+//                val bodyCodec: JsonCodec[_] = getCodec(jsonRpcEndpoint.input)
+//                val bodyAsString = jsonSupport.stringify(envelop.params)
+//                println(s"bodyAsString: $bodyAsString")
+//                val r = bodyCodec
+//                  .rawDecode(bodyAsString)
+//                  .map { decodedParams =>
+//                    println("decoded")
+//                    JsonRpcRequest(
+//                      jsonrpc = envelop.jsonrpc,
+//                      method = envelop.method,
+//                      params = decodedParams.asInstanceOf[jsonSupport.Raw],
+//                      id = envelop.id
+//                    )
+//                  }
+//                println(r)
+//                r
               case None =>
                 println("Not Found")
                 DecodeResult.Mismatch(endpoints.map(_.methodName).mkString(","), envelop.method)
@@ -95,33 +111,33 @@ class TapirInterpreter[F[_]](jsonSupport: JsonSupport)(implicit
       override def format: CodecFormat.Json = originalCodec.format
     }
 
-  private def getCodec[O](jsonRpcEndpointOutput: JsonRpcOutput[O]): JsonCodec[O] = {
-    println("getCodecOut")
-    val bodyCodec: JsonCodec[O] = jsonRpcEndpointOutput match {
-      case o: JsonRpcIO.Empty[O]  => ???
-      case o: JsonRpcIO.Single[O] => o.codec
-      case JsonRpcOutput.Pair(left, right, combine, split) =>
-        List(left, right).collectFirst { case o: JsonRpcIO.Single[O] => o.codec }.getOrElse(???).asInstanceOf[JsonCodec[O]]
-    }
-    println("gotCodecOut")
-    bodyCodec
-  }
+//  private def getCodec[O](jsonRpcEndpointOutput: JsonRpcOutput[O]): JsonCodec[O] = {
+//    println("getCodecOut")
+//    val bodyCodec: JsonCodec[O] = jsonRpcEndpointOutput match {
+//      case o: JsonRpcIO.Empty[O]  => ???
+//      case o: JsonRpcIO.Single[O] => o.codec
+//      case JsonRpcOutput.Pair(left, right, combine, split) =>
+//        List(left, right).collectFirst { case o: JsonRpcIO.Single[O] => o.codec }.getOrElse(???).asInstanceOf[JsonCodec[O]]
+//    }
+//    println("gotCodecOut")
+//    bodyCodec
+//  }
 
-  private def getCodec[I](jsonRpcEndpointInput: JsonRpcInput[I]): JsonCodec[I] = {
-    println("getCodecIn")
-    val bodyCodec = jsonRpcEndpointInput match {
-      case o: JsonRpcIO.Empty[I] =>
-        println("empty")
-        ???
-      case o: JsonRpcIO.Single[I] =>
-        o.codec
-      case JsonRpcInput.Pair(left, right, combine, split) =>
-        println("pair")
-        List(left, right).collectFirst { case o: JsonRpcIO.Single[I] => o.codec }.getOrElse(???).asInstanceOf[JsonCodec[I]]
-    }
-    println("gotCodecIn")
-    bodyCodec
-  }
+//  private def getCodec[I](jsonRpcEndpointInput: JsonRpcInput[I]): JsonCodec[I] = {
+//    println("getCodecIn")
+//    val bodyCodec = jsonRpcEndpointInput match {
+//      case o: JsonRpcIO.Empty[I] =>
+//        println("empty")
+//        ???
+//      case o: JsonRpcIO.Single[I] =>
+//        o.codec
+//      case JsonRpcInput.Pair(left, right, combine, split) =>
+//        println("pair")
+//        List(left, right).collectFirst { case o: JsonRpcIO.Single[I] => o.codec }.getOrElse(???).asInstanceOf[JsonCodec[I]]
+//    }
+//    println("gotCodecIn")
+//    bodyCodec
+//  }
 }
 
 object TapirInterpreter {}

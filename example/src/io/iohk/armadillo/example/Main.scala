@@ -23,15 +23,20 @@ object Main extends IOApp {
   implicit val rpcBlockResponseDecoder: Decoder[RpcBlockResponse] = deriveDecoder
   implicit val rpcBlockResponseSchema: Schema[RpcBlockResponse] = Schema.derived
 
-  case class RpcBlockResponse(number: BigInt)
+  case class RpcBlockResponse(number: Int)
+
+  // List(decode[T1](in: Raw): DecodeResult[T1], decode[T2](in: Raw): DecodeResult[T2])
+  //
 
   private val endpoint: JsonRpcServerEndpoint[IO] = jsonRpcEndpoint(MethodName("eth_getBlockByNumber"))
-    .in(jsonRpcBody[BigInt]("blockNumber"))
+    .in(
+      jsonRpcBody[Int]("blockNumber").and(jsonRpcBody[String]("includeTransactions"))
+    ) // TODO mozna by bylo miec .in[BigInt]("blockNumber").out[Option[RpcBlockResponse]]("blockResponse")
     .out(jsonRpcBody[Option[RpcBlockResponse]]("blockResponse"))
-    .serverLogic[IO] { input =>
+    .serverLogic[IO] { case (int, string) =>
       println("user logic")
-      println(s"with input $input")
-      IO.delay(RpcBlockResponse(input).some.asRight)
+      println(s"with input ${int + 123} ${string.toUpperCase}")
+      IO.delay(RpcBlockResponse(int).some.asRight)
     }
 
   override def run(args: List[String]): IO[ExitCode] = {
@@ -40,6 +45,7 @@ object Main extends IOApp {
     val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
+//    IO.unit.as(ExitCode.Success)
     BlazeServerBuilder[IO]
       .withExecutionContext(ec)
       .bindHttp(8545, "localhost")

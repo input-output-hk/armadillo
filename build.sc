@@ -20,6 +20,9 @@ object circe extends CommonModule {
   override def ivyDeps = Agg(
     ivy"com.softwaremill.sttp.tapir::tapir-json-circe:0.20.0"
   )
+
+  object test extends Tests with CommonTestModule
+
 }
 
 object tapir extends CommonModule {

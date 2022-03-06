@@ -1,5 +1,6 @@
 package io.iohk.armadillo
 
+import io.iohk.armadillo.Armadillo.JsonRpcCodec
 import sttp.monad.MonadError
 import sttp.tapir.Codec.{JsonCodec, id}
 import sttp.tapir.CodecFormat.{Json, TextPlain}
@@ -15,6 +16,8 @@ object Armadillo {
 
   trait JsonRpcCodec[H] {
     type L
+//    type Decoder[_]
+//    def decoder: Decoder[L]
     def decode(l: L): DecodeResult[H]
     def encode(h: H): L
     def schema: Schema[H]
@@ -27,9 +30,9 @@ object Armadillo {
       output = JsonRpcOutput.emptyOutput,
       error = JsonRpcOutput.emptyOutput
     )
-  def jsonRpcBody[T: JsonCodec](name: String): JsonRpcIO[T] = JsonRpcIO.Single(implicitly[JsonCodec[T]], Info.empty[T], name)
+  def jsonRpcBody[T: JsonRpcCodec](name: String): JsonRpcIO[T] = JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], Info.empty[T], name)
 
-  case class JsonRpcRequest[Raw](jsonrpc: String, method: String, params: Vector[Raw], id: Int)
+  case class JsonRpcRequest[Raw](jsonrpc: String, method: String, params: Raw, id: Int)
 
   case class JsonRpcResponse[Raw](jsonrpc: String, result: Raw, id: Int)
 }
@@ -60,14 +63,14 @@ sealed trait JsonRpcInput[T] {
 }
 
 object JsonRpcInput {
-  def idPlain(s: Schema[Unit] = Schema[Unit](SchemaType.SString())): JsonCodec[Unit] = new Codec[String, Unit, CodecFormat.Json] {
-    override def rawDecode(l: String): DecodeResult[Unit] = Value(())
+  def idPlain(s: Schema[Unit] = Schema[Unit](SchemaType.SString())): JsonRpcCodec[Unit] = new JsonRpcCodec[Unit] {
+    override type L = Nothing
 
-    override def encode(h: Unit): String = ???
+    override def encode(h: Unit): L = throw new RuntimeException("should not be called")
 
     override def schema: Schema[Unit] = s
 
-    override def format: Json = CodecFormat.Json()
+    override def decode(l: L): DecodeResult[Unit] = DecodeResult.Value(())
   }
   val emptyInput: JsonRpcInput[Unit] = JsonRpcIO.Empty(idPlain(), EndpointIO.Info.empty)
   case class Pair[T, U, TU](left: JsonRpcInput[T], right: JsonRpcInput[U], combine: CombineParams, split: SplitParams)
@@ -81,17 +84,15 @@ sealed trait JsonRpcOutput[T] {
 }
 
 object JsonRpcOutput {
-  def emptyOutputCodec(s: Schema[Unit] = Schema[Unit](SchemaType.SString())): JsonCodec[Unit] = new Codec[String, Unit, CodecFormat.Json] {
-
-    override def format: CodecFormat.Json = CodecFormat.Json()
-
-    override def rawDecode(l: String): DecodeResult[Unit] = Value(())
-
-    override def encode(h: Unit): String = null
+  def emptyOutputCodec(s: Schema[Unit] = Schema[Unit](SchemaType.SString())): JsonRpcCodec[Unit] = new JsonRpcCodec[Unit] {
+    override type L = Unit
 
     override def schema: Schema[Unit] = s
-  }
 
+    override def decode(l: Unit): DecodeResult[Unit] = throw new RuntimeException("should not be called")
+
+    override def encode(h: Unit): Unit = null
+  }
   val emptyOutput: JsonRpcOutput[Unit] = JsonRpcIO.Empty(emptyOutputCodec(), EndpointIO.Info.empty)
   case class Pair[T, U, TU](left: JsonRpcOutput[T], right: JsonRpcOutput[U], combine: CombineParams, split: SplitParams)
       extends JsonRpcOutput[TU]
@@ -99,9 +100,9 @@ object JsonRpcOutput {
 
 object JsonRpcIO {
 
-  case class Empty[T](codec: JsonCodec[Unit], info: Info[T]) extends JsonRpcIO[T]
+  case class Empty[T](codec: JsonRpcCodec[Unit], info: Info[T]) extends JsonRpcIO[T]
 
-  case class Single[T](codec: JsonCodec[T], info: Info[T], name: String) extends JsonRpcIO[T]
+  case class Single[T](codec: JsonRpcCodec[T], info: Info[T], name: String) extends JsonRpcIO[T]
 }
 
 abstract class JsonRpcServerEndpoint[F[_]] {
