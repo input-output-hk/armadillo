@@ -9,7 +9,7 @@ import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.EndpointIO.Info
 import sttp.tapir.internal.ParamsAsVector
 import sttp.tapir.server.ServerEndpoint
-import sttp.tapir.{CodecFormat, DecodeResult, EndpointIO, RawBodyType, Schema}
+import sttp.tapir.{DecodeResult, EndpointIO, RawBodyType}
 
 import java.nio.charset.StandardCharsets
 
@@ -42,14 +42,18 @@ class TapirInterpreter[F[_]](jsonSupport: JsonSupport)(implicit
         val matchedBody = envelop.params.asAny.asInstanceOf[matchedEndpoint.I]
         matchedEndpoint.logic(monadError)(matchedBody).map {
           case Left(value) =>
-//            val errorCodec = getCodec(matchedEndpoint.endpoint.error)
-//            Left(JsonRpcResponse("2.0", jsonSupport.parse(errorCodec.encode(value)), 1))
-            ???
+            val encodedError = matchedEndpoint.endpoint.error match {
+              case o: JsonRpcIO.Single[matchedEndpoint.E] => o.codec.encode(value)
+              case o: JsonRpcIO.Empty[matchedEndpoint.E]  => o.codec.encode(())
+            }
+            Left(JsonRpcResponse("2.0", encodedError.asInstanceOf[jsonSupport.Raw], 1))
           case Right(value) =>
             println(s"right response value: $value")
-//            val outputCodec = getCodec(matchedEndpoint.endpoint.output)
-//            Right(JsonRpcResponse("2.0", jsonSupport.parse(outputCodec.encode(value)), 1))
-            ???
+            val encodedOutput = matchedEndpoint.endpoint.output match {
+              case o: JsonRpcIO.Single[matchedEndpoint.O] => o.codec.encode(value)
+              case o: JsonRpcIO.Empty[matchedEndpoint.O]  => o.codec.encode(())
+            }
+            Right(JsonRpcResponse("2.0", encodedOutput.asInstanceOf[jsonSupport.Raw], 1))
         }
       }
     List(endpoint)

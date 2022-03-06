@@ -2,22 +2,15 @@ package io.iohk.armadillo
 
 import io.iohk.armadillo.Armadillo.JsonRpcCodec
 import sttp.monad.MonadError
-import sttp.tapir.Codec.{JsonCodec, id}
-import sttp.tapir.CodecFormat.{Json, TextPlain}
-import sttp.tapir.DecodeResult.Value
 import sttp.tapir.EndpointIO.Info
 import sttp.tapir.internal.{CombineParams, SplitParams, mkCombine, mkSplit}
 import sttp.tapir.typelevel.ParamConcat
-import sttp.tapir.{Codec, CodecFormat, DecodeResult, EndpointIO, Schema, SchemaType}
+import sttp.tapir.{DecodeResult, EndpointIO, Schema, SchemaType}
 
 object Armadillo {
 
-//  type JsonRpcCodec[L, H] = Codec[L, H, CodecFormat.Json]
-
   trait JsonRpcCodec[H] {
     type L
-//    type Decoder[_]
-//    def decoder: Decoder[L]
     def decode(l: L): DecodeResult[H]
     def encode(h: H): L
     def schema: Schema[H]
@@ -39,14 +32,14 @@ object Armadillo {
 
 case class MethodName(value: String) extends AnyVal
 case class JsonRpcEndpoint[I, E, O](methodName: MethodName, input: JsonRpcInput[I], output: JsonRpcOutput[O], error: JsonRpcOutput[E]) {
-  def in[J, IJ](i: JsonRpcInput[J])(implicit concat: ParamConcat.Aux[I, J, IJ]): JsonRpcEndpoint[IJ, E, O] =
-    copy(input = input.and(i))
+  def in[J](i: JsonRpcInput[J]): JsonRpcEndpoint[J, E, O] =
+    copy(input = i)
 
-  def out[P, OP](i: JsonRpcOutput[P])(implicit ts: ParamConcat.Aux[O, P, OP]): JsonRpcEndpoint[I, E, OP] =
-    copy(output = output.and(i))
+  def out[P](i: JsonRpcOutput[P]): JsonRpcEndpoint[I, E, P] =
+    copy(output = i)
 
-  def errorOut[F, EF](o: JsonRpcOutput[F])(implicit ts: ParamConcat.Aux[E, F, EF]): JsonRpcEndpoint[I, EF, O] =
-    copy(error = error.and(o))
+  def errorOut[F](o: JsonRpcOutput[F]): JsonRpcEndpoint[I, F, O] =
+    copy(error = o)
 
   def serverLogic[F[_]](f: I => F[Either[E, O]]): JsonRpcServerEndpoint[F] = {
     import sttp.monad.syntax.*
@@ -78,10 +71,7 @@ object JsonRpcInput {
 
 }
 
-sealed trait JsonRpcOutput[T] {
-  def and[J, IJ](other: JsonRpcOutput[J])(implicit concat: ParamConcat.Aux[T, J, IJ]): JsonRpcOutput[IJ] =
-    JsonRpcOutput.Pair(this, other, mkCombine(concat), mkSplit(concat))
-}
+sealed trait JsonRpcOutput[T]
 
 object JsonRpcOutput {
   def emptyOutputCodec(s: Schema[Unit] = Schema[Unit](SchemaType.SString())): JsonRpcCodec[Unit] = new JsonRpcCodec[Unit] {
@@ -94,8 +84,7 @@ object JsonRpcOutput {
     override def encode(h: Unit): Unit = null
   }
   val emptyOutput: JsonRpcOutput[Unit] = JsonRpcIO.Empty(emptyOutputCodec(), EndpointIO.Info.empty)
-  case class Pair[T, U, TU](left: JsonRpcOutput[T], right: JsonRpcOutput[U], combine: CombineParams, split: SplitParams)
-      extends JsonRpcOutput[TU]
+
 }
 
 object JsonRpcIO {
