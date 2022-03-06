@@ -1,7 +1,11 @@
 package io.iohk.armadillo.tapir
 
+import cats.implicits.catsSyntaxApplicativeError
+import cats.syntax.all.*
+import io.iohk.armadillo
 import io.iohk.armadillo.*
-import io.iohk.armadillo.Armadillo.{JsonRpcRequest, JsonRpcResponse}
+import io.iohk.armadillo.Armadillo.{JsonRpcCodec, JsonRpcRequest, JsonRpcResponse}
+import io.iohk.armadillo.tapir.TapirInterpreter.RichDecodeResult
 import io.iohk.armadillo.tapir.Utils.RichEndpointInput
 import sttp.monad.MonadError
 import sttp.monad.syntax.*
@@ -67,8 +71,11 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
       endpoints.find(_.methodName.value == envelop.method) match {
         case Some(jsonRpcEndpoint) =>
           println("Found")
-          val combinedDecoder = jsonSupport.combineDecode(jsonRpcEndpoint.input.asVectorOfBasicInputs.map(_.codec))
-          val combinedDecodeResult = combinedDecoder.apply(envelop.params)
+          val vectorCombinator = combineDecodeAsVector(jsonRpcEndpoint.input.asVectorOfBasicInputs)
+          val objectCombinator = combineDecodeAsObject(jsonRpcEndpoint.input.asVectorOfBasicInputs)
+          val combinedDecodeResult = vectorCombinator
+            .apply(envelop.params)
+            .orElse(objectCombinator.apply(envelop.params))
           combinedDecodeResult.map { paramsVector =>
             val params = ParamsAsVector(paramsVector)
             JsonRpcRequest(
@@ -85,6 +92,35 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
 
     } { _ => throw new RuntimeException("should not be called") }
   }
+
+  private def combineDecodeAsVector(in: Vector[JsonRpcIO.Single[_]]): Json => DecodeResult[Vector[_]] = { json =>
+    val ss = in.zipWithIndex.toList.map { case (JsonRpcIO.Single(codec, _, _), index) =>
+      val rawElement = jsonSupport.getByIndex(json, index)
+      rawElement.flatMap(r => codec.decode(r.asInstanceOf[codec.L]))
+    }
+    DecodeResult.sequence(ss).map(_.toVector)
+  }
+
+  private def combineDecodeAsObject(in: Vector[JsonRpcIO.Single[_]]): Json => DecodeResult[Vector[_]] = { json =>
+    val ss = in.toList.map { case JsonRpcIO.Single(codec, _, name) =>
+      val rawElement = jsonSupport.getByField(json, name)
+      rawElement.flatMap(r => codec.decode(r.asInstanceOf[codec.L]))
+    }
+    DecodeResult.sequence(ss).map(_.toVector)
+  }
 }
 
-object TapirInterpreter {}
+object TapirInterpreter {
+  implicit class RichDecodeResult[T](decodeResult: DecodeResult[T]) {
+    def orElse(other: => DecodeResult[T]): DecodeResult[T] = {
+      decodeResult match {
+        case firstFailure: DecodeResult.Failure =>
+          other match {
+            case secondFailure: DecodeResult.Failure => DecodeResult.Multiple(Seq(firstFailure, secondFailure))
+            case success: DecodeResult.Value[T]      => success
+          }
+        case success: DecodeResult.Value[T] => success
+      }
+    }
+  }
+}

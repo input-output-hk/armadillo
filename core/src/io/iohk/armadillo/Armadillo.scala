@@ -16,12 +16,12 @@ object Armadillo {
     def schema: Schema[H]
   }
 
-  def jsonRpcEndpoint(str: MethodName): JsonRpcEndpoint[Unit, Unit, Unit] =
+  def jsonRpcEndpoint(str: MethodName)(implicit emptyCodec: JsonRpcCodec[Unit]): JsonRpcEndpoint[Unit, Unit, Unit] =
     JsonRpcEndpoint(
       methodName = str,
       input = JsonRpcInput.emptyInput,
-      output = JsonRpcOutput.emptyOutput,
-      error = JsonRpcOutput.emptyOutput
+      output = JsonRpcOutput.emptyOutput(emptyCodec),
+      error = JsonRpcOutput.emptyOutput(emptyCodec)
     )
   def jsonRpcBody[T: JsonRpcCodec](name: String): JsonRpcIO[T] = JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], Info.empty[T], name)
 
@@ -75,15 +75,15 @@ sealed trait JsonRpcOutput[T]
 
 object JsonRpcOutput {
   def emptyOutputCodec(s: Schema[Unit] = Schema[Unit](SchemaType.SString())): JsonRpcCodec[Unit] = new JsonRpcCodec[Unit] {
-    override type L = Unit
+    override type L = Nothing
 
     override def schema: Schema[Unit] = s
 
-    override def decode(l: Unit): DecodeResult[Unit] = throw new RuntimeException("should not be called")
+    override def decode(l: Nothing): DecodeResult[Unit] = DecodeResult.Value(())
 
-    override def encode(h: Unit): Unit = null
+    override def encode(h: Unit): Nothing = throw new RuntimeException("should not be called")
   }
-  val emptyOutput: JsonRpcOutput[Unit] = JsonRpcIO.Empty(emptyOutputCodec(), EndpointIO.Info.empty)
+  def emptyOutput(emptyCodec: JsonRpcCodec[Unit]): JsonRpcOutput[Unit] = JsonRpcIO.Empty(emptyCodec, EndpointIO.Info.empty)
 
 }
 
