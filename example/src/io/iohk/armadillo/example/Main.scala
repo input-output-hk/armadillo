@@ -3,7 +3,7 @@ package io.iohk.armadillo.example
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits.{catsSyntaxEitherId, catsSyntaxOptionId}
 import io.circe.generic.semiauto.*
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, Json}
 import io.iohk.armadillo.Armadillo.{jsonRpcBody, jsonRpcEndpoint}
 import io.iohk.armadillo.json.circe.*
 import io.iohk.armadillo.tapir.TapirInterpreter
@@ -40,7 +40,7 @@ object Main extends IOApp {
     }
 
   override def run(args: List[String]): IO[ExitCode] = {
-    val tapirInterpreter = new TapirInterpreter[IO](new CirceJsonSupport)(new CatsMonadError)
+    val tapirInterpreter = new TapirInterpreter[IO, Json](new CirceJsonSupport)(new CatsMonadError)
     val tapirEndpoints = tapirInterpreter.apply(List(endpoint))
     val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global

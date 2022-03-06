@@ -17,7 +17,7 @@ trait Provider[W[_]] {
   def codec[T](bodyCodec: JsonCodec[T]): JsonCodec[W[T]]
 }
 
-class TapirInterpreter[F[_]](jsonSupport: JsonSupport)(implicit
+class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
     monadError: MonadError[F]
 ) {
 
@@ -46,21 +46,21 @@ class TapirInterpreter[F[_]](jsonSupport: JsonSupport)(implicit
               case o: JsonRpcIO.Single[matchedEndpoint.E] => o.codec.encode(value)
               case o: JsonRpcIO.Empty[matchedEndpoint.E]  => o.codec.encode(())
             }
-            Left(JsonRpcResponse("2.0", encodedError.asInstanceOf[jsonSupport.Raw], 1))
+            Left(JsonRpcResponse("2.0", encodedError.asInstanceOf[Json], 1))
           case Right(value) =>
             println(s"right response value: $value")
             val encodedOutput = matchedEndpoint.endpoint.output match {
               case o: JsonRpcIO.Single[matchedEndpoint.O] => o.codec.encode(value)
               case o: JsonRpcIO.Empty[matchedEndpoint.O]  => o.codec.encode(())
             }
-            Right(JsonRpcResponse("2.0", encodedOutput.asInstanceOf[jsonSupport.Raw], 1))
+            Right(JsonRpcResponse("2.0", encodedOutput.asInstanceOf[Json], 1))
         }
       }
     List(endpoint)
   }
   private def hackyCodec(
       endpoints: List[JsonRpcEndpoint[_, _, _]],
-      originalCodec: JsonCodec[JsonRpcRequest[jsonSupport.Raw]]
+      originalCodec: JsonCodec[JsonRpcRequest[Json]]
   ): JsonCodec[JsonRpcRequest[ParamsAsVector]] = {
     originalCodec.mapDecode { envelop =>
       println(s"decoded envelop $envelop")

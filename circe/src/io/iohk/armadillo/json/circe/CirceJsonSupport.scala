@@ -1,17 +1,16 @@
 package io.iohk.armadillo.json.circe
 
-import cats.Traverse.ops.toAllTraverseOps
+import cats.syntax.all.*
 import io.circe.Decoder.Result
 import io.circe.generic.semiauto.*
-import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json, Printer}
+import io.circe.*
 import io.iohk.armadillo.Armadillo.{JsonRpcCodec, JsonRpcRequest, JsonRpcResponse}
 import io.iohk.armadillo.tapir.JsonSupport
 import sttp.tapir.Codec.JsonCodec
-import sttp.tapir.{DecodeResult, EndpointInput, Schema}
 import sttp.tapir.json.circe.circeCodec
+import sttp.tapir.{DecodeResult, Schema}
 
-class CirceJsonSupport extends JsonSupport {
-  override type Raw = Json
+class CirceJsonSupport extends JsonSupport[Json] {
 
   implicit val jsonSchema: Schema[Json] = Schema.schemaForString.as
 
@@ -30,7 +29,7 @@ class CirceJsonSupport extends JsonSupport {
     circeCodec[JsonRpcResponse[Json]](outerEncoder, outerDecoder, outerSchema)
   }
 
-  override def combineDecode(in: Vector[JsonRpcCodec[_]]): Raw => DecodeResult[Vector[_]] = { json =>
+  override def combineDecode(in: Vector[JsonRpcCodec[_]]): Json => DecodeResult[Vector[_]] = { json =>
     val decoder = new Decoder[Vector[_]] {
       override def apply(c: HCursor): Result[Vector[_]] = {
         in.zipWithIndex.traverse { case (item, index) =>
