@@ -1,6 +1,6 @@
 package io.iohk.armadillo
 
-import io.iohk.armadillo.Armadillo.JsonRpcCodec
+import io.iohk.armadillo.Armadillo.{JsonRpcCodec, jsonRpcBody}
 import sttp.monad.MonadError
 import sttp.tapir.EndpointIO.Info
 import sttp.tapir.internal.{CombineParams, SplitParams, mkCombine, mkSplit}
@@ -35,16 +35,22 @@ case class JsonRpcEndpoint[I, E, O](methodName: MethodName, input: JsonRpcInput[
   def in[J](i: JsonRpcInput[J]): JsonRpcEndpoint[J, E, O] =
     copy(input = i)
 
-  def out[P](i: JsonRpcOutput[P]): JsonRpcEndpoint[I, E, P] =
-    copy(output = i)
-
-  def errorOut[F](o: JsonRpcOutput[F]): JsonRpcEndpoint[I, F, O] =
-    copy(error = o)
+//  def out[P](i: JsonRpcOutput[P]): JsonRpcEndpoint[I, E, P] =
+//    copy(output = i)
+//
+//  def errorOut[F](o: JsonRpcOutput[F]): JsonRpcEndpoint[I, F, O] =
+//    copy(error = o)
 
   def serverLogic[F[_]](f: I => F[Either[E, O]]): JsonRpcServerEndpoint[F] = {
     import sttp.monad.syntax.*
     JsonRpcServerEndpoint[I, E, O, F](this, implicit m => i => f(i).map(x => x))
   }
+
+  def out[P](name: String)(implicit jsonRpcCodec: JsonRpcCodec[P]): JsonRpcEndpoint[I, E, P] =
+    copy(output = jsonRpcBody[P](name))
+
+  def errorOut[F](name: String)(implicit jsonRpcCodec: JsonRpcCodec[F]): JsonRpcEndpoint[I, F, O] =
+    copy(error = jsonRpcBody[F](name))
 }
 
 sealed trait JsonRpcIO[T] extends JsonRpcInput[T] with JsonRpcOutput[T]

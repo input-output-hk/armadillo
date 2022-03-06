@@ -32,7 +32,7 @@ object Main extends IOApp {
     .in(
       jsonRpcBody[Int]("blockNumber").and(jsonRpcBody[String]("includeTransactions"))
     ) // TODO mozna by bylo miec .in[BigInt]("blockNumber").out[Option[RpcBlockResponse]]("blockResponse")
-    .out(jsonRpcBody[Option[RpcBlockResponse]]("blockResponse"))
+    .out[Option[RpcBlockResponse]]("blockResponse")
     .serverLogic[IO] { case (int, string) =>
       println("user logic")
       println(s"with input ${int + 123} ${string.toUpperCase}")
