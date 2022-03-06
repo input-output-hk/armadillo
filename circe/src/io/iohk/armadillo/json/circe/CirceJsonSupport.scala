@@ -30,13 +30,6 @@ class CirceJsonSupport extends JsonSupport {
     circeCodec[JsonRpcResponse[Json]](outerEncoder, outerDecoder, outerSchema)
   }
 
-  override def parse(str: String): Json = io.circe.parser.parse(str) match {
-    case Left(value)  => throw new IllegalStateException("cannot happen as string is already parsed", value)
-    case Right(value) => value
-  }
-
-  override def stringify(raw: Json): String = Printer.noSpaces.print(raw)
-
   override def combineDecode(in: Vector[JsonRpcCodec[_]]): Raw => DecodeResult[Vector[_]] = { json =>
     val decoder = new Decoder[Vector[_]] {
       override def apply(c: HCursor): Result[Vector[_]] = {
