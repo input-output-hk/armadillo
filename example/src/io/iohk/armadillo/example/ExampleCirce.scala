@@ -4,7 +4,7 @@ import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits.{catsSyntaxEitherId, catsSyntaxOptionId}
 import io.circe.generic.semiauto.*
 import io.circe.{Decoder, Encoder, Json}
-import io.iohk.armadillo.Armadillo.{jsonRpcBody, jsonRpcEndpoint}
+import io.iohk.armadillo.Armadillo.{param, jsonRpcEndpoint}
 import io.iohk.armadillo.json.circe.*
 import io.iohk.armadillo.tapir.TapirInterpreter
 import io.iohk.armadillo.{JsonRpcServerEndpoint, MethodName}
@@ -30,7 +30,7 @@ object ExampleCirce extends IOApp {
 
   val endpoint: JsonRpcServerEndpoint[IO] = jsonRpcEndpoint(MethodName("eth_getBlockByNumber"))
     .in(
-      jsonRpcBody[Int]("blockNumber").and(jsonRpcBody[String]("includeTransactions"))
+      param[Int]("blockNumber").and(param[String]("includeTransactions"))
     )
     .out[Option[RpcBlockResponse]]("blockResponse")
     .serverLogic[IO] { case (int, string) =>

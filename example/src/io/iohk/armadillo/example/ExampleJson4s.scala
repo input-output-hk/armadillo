@@ -2,7 +2,7 @@ package io.iohk.armadillo.example
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.syntax.all.*
-import io.iohk.armadillo.Armadillo.{jsonRpcBody, jsonRpcEndpoint}
+import io.iohk.armadillo.Armadillo.{param, jsonRpcEndpoint}
 import io.iohk.armadillo.example.ExampleCirce.RpcBlockResponse
 import io.iohk.armadillo.{JsonRpcServerEndpoint, MethodName}
 import io.iohk.armadillo.json.json4s.Json4sSupport
@@ -24,7 +24,7 @@ object ExampleJson4s extends IOApp {
 
   val endpoint: JsonRpcServerEndpoint[IO] = jsonRpcEndpoint(MethodName("eth_getBlockByNumber"))(jsonRpcCodec)
     .in(
-      jsonRpcBody[Int]("blockNumber").and(jsonRpcBody[String]("includeTransactions"))
+      param[Int]("blockNumber").and(param[String]("includeTransactions"))
     )
     .out[Option[RpcBlockResponse]]("blockResponse")
     .serverLogic[IO] { case (int, string) =>
