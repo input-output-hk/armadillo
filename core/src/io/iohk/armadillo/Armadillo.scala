@@ -35,12 +35,6 @@ case class JsonRpcEndpoint[I, E, O](methodName: MethodName, input: JsonRpcInput[
   def in[J](i: JsonRpcInput[J]): JsonRpcEndpoint[J, E, O] =
     copy(input = i)
 
-//  def out[P](i: JsonRpcOutput[P]): JsonRpcEndpoint[I, E, P] =
-//    copy(output = i)
-//
-//  def errorOut[F](o: JsonRpcOutput[F]): JsonRpcEndpoint[I, F, O] =
-//    copy(error = o)
-
   def serverLogic[F[_]](f: I => F[Either[E, O]]): JsonRpcServerEndpoint[F] = {
     import sttp.monad.syntax.*
     JsonRpcServerEndpoint[I, E, O, F](this, implicit m => i => f(i).map(x => x))
