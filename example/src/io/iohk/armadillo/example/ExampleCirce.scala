@@ -4,7 +4,7 @@ import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits.{catsSyntaxEitherId, catsSyntaxOptionId}
 import io.circe.generic.semiauto.*
 import io.circe.{Decoder, Encoder, Json}
-import io.iohk.armadillo.Armadillo.{param, jsonRpcEndpoint}
+import io.iohk.armadillo.Armadillo.{jsonRpcEndpoint, param}
 import io.iohk.armadillo.json.circe.*
 import io.iohk.armadillo.tapir.TapirInterpreter
 import io.iohk.armadillo.{JsonRpcServerEndpoint, MethodName}
@@ -12,7 +12,6 @@ import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import sttp.tapir.Schema
 import sttp.tapir.integ.cats.*
-import sttp.tapir.json.circe.*
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 
 import scala.concurrent.ExecutionContext

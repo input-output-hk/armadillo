@@ -2,18 +2,17 @@ package io.iohk.armadillo.example
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.syntax.all.*
-import io.iohk.armadillo.Armadillo.{param, jsonRpcEndpoint}
+import io.iohk.armadillo.Armadillo.{jsonRpcEndpoint, param}
 import io.iohk.armadillo.example.ExampleCirce.RpcBlockResponse
-import io.iohk.armadillo.{JsonRpcServerEndpoint, MethodName}
-import io.iohk.armadillo.json.json4s.Json4sSupport
+import io.iohk.armadillo.json.json4s.*
 import io.iohk.armadillo.tapir.TapirInterpreter
+import io.iohk.armadillo.{JsonRpcServerEndpoint, MethodName}
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import org.json4s.{Formats, JValue, NoTypeHints, Serialization}
+import sttp.tapir.Schema
 import sttp.tapir.integ.cats.CatsMonadError
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
-import io.iohk.armadillo.json.json4s.*
-import sttp.tapir.Schema
 
 import scala.concurrent.ExecutionContext
 
