@@ -45,7 +45,7 @@ object tapir extends CommonModule {
 }
 
 object example extends CommonModule {
-  override def moduleDeps = Seq(core, tapir, circe, json4s)
+  override def moduleDeps = Seq(core, tapir, circe, json4s, trace4cats)
 
   override def ivyDeps = Agg(
     ivy"org.typelevel::cats-effect::3.3.5",
@@ -55,7 +55,20 @@ object example extends CommonModule {
     ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::0.20.0",
     ivy"com.softwaremill.sttp.tapir::tapir-cats::0.20.0",
     ivy"org.json4s::json4s-core::4.0.4",
-    ivy"org.json4s::json4s-jackson:4.0.4"
+    ivy"org.json4s::json4s-jackson:4.0.4",
+    ivy"io.janstenpickle::trace4cats-log-exporter::0.12.0",
+  ivy"io.janstenpickle::trace4cats-avro-exporter::0.12.0",
+    ivy"ch.qos.logback:logback-classic:1.2.7",
+  )
+}
+
+object trace4cats extends CommonModule {
+  override def moduleDeps = Seq(core)
+  override def ivyDeps = Agg(
+    ivy"io.janstenpickle::trace4cats-base::0.12.0",
+    ivy"io.janstenpickle::trace4cats-core::0.12.0",
+    ivy"io.janstenpickle::trace4cats-inject::0.12.0",
+    ivy"com.softwaremill.sttp.tapir::tapir-cats::0.20.0"
   )
 }
 
@@ -78,4 +91,7 @@ trait CommonTestModule extends BaseModule with TestModule {
 trait CommonModule extends BaseModule {
   def scalaVersion = "2.13.8"
 
+  override def scalacPluginIvyDeps = Agg(
+    ivy"org.typelevel:::kind-projector:0.13.2"
+  )
 }
