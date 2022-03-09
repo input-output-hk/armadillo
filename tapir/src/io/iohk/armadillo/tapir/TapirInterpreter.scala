@@ -43,18 +43,18 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
       case Some(value) => value
       case None        => throw new IllegalStateException("Cannot happen because filtering codec passes through only matching methods")
     }
-    val matchedBody = envelop.params.asAny.asInstanceOf[matchedEndpoint.I]
+    val matchedBody = envelop.params.asAny.asInstanceOf[matchedEndpoint.INPUT]
     matchedEndpoint.logic(monadError)(matchedBody).map {
       case Left(value) =>
         val encodedError = matchedEndpoint.endpoint.error match {
-          case o: JsonRpcIO.Single[matchedEndpoint.E] => o.codec.encode(value)
-          case o: JsonRpcIO.Empty[matchedEndpoint.E]  => o.codec.encode(())
+          case o: JsonRpcIO.Single[matchedEndpoint.ERROR_OUTPUT] => o.codec.encode(value)
+          case o: JsonRpcIO.Empty[matchedEndpoint.ERROR_OUTPUT]  => o.codec.encode(())
         }
         Left(JsonRpcResponse("2.0", encodedError.asInstanceOf[Json], 1))
       case Right(value) =>
         val encodedOutput = matchedEndpoint.endpoint.output match {
-          case o: JsonRpcIO.Single[matchedEndpoint.O] => o.codec.encode(value)
-          case o: JsonRpcIO.Empty[matchedEndpoint.O]  => o.codec.encode(())
+          case o: JsonRpcIO.Single[matchedEndpoint.OUTPUT] => o.codec.encode(value)
+          case o: JsonRpcIO.Empty[matchedEndpoint.OUTPUT]  => o.codec.encode(())
         }
         Right(JsonRpcResponse("2.0", encodedOutput.asInstanceOf[Json], 1))
     }

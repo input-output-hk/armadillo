@@ -35,7 +35,7 @@ case class JsonRpcEndpoint[I, E, O](methodName: MethodName, input: JsonRpcInput[
   def in[J](i: JsonRpcInput[J]): JsonRpcEndpoint[J, E, O] =
     copy(input = i)
 
-  def serverLogic[F[_]](f: I => F[Either[E, O]]): JsonRpcServerEndpoint[F] = {
+  def serverLogic[F[_]](f: I => F[Either[E, O]]): JsonRpcServerEndpoint.Full[I, E, O, F] = {
     import sttp.monad.syntax.*
     JsonRpcServerEndpoint[I, E, O, F](this, implicit m => i => f(i).map(x => x))
   }
@@ -95,31 +95,41 @@ object JsonRpcIO {
 }
 
 abstract class JsonRpcServerEndpoint[F[_]] {
-  type I
-  type E
-  type O
+  type INPUT
+  type ERROR_OUTPUT
+  type OUTPUT
 
-  def endpoint: JsonRpcEndpoint[I, E, O]
-  def logic: MonadError[F] => I => F[Either[E, O]]
+  def endpoint: JsonRpcEndpoint[INPUT, ERROR_OUTPUT, OUTPUT]
+  def logic: MonadError[F] => INPUT => F[Either[ERROR_OUTPUT, OUTPUT]]
 }
 object JsonRpcServerEndpoint {
-  def apply[I, E, O, F[_]](
-      endpoint: JsonRpcEndpoint[I, E, O],
-      function: MonadError[F] => I => F[Either[E, O]]
-  ): JsonRpcServerEndpoint[F] = {
-    type _I = I
-    type _E = E
-    type _O = O
+
+  /** The full type of a server endpoint, capturing the types of all input/output parameters. Most of the time, the simpler
+    * `JsonRpcServerEndpoint[R, F]` can be used instead.
+    */
+  type Full[_INPUT, _ERROR_OUTPUT, _OUTPUT, F[_]] = JsonRpcServerEndpoint[F] {
+    type INPUT = _INPUT
+    type ERROR_OUTPUT = _ERROR_OUTPUT
+    type OUTPUT = _OUTPUT
+  }
+
+  def apply[INPUT, ERROR_OUTPUT, OUTPUT, F[_]](
+      endpoint: JsonRpcEndpoint[INPUT, ERROR_OUTPUT, OUTPUT],
+      function: MonadError[F] => INPUT => F[Either[ERROR_OUTPUT, OUTPUT]]
+  ): JsonRpcServerEndpoint.Full[INPUT, ERROR_OUTPUT, OUTPUT, F] = {
+    type _INPUT = INPUT
+    type _ERROR_OUTPUT = ERROR_OUTPUT
+    type _OUTPUT = OUTPUT
     val e = endpoint
     val f = function
     new JsonRpcServerEndpoint[F] {
-      override type I = _I
-      override type E = _E
-      override type O = _O
+      override type INPUT = _INPUT
+      override type ERROR_OUTPUT = _ERROR_OUTPUT
+      override type OUTPUT = _OUTPUT
 
-      override def endpoint: JsonRpcEndpoint[I, E, O] = e
+      override def endpoint: JsonRpcEndpoint[INPUT, ERROR_OUTPUT, OUTPUT] = e
 
-      override def logic: MonadError[F] => I => F[Either[E, O]] = f
+      override def logic: MonadError[F] => INPUT => F[Either[ERROR_OUTPUT, OUTPUT]] = f
     }
   }
 }
