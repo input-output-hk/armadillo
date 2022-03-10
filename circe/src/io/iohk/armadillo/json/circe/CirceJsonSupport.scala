@@ -61,7 +61,9 @@ class CirceJsonSupport extends JsonSupport[Json] {
     }
   }
 
-  override def empty: Json = Json.Null
+//  override def emptyList: Json = Json.arr()
 
-  override def emptyList: Json = Json.arr()
+  override def asArray(seq: Vector[Json]): Json = Json.arr(seq *)
+
+  override def asObject(fields: Map[String, Json]): Json = Json.obj(fields.toList *)
 }

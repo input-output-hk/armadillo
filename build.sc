@@ -60,6 +60,8 @@ object example extends CommonModule {
       ivy"io.janstenpickle::trace4cats-log-exporter::${Version.Trace4cats}",
       ivy"io.janstenpickle::trace4cats-avro-exporter::${Version.Trace4cats}",
       ivy"ch.qos.logback:logback-classic:1.2.7",
+      ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
+      ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1"
     )
 }
 
@@ -76,7 +78,8 @@ object trace4cats extends CommonModule {
 trait BaseModule extends ScalaModule with ScalafmtModule with TpolecatModule with ScalafixModule {
   override def scalacOptions = T {
     super.scalacOptions().filterNot(Set("-Xfatal-warnings")) ++ Seq(
-      "-Ymacro-annotations"
+      "-Ymacro-annotations",
+      "-Ywarn-value-discard"
     )
   }
 

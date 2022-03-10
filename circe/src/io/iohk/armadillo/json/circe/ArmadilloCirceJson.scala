@@ -1,9 +1,9 @@
 package io.iohk.armadillo.json.circe
 
+import io.circe.generic.semiauto.*
 import io.circe.{Decoder, Encoder, Json}
 import io.iohk.armadillo.Armadillo.{JsonRpcCodec, JsonRpcError}
 import sttp.tapir.{DecodeResult, Schema}
-import io.circe.generic.semiauto.*
 
 trait ArmadilloCirceJson {
   implicit def jsonRpcCodec[H: Encoder: Decoder: Schema]: JsonRpcCodec[H] = new JsonRpcCodec[H] {

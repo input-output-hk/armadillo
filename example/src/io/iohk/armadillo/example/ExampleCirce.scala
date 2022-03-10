@@ -1,18 +1,20 @@
 package io.iohk.armadillo.example
 
 import cats.effect.{ExitCode, IO, IOApp}
-import cats.implicits.{catsSyntaxEitherId, catsSyntaxOptionId}
 import io.circe.generic.semiauto.*
 import io.circe.{Decoder, Encoder, Json}
-import io.iohk.armadillo.Armadillo.{JsonRpcError, jsonRpcEndpoint, param}
+import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcRequest, jsonRpcEndpoint, param}
 import io.iohk.armadillo.json.circe.*
 import io.iohk.armadillo.tapir.TapirInterpreter
 import io.iohk.armadillo.{JsonRpcServerEndpoint, MethodName}
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
-import sttp.tapir.Schema
+import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
+import sttp.model.Uri
 import sttp.tapir.integ.cats.*
+import sttp.tapir.internal.ParamsAsVector
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
+import sttp.tapir.{DecodeResult, Schema}
 
 import scala.concurrent.ExecutionContext
 
@@ -31,12 +33,11 @@ object ExampleCirce extends IOApp {
     .in(
       param[Int]("blockNumber").and(param[String]("includeTransactions"))
     )
-    .errorOut[Int]("qwe")
     .out[Option[RpcBlockResponse]]("blockResponse")
     .serverLogic[IO] { case (int, string) =>
       println("user logic")
       println(s"with input ${int + 123} ${string.toUpperCase}")
-      IO.delay(Left(List(JsonRpcError(1, "q", 11))))
+      IO.delay(Left(List(JsonRpcError[Unit](1, "q", int))))
     }
 
   override def run(args: List[String]): IO[ExitCode] = {
@@ -44,15 +45,28 @@ object ExampleCirce extends IOApp {
     val tapirEndpoints = tapirInterpreter.apply(List(endpoint))
     val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+    import sttp.tapir.client.sttp.SttpClientInterpreter
 
-//    IO.unit.as(ExitCode.Success)
     BlazeServerBuilder[IO]
       .withExecutionContext(ec)
       .bindHttp(8545, "localhost")
       .withHttpApp(Router("/" -> routes).orNotFound)
       .resource
-      .use { _ =>
-        IO.never
+      .flatMap { _ =>
+        AsyncHttpClientCatsBackend.resource[IO]()
+      }
+      .use { client =>
+        val sttpClient = SttpClientInterpreter().toClient(tapirEndpoints.endpoint, Some(Uri.apply("localhost", 8545)), client)
+        sttpClient.apply(JsonRpcRequest("a", "eth_getBlockByNumber", ParamsAsVector(Vector(123, "true")), 1)).map {
+          case failure: DecodeResult.Failure => println(s"response decoding failure $failure")
+          case DecodeResult.Value(v) =>
+            v match {
+              case Left(value) =>
+                println(s"error response: ${value.error.noSpaces}")
+              case Right(value) =>
+                println(s"response ${value.result.noSpaces}")
+            }
+        } >> IO.never
       }
       .as(ExitCode.Success)
   }

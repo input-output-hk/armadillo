@@ -4,7 +4,6 @@ import cats.Applicative
 import cats.data.Kleisli
 import cats.effect.kernel.{MonadCancelThrow, Resource, Sync}
 import cats.effect.{ExitCode, IO, IOApp}
-import cats.syntax.all.*
 import io.iohk.armadillo.Armadillo.{JsonRpcError, jsonRpcEndpoint, param}
 import io.iohk.armadillo.example.ExampleCirce.RpcBlockResponse
 import io.iohk.armadillo.json.json4s.*

@@ -3,7 +3,7 @@ package io.iohk.armadillo.json.json4s
 import io.iohk.armadillo.Armadillo.{JsonRpcErrorResponse, JsonRpcRequest, JsonRpcResponse}
 import io.iohk.armadillo.tapir.JsonSupport
 import org.json4s.JsonAST.JValue
-import org.json4s.{Formats, JArray, JNull, JObject, Serialization}
+import org.json4s.{Formats, JArray, JObject, Serialization}
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.SchemaType.SCoproduct
 import sttp.tapir.json.json4s.*
@@ -54,7 +54,9 @@ class Json4sSupport(implicit formats: Formats, serialization: Serialization) ext
     }
   }
 
-  override def empty: JValue = JNull
+//  override def emptyList: JValue = JArray(List.empty)
 
-  override def emptyList: JValue = JArray(List.empty)
+  override def asArray(seq: Vector[JValue]): JValue = JArray(seq.toList)
+
+  override def asObject(fields: Map[String, JValue]): JValue = JObject(fields.toList)
 }

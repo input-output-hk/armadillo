@@ -9,8 +9,8 @@ trait JsonSupport[Raw] {
   def outCodec: JsonCodec[JsonRpcResponse[Raw]]
   def errorOutCodec: JsonCodec[JsonRpcErrorResponse[Raw]]
 
-  def empty: Raw
-  def emptyList: Raw
+  def asArray(seq: Vector[Raw]): Raw
+  def asObject(fields: Map[String, Raw]): Raw
 
   def getByIndex(arr: Raw, index: Int): DecodeResult[Raw]
   def getByField(obj: Raw, field: String): DecodeResult[Raw]
