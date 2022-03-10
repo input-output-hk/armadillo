@@ -3,7 +3,7 @@ package io.iohk.armadillo.json.circe
 import cats.syntax.all.*
 import io.circe.*
 import io.circe.generic.semiauto.*
-import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcErrorResponse, JsonRpcRequest, JsonRpcResponse}
+import io.iohk.armadillo.Armadillo.{JsonRpcErrorResponse, JsonRpcRequest, JsonRpcResponse}
 import io.iohk.armadillo.tapir.JsonSupport
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.SchemaType.SCoproduct
@@ -33,11 +33,8 @@ class CirceJsonSupport extends JsonSupport[Json] {
   }
 
   override def errorOutCodec: JsonCodec[JsonRpcErrorResponse[Json]] = {
-    implicit val jsonRpcErrorSchema: Schema[JsonRpcError[Json]] = Schema.derived[JsonRpcError[Json]]
     val outerSchema = Schema.derived[JsonRpcErrorResponse[Json]]
-    implicit val jsonRpcErrorEncoder: Encoder.AsObject[JsonRpcError[Json]] = deriveEncoder[JsonRpcError[Json]]
     val outerEncoder = deriveEncoder[JsonRpcErrorResponse[Json]]
-    implicit val jsonRpcErrorDecoder: Decoder[JsonRpcError[Json]] = deriveDecoder[JsonRpcError[Json]]
     val outerDecoder = deriveDecoder[JsonRpcErrorResponse[Json]]
     circeCodec[JsonRpcErrorResponse[Json]](outerEncoder, outerDecoder, outerSchema)
   }
