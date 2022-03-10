@@ -1,14 +1,12 @@
 package io.iohk.armadillo.trace4cats
 
-import cats.{Monad, MonadThrow}
+import cats.Monad
 import cats.data.{EitherT, Kleisli}
 import cats.effect.kernel.Resource
-import cats.implicits.catsSyntaxApplicativeError
+import io.iohk.armadillo.Armadillo.JsonRpcError
 import io.janstenpickle.trace4cats.inject.{ResourceKleisli, SpanParams}
 import io.janstenpickle.trace4cats.model.{SpanKind, TraceHeaders}
 import io.janstenpickle.trace4cats.{ErrorHandler, Span}
-
-import scala.reflect.ClassTag
 
 object ArmadilloResourceKleislis {
   def fromInput[F[_], I](
@@ -19,26 +17,14 @@ object ArmadilloResourceKleislis {
     }
 
   def fromInputContext[F[_]: Monad, I, E, Ctx](
-      makeContext: (I, Span[F]) => F[Either[E, Ctx]],
+      makeContext: (I, Span[F]) => F[Either[List[JsonRpcError[E]], Ctx]],
       inSpanNamer: ArmadilloInputSpanNamer[I],
       errorToSpanStatus: ArmadilloStatusMapping[E]
-  )(k: ResourceKleisli[F, SpanParams, Span[F]]): ResourceKleisli[F, I, Either[E, Ctx]] =
+  )(k: ResourceKleisli[F, SpanParams, Span[F]]): ResourceKleisli[F, I, Either[List[JsonRpcError[E]], Ctx]] =
     fromInput(inSpanNamer)(k).tapWithF { (req, span) =>
       val fa = EitherT(makeContext(req, span))
         .leftSemiflatTap(e => span.setStatus(errorToSpanStatus(e)))
         .value
-      Resource.eval(fa)
-    }
-
-  def fromInputContextRecoverErrors[F[_]: MonadThrow, I, E <: Throwable: ClassTag, Ctx](
-      makeContext: (I, Span[F]) => F[Ctx],
-      inSpanNamer: ArmadilloInputSpanNamer[I],
-      errorToSpanStatus: ArmadilloStatusMapping[E]
-  )(k: ResourceKleisli[F, SpanParams, Span[F]]): ResourceKleisli[F, I, Ctx] =
-    fromInput(inSpanNamer)(k).tapWithF { (req, span) =>
-      val fa = makeContext(req, span).onError { case e: E =>
-        span.setStatus(errorToSpanStatus(e))
-      }
       Resource.eval(fa)
     }
 }
