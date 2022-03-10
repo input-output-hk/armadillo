@@ -46,11 +46,7 @@ object ExampleTraced extends IOApp {
       }
 
     def tracedEndpoints(entryPoint: EntryPoint[F])(implicit P: Provide[F, G, Span[F]]): List[JsonRpcServerEndpoint[F]] =
-      List(
-        new TracedServerEndpoint(getBlockByNumber).inject(
-          entryPoint
-        )
-      )
+      List(getBlockByNumber.inject(entryPoint))
   }
 
   override def run(args: List[String]): IO[ExitCode] = {
