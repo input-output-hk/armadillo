@@ -21,7 +21,7 @@ object ExampleJson4s extends IOApp {
   implicit val serialization: Serialization = org.json4s.jackson.Serialization
   implicit val formats: Formats = org.json4s.jackson.Serialization.formats(NoTypeHints)
 
-  val endpoint: JsonRpcServerEndpoint[IO] = jsonRpcEndpoint(MethodName("eth_getBlockByNumber"))(jsonRpcCodec)
+  val endpoint: JsonRpcServerEndpoint[IO] = jsonRpcEndpoint(MethodName("eth_getBlockByNumber"))
     .in(
       param[Int]("blockNumber").and(param[String]("includeTransactions"))
     )

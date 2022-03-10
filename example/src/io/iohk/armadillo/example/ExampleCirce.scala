@@ -4,7 +4,7 @@ import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits.{catsSyntaxEitherId, catsSyntaxOptionId}
 import io.circe.generic.semiauto.*
 import io.circe.{Decoder, Encoder, Json}
-import io.iohk.armadillo.Armadillo.{jsonRpcEndpoint, param}
+import io.iohk.armadillo.Armadillo.{JsonRpcError, jsonRpcEndpoint, param}
 import io.iohk.armadillo.json.circe.*
 import io.iohk.armadillo.tapir.TapirInterpreter
 import io.iohk.armadillo.{JsonRpcServerEndpoint, MethodName}
@@ -31,11 +31,12 @@ object ExampleCirce extends IOApp {
     .in(
       param[Int]("blockNumber").and(param[String]("includeTransactions"))
     )
+    .errorOut[Int]("qwe")
     .out[Option[RpcBlockResponse]]("blockResponse")
     .serverLogic[IO] { case (int, string) =>
       println("user logic")
       println(s"with input ${int + 123} ${string.toUpperCase}")
-      IO.delay(RpcBlockResponse(int).some.asRight)
+      IO.delay(Left(List(JsonRpcError(1, "q", 11))))
     }
 
   override def run(args: List[String]): IO[ExitCode] = {

@@ -1,7 +1,7 @@
 package io.iohk.armadillo.tapir
 
 import io.iohk.armadillo.*
-import io.iohk.armadillo.Armadillo.{JsonRpcRequest, JsonRpcResponse}
+import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcErrorResponse, JsonRpcRequest, JsonRpcResponse}
 import io.iohk.armadillo.tapir.TapirInterpreter.RichDecodeResult
 import io.iohk.armadillo.tapir.Utils.RichEndpointInput
 import sttp.monad.MonadError
@@ -27,14 +27,14 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
       .in(
         EndpointIO.Body(
           RawBodyType.StringBody(StandardCharsets.UTF_8),
-          jsonSupport.requestCodec.mapDecode { envelop =>
+          jsonSupport.inCodec.mapDecode { envelop =>
             decodeJsonRpcParams(jsonRpcEndpoints.map(_.endpoint), envelop)
           } { _ => throw new RuntimeException("should not be called") },
           Info.empty
         )
       )
-      .out(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.responseCodec, Info.empty))
-      .errorOut(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.responseCodec, Info.empty))
+      .out(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.outCodec, Info.empty))
+      .errorOut(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.errorOutCodec, Info.empty))
       .serverLogic[F](serverLogic(jsonRpcEndpoints, _))
   }
 
@@ -47,14 +47,14 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
     matchedEndpoint.logic(monadError)(matchedBody).map {
       case Left(value) =>
         val encodedError = matchedEndpoint.endpoint.error match {
-          case o: JsonRpcIO.Single[matchedEndpoint.ERROR_OUTPUT] => o.codec.encode(value)
-          case o: JsonRpcIO.Empty[matchedEndpoint.ERROR_OUTPUT]  => o.codec.encode(())
+          case JsonRpcErrorOutput.EmptyError(codec, _) => jsonSupport.empty.asInstanceOf[codec.L]
+          case JsonRpcErrorOutput.Single(codec, _, _)  => codec.encode(value)
         }
-        Left(JsonRpcResponse("2.0", encodedError.asInstanceOf[Json], 1))
+        Left(JsonRpcErrorResponse("2.0", encodedError.asInstanceOf[Json], 1))
       case Right(value) =>
         val encodedOutput = matchedEndpoint.endpoint.output match {
+          case o: JsonRpcIO.Empty[matchedEndpoint.OUTPUT]  => jsonSupport.empty.asInstanceOf[o.codec.L]
           case o: JsonRpcIO.Single[matchedEndpoint.OUTPUT] => o.codec.encode(value)
-          case o: JsonRpcIO.Empty[matchedEndpoint.OUTPUT]  => o.codec.encode(())
         }
         Right(JsonRpcResponse("2.0", encodedOutput.asInstanceOf[Json], 1))
     }

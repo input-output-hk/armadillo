@@ -5,7 +5,7 @@ import cats.data.Kleisli
 import cats.effect.kernel.{MonadCancelThrow, Resource, Sync}
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.syntax.all.*
-import io.iohk.armadillo.Armadillo.{jsonRpcEndpoint, param}
+import io.iohk.armadillo.Armadillo.{JsonRpcError, jsonRpcEndpoint, param}
 import io.iohk.armadillo.example.ExampleCirce.RpcBlockResponse
 import io.iohk.armadillo.json.json4s.*
 import io.iohk.armadillo.tapir.TapirInterpreter
@@ -33,15 +33,16 @@ object ExampleTraced extends IOApp {
 
   class Endpoints[F[_]: Sync, G[_]: MonadCancelThrow: Trace] {
 
-    val getBlockByNumber = jsonRpcEndpoint(MethodName("eth_getBlockByNumber"))(jsonRpcCodec)
+    val getBlockByNumber = jsonRpcEndpoint(MethodName("eth_getBlockByNumber"))
       .in(
         param[Int]("blockNumber").and(param[String]("includeTransactions"))
       )
+      .errorOut[Int]("")
       .out[Option[RpcBlockResponse]]("blockResponse")
       .serverLogic[G] { case (int, string) =>
         println("user logic")
         println(s"with input ${int + 123} ${string.toUpperCase}")
-        Applicative[G].pure(RpcBlockResponse(int).some.asRight)
+        Applicative[G].pure(Left(List(JsonRpcError(11, "qwe", 11))))
       }
 
     def tracedEndpoints(entryPoint: EntryPoint[F])(implicit P: Provide[F, G, Span[F]]): List[JsonRpcServerEndpoint[F]] =

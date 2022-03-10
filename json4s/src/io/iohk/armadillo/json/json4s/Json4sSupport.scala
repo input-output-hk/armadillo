@@ -1,9 +1,10 @@
 package io.iohk.armadillo.json.json4s
 
-import io.iohk.armadillo.Armadillo.{JsonRpcRequest, JsonRpcResponse}
+import io.iohk.armadillo.Armadillo
+import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcErrorResponse, JsonRpcRequest, JsonRpcResponse}
 import io.iohk.armadillo.tapir.JsonSupport
 import org.json4s.JsonAST.JValue
-import org.json4s.{Formats, JArray, JObject, Serialization}
+import org.json4s.{Formats, JArray, JNull, JObject, JValue, Serialization}
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.SchemaType.SCoproduct
 import sttp.tapir.json.json4s.*
@@ -17,14 +18,20 @@ class Json4sSupport(implicit formats: Formats, serialization: Serialization) ext
       None
     )
 
-  override def requestCodec: JsonCodec[JsonRpcRequest[JValue]] = {
+  override def inCodec: JsonCodec[JsonRpcRequest[JValue]] = {
     implicit val outerSchema: Schema[JsonRpcRequest[JValue]] = Schema.derived[JsonRpcRequest[JValue]]
     json4sCodec[JsonRpcRequest[JValue]]
   }
 
-  override def responseCodec: JsonCodec[JsonRpcResponse[JValue]] = {
+  override def outCodec: JsonCodec[JsonRpcResponse[JValue]] = {
     implicit val outerSchema: Schema[JsonRpcResponse[JValue]] = Schema.derived[JsonRpcResponse[JValue]]
     json4sCodec[JsonRpcResponse[JValue]]
+  }
+
+  override def errorOutCodec: JsonCodec[JsonRpcErrorResponse[JValue]] = {
+    implicit val jsonRpcErrorSchema: Schema[JsonRpcError[JValue]] = Schema.derived[JsonRpcError[JValue]] // TODO move to public place
+    implicit val outerSchema: Schema[JsonRpcErrorResponse[JValue]] = Schema.derived[JsonRpcErrorResponse[JValue]]
+    json4sCodec[JsonRpcErrorResponse[JValue]]
   }
 
   override def getByIndex(arr: JValue, index: Int): DecodeResult[JValue] = {
@@ -48,4 +55,8 @@ class Json4sSupport(implicit formats: Formats, serialization: Serialization) ext
       case _ => DecodeResult.Error(obj.toString, new RuntimeException(s"Expected object but got $obj"))
     }
   }
+
+  override def empty: JValue = JNull
+
+  override def emptyList: JValue = JArray(List.empty)
 }
