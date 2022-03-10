@@ -1,0 +1,14 @@
+# armadillo
+
+```curl
+curl --location --request POST 'localhost:8545/' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+        "jsonrpc":"2.0",
+        "method":"eth_getBlockByNumber",
+        "params":{
+                "blockNumber": 123123,"includeTransactions":"true"
+        },
+        "id":1
+}'
+```
