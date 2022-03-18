@@ -3,47 +3,55 @@ package io.iohk.armadillo.tapir.http4s
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.implicits.catsSyntaxEitherId
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.generic.semiauto.*
 import io.circe.literal.*
-import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcResponse, jsonRpcEndpoint, param}
+import io.circe.{Decoder, Encoder, Json}
+import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcRequest, JsonRpcResponse}
+import io.iohk.armadillo.JsonRpcEndpoint
 import io.iohk.armadillo.json.circe.*
 import io.iohk.armadillo.tapir.TapirInterpreter
-import io.iohk.armadillo.{JsonRpcEndpoint, MethodName}
+import io.iohk.armadillo.tapir.http4s.Endpoints.*
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
-import sttp.client3.{SttpBackend, basicRequest}
 import sttp.client3.circe.*
+import sttp.client3.{SttpBackend, basicRequest}
 import sttp.model.Uri
 import sttp.tapir.integ.cats.CatsMonadError
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 import weaver.*
-import io.circe.generic.semiauto.*
 
 import scala.concurrent.ExecutionContext
 
 object Http4sServerTest extends SimpleIOSuite {
-  implicit val jsonRpcErrorEncoder: Encoder[JsonRpcResponse[Json]] = deriveEncoder[JsonRpcResponse[Json]]
-  implicit val jsonRpcErrorDecoder: Decoder[JsonRpcResponse[Json]] = deriveDecoder[JsonRpcResponse[Json]]
+  implicit val jsonRpcResponseEncoder: Encoder[JsonRpcResponse[Json]] = deriveEncoder[JsonRpcResponse[Json]]
+  implicit val jsonRpcResponseDecoder: Decoder[JsonRpcResponse[Json]] = deriveDecoder[JsonRpcResponse[Json]]
 
-  test("hello") {
-    val in_int_out_string = jsonRpcEndpoint(MethodName("hello"))
-      .in(param[Int]("param1"))
-      .out[String]("response")
+  implicit val jsonRpcRequestEncoder: Encoder[JsonRpcRequest[Json]] = deriveEncoder[JsonRpcRequest[Json]]
+  implicit val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
 
-    testServer(in_int_out_string)(int => IO.pure(Right(int.toString)))
-      .use { case (backend, baseUri) =>
-        val value = 42
-        basicRequest
-          .post(baseUri)
-          .body(json"""{"jsonrpc": "2.0", "method": "hello", "params": [$value], "id": 1}""")
-          .response(asJson[Json])
-          .send(backend)
-          .map { response =>
-            expect.same(json"""{"jsonrpc": "2.0", "result": ${value.toString}, "id": 1}""".asRight[List[JsonRpcError[Unit]]], response.body)
-          }
-      }
+  test(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
+    request = JsonRpcRequest[Json]("2.0", "hello", json"[42]", 1),
+    expectedResponse = json"${"42"}"
+  )
+
+  private def test[I, E, O](
+      in_int_out_string: JsonRpcEndpoint[I, E, O]
+  )(f: I => IO[Either[List[JsonRpcError[E]], O]])(request: JsonRpcRequest[Json], expectedResponse: Json): Unit = {
+    test(in_int_out_string.showDetail) {
+      testServer(in_int_out_string)(f)
+        .use { case (backend, baseUri) =>
+          basicRequest
+            .post(baseUri)
+            .body(request)
+            .response(asJson[JsonRpcResponse[Json]])
+            .send(backend)
+            .map { response =>
+              expect.same(JsonRpcResponse("2.0", expectedResponse, 1).asRight[List[JsonRpcError[Unit]]], response.body)
+            }
+        }
+    }
   }
 
   private def testServer[I, E, O](
@@ -69,5 +77,4 @@ object Http4sServerTest extends SimpleIOSuite {
         }
       }
   }
-
 }

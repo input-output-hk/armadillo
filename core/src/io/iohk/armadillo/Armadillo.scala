@@ -60,11 +60,18 @@ case class JsonRpcEndpoint[I, E, O](
 
   def errorOut[F](name: String)(implicit jsonRpcCodec: JsonRpcCodec[List[JsonRpcError[F]]]): JsonRpcEndpoint[I, F, O] =
     copy(error = JsonRpcErrorOutput.Single(jsonRpcCodec, Info.empty, name))
+
+  def showDetail: String =
+    s"JsonRpcEndpoint(method: $methodName, in: ${input.show}, errout: ${error.show}, out: ${output.show})"
+}
+
+sealed trait JsonRpcEndpointTransput[T] {
+  def show: String
 }
 
 sealed trait JsonRpcIO[T] extends JsonRpcInput[T] with JsonRpcOutput[T]
 
-sealed trait JsonRpcInput[T] {
+sealed trait JsonRpcInput[T] extends JsonRpcEndpointTransput[T] {
   def and[U, TU](param: JsonRpcInput[U])(implicit concat: ParamConcat.Aux[T, U, TU]): JsonRpcInput[TU] = {
     JsonRpcInput.Pair(this, param, mkCombine(concat), mkSplit(concat))
   }
@@ -81,12 +88,22 @@ object JsonRpcInput {
     override def decode(l: L): DecodeResult[Unit] = DecodeResult.Value(())
   }
   val emptyInput: JsonRpcInput[Unit] = JsonRpcIO.Empty(idPlain(), EndpointIO.Info.empty)
+
   case class Pair[T, U, TU](left: JsonRpcInput[T], right: JsonRpcInput[U], combine: CombineParams, split: SplitParams)
-      extends JsonRpcInput[TU]
+      extends JsonRpcInput[TU] {
+    override def show: String = {
+      def flattenedPairs(et: JsonRpcInput[_]): Vector[JsonRpcInput[_]] =
+        et match {
+          case p: Pair[_, _, _] => flattenedPairs(p.left) ++ flattenedPairs(p.right)
+          case other            => Vector(other)
+        }
+      flattenedPairs(this).mkString("[", ",", "]")
+    }
+  }
 
 }
 
-sealed trait JsonRpcErrorOutput[T]
+sealed trait JsonRpcErrorOutput[T] extends JsonRpcEndpointTransput[T]
 
 object JsonRpcErrorOutput {
   def emptyErrorCodec(
@@ -106,12 +123,16 @@ object JsonRpcErrorOutput {
   def emptyErrorOutput(emptyCodec: JsonRpcCodec[List[JsonRpcError[Unit]]]): JsonRpcErrorOutput[Unit] =
     EmptyError(emptyCodec, Info.empty)
 
-  case class EmptyError[T](codec: JsonRpcCodec[List[JsonRpcError[Unit]]], info: Info[T]) extends JsonRpcErrorOutput[T]
+  case class EmptyError[T](codec: JsonRpcCodec[List[JsonRpcError[Unit]]], info: Info[T]) extends JsonRpcErrorOutput[T] {
+    override def show: String = "-"
+  }
 
-  case class Single[T](codec: JsonRpcCodec[List[JsonRpcError[T]]], info: Info[T], name: String) extends JsonRpcErrorOutput[T]
+  case class Single[T](codec: JsonRpcCodec[List[JsonRpcError[T]]], info: Info[T], name: String) extends JsonRpcErrorOutput[T] {
+    override def show: String = s"single($name)"
+  }
 }
 
-sealed trait JsonRpcOutput[T]
+sealed trait JsonRpcOutput[T] extends JsonRpcEndpointTransput[T]
 
 object JsonRpcOutput {
   def emptyOutputCodec(s: Schema[Unit] = Schema[Unit](SchemaType.SString())): JsonRpcCodec[Unit] = new JsonRpcCodec[Unit] {
@@ -129,9 +150,13 @@ object JsonRpcOutput {
 
 object JsonRpcIO {
 
-  case class Empty[T](codec: JsonRpcCodec[Unit], info: Info[T]) extends JsonRpcIO[T]
+  case class Empty[T](codec: JsonRpcCodec[Unit], info: Info[T]) extends JsonRpcIO[T] {
+    override def show: String = "-"
+  }
 
-  case class Single[T](codec: JsonRpcCodec[T], info: Info[T], name: String) extends JsonRpcIO[T]
+  case class Single[T](codec: JsonRpcCodec[T], info: Info[T], name: String) extends JsonRpcIO[T] {
+    override def show: String = s"single($name)"
+  }
 }
 
 abstract class JsonRpcServerEndpoint[F[_]] {
