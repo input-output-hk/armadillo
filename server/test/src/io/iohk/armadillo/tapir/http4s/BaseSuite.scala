@@ -31,7 +31,9 @@ trait BaseSuite extends SimpleIOSuite {
 
   def test[I, E, O](
       in_int_out_string: JsonRpcEndpoint[I, E, O]
-  )(f: I => IO[Either[List[JsonRpcError[E]], O]])(request: JsonRpcRequest[Json], expectedResponse: Json): Unit = {
+  )(
+      f: I => IO[Either[List[JsonRpcError[E]], O]]
+  )(request: JsonRpcRequest[Json], expectedResponse: Either[List[JsonRpcError[Json]], JsonRpcResponse[Json]]): Unit = {
     test(in_int_out_string.showDetail) {
       testServer(in_int_out_string)(f)
         .use { case (backend, baseUri) =>
@@ -41,7 +43,7 @@ trait BaseSuite extends SimpleIOSuite {
             .response(asJson[JsonRpcResponse[Json]])
             .send(backend)
             .map { response =>
-              expect.same(JsonRpcResponse("2.0", expectedResponse, 1).asRight[List[JsonRpcError[Unit]]], response.body)
+              expect.same(expectedResponse, response.body)
             }
         }
     }
