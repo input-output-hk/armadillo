@@ -29,9 +29,14 @@ object Armadillo {
 
   case class JsonRpcRequest[Raw](jsonrpc: String, method: String, params: Raw, id: Int)
 
-  case class JsonRpcResponse[Raw](jsonrpc: String, result: Raw, id: Int)
+  sealed trait JsonRpcResponse[Raw] {
+    def jsonrpc: String
+    def id: Int
+  }
 
-  case class JsonRpcErrorResponse[Raw](jsonrpc: String, error: Raw, id: Int)
+  case class JsonRpcSuccessResponse[Raw](jsonrpc: String, result: Raw, id: Int) extends JsonRpcResponse[Raw]
+
+  case class JsonRpcErrorResponse[Raw](jsonrpc: String, error: Raw, id: Int) extends JsonRpcResponse[Raw]
 
   case class JsonRpcError[Raw](code: Int, message: String, data: Raw)
 

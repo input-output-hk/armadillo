@@ -1,6 +1,6 @@
 package io.iohk.armadillo.json.json4s
 
-import io.iohk.armadillo.Armadillo.{JsonRpcErrorResponse, JsonRpcRequest, JsonRpcResponse}
+import io.iohk.armadillo.Armadillo.{JsonRpcErrorResponse, JsonRpcRequest, JsonRpcSuccessResponse}
 import io.iohk.armadillo.tapir.JsonSupport
 import org.json4s.JsonAST.JValue
 import org.json4s.{Formats, JArray, JObject, Serialization}
@@ -22,9 +22,9 @@ class Json4sSupport(implicit formats: Formats, serialization: Serialization) ext
     json4sCodec[JsonRpcRequest[JValue]]
   }
 
-  override def outCodec: JsonCodec[JsonRpcResponse[JValue]] = {
-    implicit val outerSchema: Schema[JsonRpcResponse[JValue]] = Schema.derived[JsonRpcResponse[JValue]]
-    json4sCodec[JsonRpcResponse[JValue]]
+  override def outCodec: JsonCodec[JsonRpcSuccessResponse[JValue]] = {
+    implicit val outerSchema: Schema[JsonRpcSuccessResponse[JValue]] = Schema.derived[JsonRpcSuccessResponse[JValue]]
+    json4sCodec[JsonRpcSuccessResponse[JValue]]
   }
 
   override def errorOutCodec: JsonCodec[JsonRpcErrorResponse[JValue]] = {

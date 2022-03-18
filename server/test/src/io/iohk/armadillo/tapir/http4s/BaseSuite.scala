@@ -2,9 +2,10 @@ package io.iohk.armadillo.tapir.http4s
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
+import cats.syntax.all.*
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, Json}
-import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcRequest, JsonRpcResponse}
+import io.iohk.armadillo.Armadillo.*
 import io.iohk.armadillo.JsonRpcEndpoint
 import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.tapir.TapirInterpreter
@@ -22,8 +23,8 @@ import weaver.SimpleIOSuite
 import scala.concurrent.ExecutionContext
 
 trait BaseSuite extends SimpleIOSuite {
-  implicit val jsonRpcResponseEncoder: Encoder[JsonRpcResponse[Json]] = deriveEncoder[JsonRpcResponse[Json]]
-  implicit val jsonRpcResponseDecoder: Decoder[JsonRpcResponse[Json]] = deriveDecoder[JsonRpcResponse[Json]]
+  implicit val jsonRpcResponseDecoder: Decoder[JsonRpcResponse[Json]] =
+    deriveDecoder[JsonRpcSuccessResponse[Json]].widen.or(deriveDecoder[JsonRpcErrorResponse[Json]].widen)
 
   implicit val jsonRpcRequestEncoder: Encoder[JsonRpcRequest[Json]] = deriveEncoder[JsonRpcRequest[Json]]
   implicit val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
@@ -33,7 +34,7 @@ trait BaseSuite extends SimpleIOSuite {
       suffix: String = ""
   )(
       f: I => IO[Either[List[JsonRpcError[E]], O]]
-  )(request: JsonRpcRequest[Json], expectedResponse: Either[List[JsonRpcError[Json]], JsonRpcResponse[Json]]): Unit = {
+  )(request: JsonRpcRequest[Json], expectedResponse: JsonRpcResponse[Json]): Unit = {
     test(in_int_out_string.showDetail + " " + suffix) {
       testServer(in_int_out_string)(f)
         .use { case (backend, baseUri) =>
@@ -43,7 +44,7 @@ trait BaseSuite extends SimpleIOSuite {
             .response(asJson[JsonRpcResponse[Json]])
             .send(backend)
             .map { response =>
-              expect.same(expectedResponse, response.body)
+              expect.same(Right(expectedResponse), response.body)
             }
         }
     }

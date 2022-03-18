@@ -1,16 +1,17 @@
 package io.iohk.armadillo.tapir
 
 import io.iohk.armadillo.*
-import io.iohk.armadillo.Armadillo.{JsonRpcErrorResponse, JsonRpcRequest, JsonRpcResponse}
+import io.iohk.armadillo.Armadillo.{JsonRpcErrorResponse, JsonRpcRequest, JsonRpcSuccessResponse}
 import io.iohk.armadillo.tapir.TapirInterpreter.RichDecodeResult
 import io.iohk.armadillo.tapir.Utils.RichEndpointInput
+import sttp.model.StatusCode
 import sttp.monad.MonadError
 import sttp.monad.syntax.*
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.EndpointIO.Info
 import sttp.tapir.internal.ParamsAsVector
 import sttp.tapir.server.ServerEndpoint
-import sttp.tapir.{DecodeResult, EndpointIO, RawBodyType}
+import sttp.tapir.{DecodeResult, EndpointIO, RawBodyType, statusCode}
 
 import java.nio.charset.StandardCharsets
 
@@ -24,7 +25,7 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
 
   def apply(
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]
-  ): ServerEndpoint.Full[Unit, Unit, JsonRpcRequest[ParamsAsVector], JsonRpcErrorResponse[Json], JsonRpcResponse[Json], Any, F] = {
+  ): ServerEndpoint.Full[Unit, Unit, JsonRpcRequest[ParamsAsVector], JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json], Any, F] = {
     def decode(envelop: JsonRpcRequest[Json]) =
       decodeJsonRpcParams(jsonRpcEndpoints.map(_.endpoint), envelop)
 
@@ -40,7 +41,10 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
         )
       )
       .out(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.outCodec, Info.empty))
-      .errorOut(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.errorOutCodec, Info.empty))
+      .errorOut(
+        statusCode(StatusCode.Ok)
+          .and(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.errorOutCodec, Info.empty))
+      )
       .serverLogic[F](serverLogic(jsonRpcEndpoints, _))
   }
 
@@ -62,7 +66,7 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
           case o: JsonRpcIO.Empty[matchedEndpoint.OUTPUT]  => jsonSupport.asObject(Map.empty).asInstanceOf[o.codec.L]
           case o: JsonRpcIO.Single[matchedEndpoint.OUTPUT] => o.codec.encode(value)
         }
-        Right(JsonRpcResponse("2.0", encodedOutput.asInstanceOf[Json], 1))
+        Right(JsonRpcSuccessResponse("2.0", encodedOutput.asInstanceOf[Json], 1))
     }
   }
 
