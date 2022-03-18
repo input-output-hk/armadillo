@@ -33,7 +33,7 @@ trait BaseSuite extends SimpleIOSuite {
       in_int_out_string: JsonRpcEndpoint[I, E, O],
       suffix: String = ""
   )(
-      f: I => IO[Either[List[JsonRpcError[E]], O]]
+      f: I => IO[Either[E, O]]
   )(request: JsonRpcRequest[Json], expectedResponse: JsonRpcResponse[Json]): Unit = {
     test(in_int_out_string.showDetail + " " + suffix) {
       testServer(in_int_out_string)(f)
@@ -52,7 +52,7 @@ trait BaseSuite extends SimpleIOSuite {
 
   private def testServer[I, E, O](
       endpoint: JsonRpcEndpoint[I, E, O]
-  )(logic: I => IO[Either[List[JsonRpcError[E]], O]]): Resource[IO, (SttpBackend[IO, Any], Uri)] = {
+  )(logic: I => IO[Either[E, O]]): Resource[IO, (SttpBackend[IO, Any], Uri)] = {
     val tapirInterpreter = new TapirInterpreter[IO, Json](new CirceJsonSupport)(new CatsMonadError)
     val tapirEndpoints = tapirInterpreter.apply(List(endpoint.serverLogic(logic)))
     val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)

@@ -17,10 +17,10 @@ object ArmadilloResourceKleislis {
     }
 
   def fromInputContext[F[_]: Monad, I, E, Ctx](
-      makeContext: (I, Span[F]) => F[Either[List[JsonRpcError[E]], Ctx]],
+      makeContext: (I, Span[F]) => F[Either[E, Ctx]],
       inSpanNamer: ArmadilloInputSpanNamer[I],
       errorToSpanStatus: ArmadilloStatusMapping[E]
-  )(k: ResourceKleisli[F, SpanParams, Span[F]]): ResourceKleisli[F, I, Either[List[JsonRpcError[E]], Ctx]] =
+  )(k: ResourceKleisli[F, SpanParams, Span[F]]): ResourceKleisli[F, I, Either[E, Ctx]] =
     fromInput(inSpanNamer)(k).tapWithF { (req, span) =>
       val fa = EitherT(makeContext(req, span))
         .leftSemiflatTap(e => span.setStatus(errorToSpanStatus(e)))

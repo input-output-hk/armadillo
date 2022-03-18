@@ -4,12 +4,12 @@ import cats.Applicative
 import cats.data.Kleisli
 import cats.effect.kernel.{MonadCancelThrow, Resource, Sync}
 import cats.effect.{ExitCode, IO, IOApp}
-import io.iohk.armadillo.Armadillo.{JsonRpcError, jsonRpcEndpoint, param}
+import io.iohk.armadillo.Armadillo.{JsonRpcError, error, jsonRpcEndpoint, param}
 import io.iohk.armadillo.example.ExampleCirce.RpcBlockResponse
 import io.iohk.armadillo.json.json4s.*
 import io.iohk.armadillo.tapir.TapirInterpreter
 import io.iohk.armadillo.trace4cats.syntax.*
-import io.iohk.armadillo.{JsonRpcServerEndpoint, MethodName}
+import io.iohk.armadillo.{Armadillo, JsonRpcServerEndpoint, MethodName}
 import io.janstenpickle.trace4cats.Span
 import io.janstenpickle.trace4cats.base.context.Provide
 import io.janstenpickle.trace4cats.inject.{EntryPoint, Trace}
@@ -36,12 +36,12 @@ object ExampleTraced extends IOApp {
       .in(
         param[Int]("blockNumber").and(param[String]("includeTransactions"))
       )
-      .errorOut[Int]("")
+      .errorOut(error[Int].and(error[String]))
       .out[Option[RpcBlockResponse]]("blockResponse")
       .serverLogic[G] { case (int, string) =>
         println("user logic")
         println(s"with input ${int + 123} ${string.toUpperCase}")
-        Applicative[G].pure(Left(List(JsonRpcError(11, "qwe", 11))))
+        Applicative[G].pure(Left((JsonRpcError(11, "qwe", 11), JsonRpcError(11, "qwe", "11"))))
       }
 
     def tracedEndpoints(entryPoint: EntryPoint[F])(implicit P: Provide[F, G, Span[F]]): List[JsonRpcServerEndpoint[F]] =

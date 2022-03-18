@@ -26,7 +26,7 @@ trait ServerEndpointSyntax {
       val inputSpanNamer = spanNamer(serverEndpoint.endpoint, _)
       val context = ArmadilloResourceKleislis
         .fromInput[F, I](inputSpanNamer)(entryPoint.toKleisli)
-        .map(_.asRight[List[JsonRpcError[E]]])
+        .map(_.asRight[E])
       ServerEndpointTracer.inject(
         serverEndpoint,
         context,
@@ -45,13 +45,13 @@ trait ServerEndpointSyntax {
     ): JsonRpcServerEndpoint.Full[I, E, O, F] =
       ServerEndpointTracer.inject(
         serverEndpoint,
-        k.map(_.asRight[List[JsonRpcError[E]]]),
+        k.map(_.asRight[E]),
         errorToSpanStatus
       )
 
     def injectContext[Ctx](
         entryPoint: EntryPoint[F],
-        makeContext: (I, Span[F]) => F[Either[List[JsonRpcError[E]], Ctx]],
+        makeContext: (I, Span[F]) => F[Either[E, Ctx]],
         spanNamer: ArmadilloSpanNamer[I] = ArmadilloSpanNamer.methodName,
         errorToSpanStatus: ArmadilloStatusMapping[E] = ArmadilloStatusMapping.errorStringToInternal
     )(implicit
@@ -74,7 +74,7 @@ trait ServerEndpointSyntax {
     }
 
     def tracedContext[Ctx](
-        k: ResourceKleisli[F, I, Either[List[JsonRpcError[E]], Ctx]],
+        k: ResourceKleisli[F, I, Either[E, Ctx]],
         errorToSpanStatus: ArmadilloStatusMapping[E] = ArmadilloStatusMapping.errorStringToInternal
     )(implicit
         P: Provide[F, G, Ctx],

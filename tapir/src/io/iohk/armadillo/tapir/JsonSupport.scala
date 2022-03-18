@@ -12,6 +12,8 @@ trait JsonSupport[Raw] {
   def asArray(seq: Vector[Raw]): Raw
   def asObject(fields: Map[String, Raw]): Raw
 
+  def emptyObject: Raw
+
   def getByIndex(arr: Raw, index: Int): DecodeResult[Raw]
   def getByField(obj: Raw, field: String): DecodeResult[Raw]
 }

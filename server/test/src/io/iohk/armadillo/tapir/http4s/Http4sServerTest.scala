@@ -18,18 +18,6 @@ object Http4sServerTest extends BaseSuite {
     expectedResponse = JsonRpcSuccessResponse("2.0", json"${"42"}", 1)
   )
 
-  test(hello_in_int_out_string, "single_error")(_ => IO.pure(Left(List(JsonRpcError(123, "error", ())))))(
-    request = JsonRpcRequest[Json]("2.0", "hello", json"[42]", 1),
-    expectedResponse = JsonRpcErrorResponse("2.0", json"""[{"code": 123, "message": "error"}]""", 1)
-  )
-
-  test(hello_in_int_out_string, "multiple_errors")(_ =>
-    IO.pure(Left(List(JsonRpcError(123, "error1", ()), JsonRpcError(124, "error2", ()))))
-  )(
-    request = JsonRpcRequest[Json]("2.0", "hello", json"""{"param1": 42}""", 1),
-    expectedResponse = JsonRpcErrorResponse("2.0", json"""[{"code": 123, "message": "error1"}, {"code": 124, "message": "error2"}]""", 1)
-  )
-
   test(hello_in_multiple_int_out_string) { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
     request = JsonRpcRequest[Json]("2.0", "hello", json"[42, 43]", 1),
     expectedResponse = JsonRpcSuccessResponse("2.0", json"${"85"}", 1)
@@ -38,5 +26,24 @@ object Http4sServerTest extends BaseSuite {
   test(hello_in_multiple_int_out_string, "by_name") { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
     request = JsonRpcRequest[Json]("2.0", "hello", json"""{"param1": 42, "param2": 43}""", 1),
     expectedResponse = JsonRpcSuccessResponse("2.0", json"${"85"}", 1)
+  )
+
+  test(empty)(_ => IO.delay(Right(println("hello from server"))))(
+    request = JsonRpcRequest[Json]("2.0", "empty", json"""[]""", 1),
+    expectedResponse = JsonRpcSuccessResponse("2.0", Json.Null, 1)
+  )
+
+  test(single_error)(_ => IO.pure(Left(JsonRpcError(123, "error", 42))))(
+    request = JsonRpcRequest[Json]("2.0", "single_error", json"[42]", 1),
+    expectedResponse = JsonRpcErrorResponse("2.0", json"""[{"code": 123, "message": "error", "data": 42}]""", 1)
+  )
+
+  test(multiple_errors)(_ => IO.pure(Left((JsonRpcError(123, "error1", 42), JsonRpcError(124, "error2", "42")))))(
+    request = JsonRpcRequest[Json]("2.0", "multiple_errors", json"""{"param1": 42}""", 1),
+    expectedResponse = JsonRpcErrorResponse(
+      "2.0",
+      json"""[{"code": 123, "message": "error1", "data": 42}, {"code": 124, "message": "error2", "data": "42"}]""",
+      1
+    )
   )
 }

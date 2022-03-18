@@ -3,13 +3,13 @@ package io.iohk.armadillo.tapir
 import io.iohk.armadillo.*
 import io.iohk.armadillo.Armadillo.{JsonRpcErrorResponse, JsonRpcRequest, JsonRpcSuccessResponse}
 import io.iohk.armadillo.tapir.TapirInterpreter.RichDecodeResult
-import io.iohk.armadillo.tapir.Utils.RichEndpointInput
+import io.iohk.armadillo.tapir.Utils.{RichEndpointErrorPart, RichEndpointInput}
 import sttp.model.StatusCode
 import sttp.monad.MonadError
 import sttp.monad.syntax.*
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.EndpointIO.Info
-import sttp.tapir.internal.ParamsAsVector
+import sttp.tapir.internal.{ParamsAsAny, ParamsAsVector}
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.{DecodeResult, EndpointIO, RawBodyType, statusCode}
 
@@ -58,12 +58,18 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
       case Left(value) =>
         val encodedError = matchedEndpoint.endpoint.error match {
           case JsonRpcErrorOutput.EmptyError(codec, _) => jsonSupport.asArray(Vector.empty).asInstanceOf[codec.L]
-          case JsonRpcErrorOutput.Single(codec, _, _)  => codec.encode(value)
+          case JsonRpcErrorOutput.Single(error) =>
+            val valueAsVector = ParamsAsAny(value).asVector
+            val partsAsVector = error.asVectorOfBasicErrorParts
+            val jsonVector = valueAsVector.zip(partsAsVector).map { case (value, part) =>
+              part.codec.encode(value.asInstanceOf[part.DATA]).asInstanceOf[Json]
+            }
+            jsonSupport.asArray(jsonVector)
         }
         Left(JsonRpcErrorResponse("2.0", encodedError.asInstanceOf[Json], 1))
       case Right(value) =>
         val encodedOutput = matchedEndpoint.endpoint.output match {
-          case o: JsonRpcIO.Empty[matchedEndpoint.OUTPUT]  => jsonSupport.asObject(Map.empty).asInstanceOf[o.codec.L]
+          case o: JsonRpcIO.Empty[matchedEndpoint.OUTPUT]  => jsonSupport.emptyObject.asInstanceOf[o.codec.L]
           case o: JsonRpcIO.Single[matchedEndpoint.OUTPUT] => o.codec.encode(value)
         }
         Right(JsonRpcSuccessResponse("2.0", encodedOutput.asInstanceOf[Json], 1))

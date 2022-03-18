@@ -12,7 +12,7 @@ import sttp.tapir.integ.cats.MonadErrorSyntax.*
 object ServerEndpointTracer {
   def inject[I, E, O, F[_], G[_], Ctx](
       serverEndpoint: JsonRpcServerEndpoint.Full[I, E, O, G],
-      k: ResourceKleisli[F, I, Either[List[JsonRpcError[E]], Ctx]],
+      k: ResourceKleisli[F, I, Either[E, Ctx]],
       errorToSpanStatus: ArmadilloStatusMapping[E]
   )(implicit
       P: Provide[F, G, Ctx],
