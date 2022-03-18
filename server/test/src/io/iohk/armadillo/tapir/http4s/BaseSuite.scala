@@ -2,7 +2,6 @@ package io.iohk.armadillo.tapir.http4s
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import cats.syntax.all.*
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, Json}
 import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcRequest, JsonRpcResponse}
@@ -30,11 +29,12 @@ trait BaseSuite extends SimpleIOSuite {
   implicit val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
 
   def test[I, E, O](
-      in_int_out_string: JsonRpcEndpoint[I, E, O]
+      in_int_out_string: JsonRpcEndpoint[I, E, O],
+      suffix: String = ""
   )(
       f: I => IO[Either[List[JsonRpcError[E]], O]]
   )(request: JsonRpcRequest[Json], expectedResponse: Either[List[JsonRpcError[Json]], JsonRpcResponse[Json]]): Unit = {
-    test(in_int_out_string.showDetail) {
+    test(in_int_out_string.showDetail + " " + suffix) {
       testServer(in_int_out_string)(f)
         .use { case (backend, baseUri) =>
           basicRequest

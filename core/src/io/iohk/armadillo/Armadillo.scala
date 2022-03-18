@@ -97,7 +97,7 @@ object JsonRpcInput {
           case p: Pair[_, _, _] => flattenedPairs(p.left) ++ flattenedPairs(p.right)
           case other            => Vector(other)
         }
-      flattenedPairs(this).mkString("[", ",", "]")
+      flattenedPairs(this).map(_.show).mkString("[", ",", "]")
     }
   }
 
