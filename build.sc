@@ -4,6 +4,7 @@ import $ivy.`io.github.davidgregory084::mill-tpolecat:0.2.0`
 import com.goyeau.mill.scalafix.ScalafixModule
 import io.github.davidgregory084.TpolecatModule
 import mill._
+import mill.define.Target
 import mill.scalalib._
 import mill.scalalib.scalafmt.ScalafmtModule
 
@@ -42,6 +43,26 @@ object tapir extends CommonModule {
   )
 
   object test extends Tests with CommonTestModule
+}
+
+object server extends CommonModule {
+  override def moduleDeps = Seq(core, tapir, circe)
+
+  object test extends Tests with CommonTestModule {
+    override def testFramework: Target[String] = "weaver.framework.CatsEffect"
+    def ivyDeps = Agg(
+      ivy"com.softwaremill.sttp.tapir::tapir-core::${Version.Tapir}",
+      ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::${Version.Tapir}",
+      ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
+      ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
+      ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.4.1",
+      ivy"org.http4s::http4s-blaze-server::${Version.Http4s}",
+      ivy"com.disneystreaming::weaver-cats:0.7.11",
+      ivy"io.circe::circe-literal::0.14.1",
+      ivy"com.softwaremill.sttp.client3::circe::3.4.1",
+      ivy"org.typelevel::cats-effect::3.2.9"
+    )
+  }
 }
 
 object example extends CommonModule {
