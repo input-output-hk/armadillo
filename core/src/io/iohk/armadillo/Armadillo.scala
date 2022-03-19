@@ -37,7 +37,20 @@ object Armadillo {
       override def info: Info[JsonRpcError[T]] = Info.empty[JsonRpcError[T]]
     }
 
+  def noDataError(implicit _codec: JsonRpcCodec[JsonRpcNoDataError]): JsonRpcErrorPart[JsonRpcNoDataError] = {
+    new JsonRpcErrorPart.Single[JsonRpcNoDataError] {
+      override type DATA = JsonRpcNoDataError
+
+      override def codec: JsonRpcCodec[JsonRpcNoDataError] = _codec
+
+      override def info: Info[JsonRpcNoDataError] = Info.empty[JsonRpcNoDataError]
+    }
+  }
+
   case class JsonRpcRequest[Raw](jsonrpc: String, method: String, params: Raw, id: Int)
+  object JsonRpcRequest {
+    implicit def schema[Raw: Schema]: Schema[JsonRpcRequest[Raw]] = Schema.derived[JsonRpcRequest[Raw]]
+  }
 
   sealed trait JsonRpcResponse[Raw] {
     def jsonrpc: String
@@ -45,13 +58,23 @@ object Armadillo {
   }
 
   case class JsonRpcSuccessResponse[Raw](jsonrpc: String, result: Raw, id: Int) extends JsonRpcResponse[Raw]
+  object JsonRpcSuccessResponse {
+    implicit def schema[Raw: Schema]: Schema[JsonRpcSuccessResponse[Raw]] = Schema.derived[JsonRpcSuccessResponse[Raw]]
+  }
 
   case class JsonRpcErrorResponse[Raw](jsonrpc: String, error: Raw, id: Int) extends JsonRpcResponse[Raw]
+  object JsonRpcErrorResponse {
+    implicit def schema[Raw: Schema]: Schema[JsonRpcErrorResponse[Raw]] = Schema.derived[JsonRpcErrorResponse[Raw]]
+  }
 
   case class JsonRpcError[Data](code: Int, message: String, data: Data)
-
   object JsonRpcError {
     implicit def schema[Data: Schema]: Schema[JsonRpcError[Data]] = Schema.derived[JsonRpcError[Data]]
+  }
+
+  case class JsonRpcNoDataError(code: Int, message: String)
+  object JsonRpcNoDataError {
+    implicit val schema: Schema[JsonRpcNoDataError] = Schema.derived[JsonRpcNoDataError]
   }
 }
 

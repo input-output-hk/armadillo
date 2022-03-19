@@ -2,7 +2,7 @@ package io.iohk.armadillo.json.circe
 
 import io.circe.generic.semiauto.*
 import io.circe.{Decoder, Encoder, Json}
-import io.iohk.armadillo.Armadillo.{JsonRpcCodec, JsonRpcError}
+import io.iohk.armadillo.Armadillo.{JsonRpcCodec, JsonRpcError, JsonRpcNoDataError}
 import sttp.tapir.{DecodeResult, Schema}
 
 trait ArmadilloCirceJson {
@@ -23,4 +23,7 @@ trait ArmadilloCirceJson {
 
   implicit def jsonRpcErrorEncoder[T: Encoder]: Encoder[JsonRpcError[T]] = deriveEncoder[JsonRpcError[T]]
   implicit def jsonRpcErrorDecoder[T: Decoder]: Decoder[JsonRpcError[T]] = deriveDecoder[JsonRpcError[T]]
+
+  implicit def jsonRpcNoDataErrorEncoder: Encoder[JsonRpcNoDataError] = deriveEncoder[JsonRpcNoDataError]
+  implicit def jsonRpcNoDataErrorDecoder: Decoder[JsonRpcNoDataError] = deriveDecoder[JsonRpcNoDataError]
 }

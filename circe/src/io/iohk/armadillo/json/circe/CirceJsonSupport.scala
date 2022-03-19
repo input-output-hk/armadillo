@@ -19,24 +19,21 @@ class CirceJsonSupport extends JsonSupport[Json] {
     )
 
   override def inCodec: JsonCodec[JsonRpcRequest[Json]] = {
-    val outerSchema = Schema.derived[JsonRpcRequest[Json]]
     val outerEncoder = deriveEncoder[JsonRpcRequest[Json]]
     val outerDecoder = deriveDecoder[JsonRpcRequest[Json]]
-    circeCodec[JsonRpcRequest[Json]](outerEncoder, outerDecoder, outerSchema)
+    circeCodec[JsonRpcRequest[Json]](outerEncoder, outerDecoder, implicitly[Schema[JsonRpcRequest[Json]]])
   }
 
   override def outCodec: JsonCodec[JsonRpcSuccessResponse[Json]] = {
-    val outerSchema = Schema.derived[JsonRpcSuccessResponse[Json]]
     val outerEncoder = deriveEncoder[JsonRpcSuccessResponse[Json]]
     val outerDecoder = deriveDecoder[JsonRpcSuccessResponse[Json]]
-    circeCodec[JsonRpcSuccessResponse[Json]](outerEncoder, outerDecoder, outerSchema)
+    circeCodec[JsonRpcSuccessResponse[Json]](outerEncoder, outerDecoder, implicitly[Schema[JsonRpcSuccessResponse[Json]]])
   }
 
   override def errorOutCodec: JsonCodec[JsonRpcErrorResponse[Json]] = {
-    val outerSchema = Schema.derived[JsonRpcErrorResponse[Json]]
     val outerEncoder = deriveEncoder[JsonRpcErrorResponse[Json]]
     val outerDecoder = deriveDecoder[JsonRpcErrorResponse[Json]]
-    circeCodec[JsonRpcErrorResponse[Json]](outerEncoder, outerDecoder, outerSchema)
+    circeCodec[JsonRpcErrorResponse[Json]](outerEncoder, outerDecoder, implicitly[Schema[JsonRpcErrorResponse[Json]]])
   }
 
   override def getByIndex(arr: Json, index: Int): DecodeResult[Json] = {

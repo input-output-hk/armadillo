@@ -18,12 +18,10 @@ class Json4sSupport(implicit formats: Formats, serialization: Serialization) ext
     )
 
   override def inCodec: JsonCodec[JsonRpcRequest[JValue]] = {
-    implicit val outerSchema: Schema[JsonRpcRequest[JValue]] = Schema.derived[JsonRpcRequest[JValue]]
     json4sCodec[JsonRpcRequest[JValue]]
   }
 
   override def outCodec: JsonCodec[JsonRpcSuccessResponse[JValue]] = {
-    implicit val outerSchema: Schema[JsonRpcSuccessResponse[JValue]] = Schema.derived[JsonRpcSuccessResponse[JValue]]
     json4sCodec[JsonRpcSuccessResponse[JValue]]
   }
 

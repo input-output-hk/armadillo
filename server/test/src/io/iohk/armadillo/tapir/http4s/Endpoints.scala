@@ -1,6 +1,6 @@
 package io.iohk.armadillo.tapir.http4s
 
-import io.iohk.armadillo.Armadillo.{JsonRpcError, error, jsonRpcEndpoint, param}
+import io.iohk.armadillo.Armadillo.{JsonRpcNoDataError, JsonRpcError, noDataError, error, jsonRpcEndpoint, param}
 import io.iohk.armadillo.{Armadillo, JsonRpcEndpoint, MethodName}
 import io.iohk.armadillo.json.circe.*
 
@@ -14,6 +14,9 @@ object Endpoints {
     .out[String]("response")
 
   val empty: JsonRpcEndpoint[Unit, Unit, Unit] = jsonRpcEndpoint(MethodName("empty"))
+
+  val no_data_error: JsonRpcEndpoint[Unit, JsonRpcNoDataError, Unit] = jsonRpcEndpoint(MethodName("no_data_error"))
+    .errorOut(noDataError)
 
   val single_error: JsonRpcEndpoint[Unit, JsonRpcError[Int], Unit] = jsonRpcEndpoint(MethodName("single_error"))
     .errorOut(error[Int])
