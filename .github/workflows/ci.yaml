@@ -16,5 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: coursier/cache-action@v5
+      - uses: coursier/setup-action@v1.1.2
+        with:
+          jvm: adopt:11
       - name: Run tests
         run: ./millw _.test
