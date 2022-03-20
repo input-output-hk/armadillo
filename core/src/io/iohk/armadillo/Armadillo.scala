@@ -91,18 +91,11 @@ object Armadillo {
     implicit def schema[Raw: Schema]: Schema[JsonRpcErrorResponse[Raw]] = Schema.derived[JsonRpcErrorResponse[Raw]]
   }
 
-//  sealed trait JsonRpcError[Data]
-
   case class JsonRpcError[Data](code: Int, message: String, data: Data) // extends JsonRpcError[Data]
   object JsonRpcError {
     implicit def schema[Data: Schema]: Schema[JsonRpcError[Data]] = Schema.derived[JsonRpcError[Data]]
     def noData(code: Int, msg: String): JsonRpcError[Unit] = JsonRpcError(code, msg, ())
   }
-
-//  case class JsonRpcErrorNoData(code: Int, message: String) extends JsonRpcError[Unit]
-//  object JsonRpcErrorNoData {
-//    implicit val schema: Schema[JsonRpcErrorNoData] = Schema.derived[JsonRpcErrorNoData]
-//  }
 }
 
 case class MethodName(value: String) extends AnyVal

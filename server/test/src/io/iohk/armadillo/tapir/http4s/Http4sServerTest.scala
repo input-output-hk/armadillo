@@ -10,7 +10,6 @@ import java.lang.Integer.parseInt
 
 object Http4sServerTest extends BaseSuite {
   // TODO add test for non-unique methods
-  // TODO add test for non-unique id within batch request
 
   test(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
     request = JsonRpcRequest[Json]("2.0", "hello", json"[42]", JsonRpcId.IntId(1)),

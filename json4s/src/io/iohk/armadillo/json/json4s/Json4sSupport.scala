@@ -45,8 +45,6 @@ class Json4sSupport private (parseAsJValue: String => JValue)(implicit formats: 
 
   override def asArray(seq: Vector[JValue]): JValue = JArray(seq.toList)
 
-  override def asObject(fields: Map[String, JValue]): JValue = JObject(fields.toList)
-
   override def jsNull: JValue = JNull
 
   override def outRawCodec: JsonCodec[JValue] = json4sCodec[JValue]

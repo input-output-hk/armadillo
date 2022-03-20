@@ -16,8 +16,6 @@ trait JsonSupport[Raw] {
   def decodeJsonRpcRequest(raw: Raw): DecodeResult[JsonRpcRequest[Raw]]
 
   def asArray(seq: Vector[Raw]): Raw
-  def asObject(fields: Map[String, Raw]): Raw
-
   def jsNull: Raw
 
   def getByIndex(arr: Raw, index: Int): DecodeResult[Raw]
