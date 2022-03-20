@@ -65,7 +65,7 @@ class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
   }
 
   private def createErrorResponse(error: JsonRpcError[Unit], id: Option[JsonRpcId]): Raw = {
-    jsonSupport.encodeError(JsonRpcErrorResponse("2.0", jsonSupport.encodeErrorNoData(error), id))
+    jsonSupport.encodeError(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(error), id))
   }
 
   private def handleBatchRequest(
@@ -144,7 +144,7 @@ class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
             case Some(requestId) =>
               val encodedError = matchedEndpoint.endpoint.error match {
                 case single @ JsonRpcErrorOutput.Single(_) =>
-                  val error = single.error
+                  val error = single.error // TODO should JsonRpcErrorResponse contain JsonRpcError[T] instead of Json?
                   error.codec.encode(value.asInstanceOf[error.DATA]).asInstanceOf[Raw]
               }
               Result.RequestResponse(jsonSupport.encodeError(JsonRpcErrorResponse("2.0", encodedError, Some(requestId))))

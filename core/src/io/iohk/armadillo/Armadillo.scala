@@ -70,7 +70,7 @@ object Armadillo {
   object JsonRpcResponse {
     def v2[Raw](result: Raw, id: JsonRpcId): JsonRpcSuccessResponse[Raw] =
       JsonRpcSuccessResponse[Raw](JsonRpcVersion_2_0, result, id)
-    def error_v2[Raw](error: Raw, id: Option[JsonRpcId]): JsonRpcResponse[Raw] =
+    def error_v2[Raw](error: Raw, id: Option[JsonRpcId]): JsonRpcErrorResponse[Raw] =
       JsonRpcErrorResponse[Raw](JsonRpcVersion_2_0, error, id)
   }
 
