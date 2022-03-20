@@ -33,7 +33,7 @@ object ExampleJson4s extends IOApp {
     }
 
   override def run(args: List[String]): IO[ExitCode] = {
-    val tapirInterpreter = new TapirInterpreter[IO, JValue](new Json4sSupport())(new CatsMonadError)
+    val tapirInterpreter = new TapirInterpreter[IO, JValue](new Json4sSupport(org.json4s.jackson.parseJson(_)))(new CatsMonadError)
     val tapirEndpoints = tapirInterpreter.apply(List(endpoint))
     val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
