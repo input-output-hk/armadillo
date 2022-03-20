@@ -6,7 +6,7 @@ import cats.syntax.all.*
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, Json}
 import io.iohk.armadillo.Armadillo.*
-import io.iohk.armadillo.JsonRpcEndpoint
+import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcServerEndpoint}
 import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.tapir.TapirInterpreter
 import org.http4s.HttpRoutes
@@ -30,13 +30,13 @@ trait BaseSuite extends SimpleIOSuite {
   implicit val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
 
   def test[I, E, O](
-      in_int_out_string: JsonRpcEndpoint[I, E, O],
+      endpoint: JsonRpcEndpoint[I, E, O],
       suffix: String = ""
   )(
       f: I => IO[Either[JsonRpcError[E], O]]
   )(request: JsonRpcRequest[Json], expectedResponse: JsonRpcResponse[Json]): Unit = {
-    test(in_int_out_string.showDetail + " " + suffix) {
-      testServer(in_int_out_string)(f)
+    test(endpoint.showDetail + " " + suffix) {
+      testSingleEndpoint(endpoint)(f)
         .use { case (backend, baseUri) =>
           basicRequest
             .post(baseUri)
@@ -50,11 +50,33 @@ trait BaseSuite extends SimpleIOSuite {
     }
   }
 
-  private def testServer[I, E, O](
+  private def testSingleEndpoint[I, E, O](
       endpoint: JsonRpcEndpoint[I, E, O]
   )(logic: I => IO[Either[JsonRpcError[E], O]]): Resource[IO, (SttpBackend[IO, Any], Uri)] = {
+    testMultipleEndpoints(List(endpoint.serverLogic(logic)))
+  }
+
+  def testMultiple(name: String)(
+      se: List[JsonRpcServerEndpoint[IO]]
+  )(request: List[JsonRpcRequest[Json]], expectedResponse: List[JsonRpcResponse[Json]]): Unit = {
+    test(name) {
+      testMultipleEndpoints(se)
+        .use { case (backend, baseUri) =>
+          basicRequest
+            .post(baseUri)
+            .body(request)
+            .response(asJson[List[JsonRpcResponse[Json]]])
+            .send(backend)
+            .map { response =>
+              expect.same(Right(expectedResponse), response.body)
+            }
+        }
+    }
+  }
+
+  private def testMultipleEndpoints(se: List[JsonRpcServerEndpoint[IO]]): Resource[IO, (SttpBackend[IO, Any], Uri)] = {
     val tapirInterpreter = new TapirInterpreter[IO, Json](new CirceJsonSupport)(new CatsMonadError)
-    val tapirEndpoints = tapirInterpreter.apply(List(endpoint.serverLogic(logic)))
+    val tapirEndpoints = tapirInterpreter.apply(se)
     val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
     testServer(routes)
   }

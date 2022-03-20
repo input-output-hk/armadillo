@@ -57,6 +57,12 @@ object Armadillo {
     def id: Int
   }
 
+  sealed trait JsonRpcId
+  object JsonRpcId {
+    case class IntId(value: Int) extends JsonRpcId
+    case class StringId(value: String) extends JsonRpcId
+  }
+
   case class JsonRpcSuccessResponse[Raw](jsonrpc: String, result: Raw, id: Int) extends JsonRpcResponse[Raw]
   object JsonRpcSuccessResponse {
     implicit def schema[Raw: Schema]: Schema[JsonRpcSuccessResponse[Raw]] = Schema.derived[JsonRpcSuccessResponse[Raw]]

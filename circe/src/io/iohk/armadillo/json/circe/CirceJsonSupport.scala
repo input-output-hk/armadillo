@@ -18,20 +18,11 @@ class CirceJsonSupport extends JsonSupport[Json] {
       None
     )
 
-  override def inCodec: JsonCodec[JsonRpcRequest[Json]] = {
-    val outerEncoder = deriveEncoder[JsonRpcRequest[Json]]
-    val outerDecoder = deriveDecoder[JsonRpcRequest[Json]]
-    circeCodec[JsonRpcRequest[Json]](outerEncoder, outerDecoder, implicitly[Schema[JsonRpcRequest[Json]]])
-  }
-
   override def inRpcCodec: JsonRpcCodec[JsonRpcRequest[Json]] = {
     val outerEncoder = deriveEncoder[JsonRpcRequest[Json]]
     val outerDecoder = deriveDecoder[JsonRpcRequest[Json]]
     jsonRpcCodec[JsonRpcRequest[Json]](outerEncoder, outerDecoder, implicitly[Schema[JsonRpcRequest[Json]]])
   }
-
-  override def rawCodec: JsonCodec[Json] =
-    circeCodec[Json](Encoder[Json], Decoder[Json], schemaForCirceJson)
 
   override def outCodec: JsonCodec[JsonRpcSuccessResponse[Json]] = {
     val outerEncoder = deriveEncoder[JsonRpcSuccessResponse[Json]]
@@ -93,5 +84,17 @@ class CirceJsonSupport extends JsonSupport[Json] {
   private val jsonRpcErrorNoDataEncoder = deriveEncoder[JsonRpcErrorNoData]
   override def encodeErrorNoData(error: JsonRpcErrorNoData): Json = {
     jsonRpcErrorNoDataEncoder.apply(error)
+  }
+
+  override def outRawCodec: JsonCodec[Json] = circeCodec[Json]
+
+  private val jsonRpcErrorResponseEncoder = deriveEncoder[JsonRpcErrorResponse[Json]]
+  override def encodeError(e: JsonRpcErrorResponse[Json]): Json = {
+    jsonRpcErrorResponseEncoder.apply(e)
+  }
+
+  private val jsonRpcSuccessResponseEncoder = deriveEncoder[JsonRpcSuccessResponse[Json]]
+  override def encodeSuccess(e: JsonRpcSuccessResponse[Json]): Json = {
+    jsonRpcSuccessResponseEncoder.apply(e)
   }
 }

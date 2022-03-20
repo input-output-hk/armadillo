@@ -16,7 +16,9 @@ object Endpoints {
   val empty: JsonRpcEndpoint[Unit, Unit, Unit] = jsonRpcEndpoint(MethodName("empty"))
 
   val error_with_data: JsonRpcEndpoint[Unit, Int, Unit] = jsonRpcEndpoint(MethodName("error_with_data"))
-    .errorOut(
-      error[Int]
-    )
+    .errorOut(error[Int])
+
+  val e1_int_string_out_int: JsonRpcEndpoint[String, Unit, Int] = jsonRpcEndpoint(MethodName("e1"))
+    .in(param[String]("param1"))
+    .out[Int]("response")
 }

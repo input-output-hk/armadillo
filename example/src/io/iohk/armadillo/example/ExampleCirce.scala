@@ -47,6 +47,9 @@ object ExampleCirce extends IOApp {
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
     import sttp.tapir.client.sttp.SttpClientInterpreter
 
+    import cats.syntax.all._
+    val x = List[Int](1).traverse(a => Option.empty[Int])
+
     BlazeServerBuilder[IO]
       .withExecutionContext(ec)
       .bindHttp(8545, "localhost")

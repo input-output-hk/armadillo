@@ -2,7 +2,7 @@ package io.iohk.armadillo.tapir
 
 import io.iohk.armadillo.*
 import io.iohk.armadillo.Armadillo.{JsonRpcErrorNoData, JsonRpcErrorResponse, JsonRpcSuccessResponse}
-import io.iohk.armadillo.tapir.TapirInterpreter.RichDecodeResult
+import io.iohk.armadillo.tapir.TapirInterpreter.{RichDecodeResult, RichMonadErrorOps}
 import io.iohk.armadillo.tapir.Utils.RichEndpointInput
 import sttp.model.StatusCode
 import sttp.monad.MonadError
@@ -26,7 +26,7 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
 
   def apply(
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]
-  ): ServerEndpoint.Full[Unit, Unit, String, JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json], Any, F] = {
+  ): ServerEndpoint.Full[Unit, Unit, String, Unit, Json, Any, F] = {
     sttp.tapir.endpoint.post
       .in(
         EndpointIO.Body(
@@ -35,25 +35,21 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
           Info.empty
         )
       )
-      .out(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.outCodec, Info.empty))
-      .errorOut(
-        statusCode(StatusCode.Ok)
-          .and(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.errorOutCodec, Info.empty))
-      )
-      .serverLogic[F](serverLogic2(jsonRpcEndpoints, _).handleError { case _ =>
-        monadError.unit(createErrorResponse(InternalError))
+      .out(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.outRawCodec, Info.empty))
+      .serverLogic[F](serverLogic2(jsonRpcEndpoints, _).map(r => Right(r): Either[Unit, Json]).handleError { case _ =>
+        monadError.unit(Right(createErrorResponse(InternalError)))
       })
   }
 
   private def serverLogic2(
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
       stringRequest: String
-  ): F[Either[JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json]]] = {
+  ): F[Json] = {
     jsonSupport.parse(stringRequest) match {
       case _: DecodeResult.Failure => monadError.unit(createErrorResponse(ParseError))
       case DecodeResult.Value(jsonRequest) =>
         jsonSupport.fold(jsonRequest)(
-          handleArray(jsonRpcEndpoints, _),
+          handleBatchRequest(jsonRpcEndpoints, _),
           handleObject(jsonRpcEndpoints, _),
           defaultHandler
         ) // TODO combine parse and fold?
@@ -61,21 +57,25 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
 
   }
 
-  private def createErrorResponse(error: JsonRpcErrorNoData): Either[JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json]] = {
-    Left(JsonRpcErrorResponse("2.0", jsonSupport.encodeErrorNoData(error), 1))
+  private def createErrorResponse(error: JsonRpcErrorNoData): Json = {
+    jsonSupport.encodeError(JsonRpcErrorResponse("2.0", jsonSupport.encodeErrorNoData(error), 1))
   }
 
-  private def handleArray(
+  private def handleBatchRequest(
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
-      array: Vector[Json]
-  ): F[Either[JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json]]] = {
-    ???
+      requests: Vector[Json]
+  ): F[Json] = {
+    val responses = requests.foldRight(monadError.unit(List.empty[Json])) { case (req, accF) =>
+      val fb = handleObject(jsonRpcEndpoints, req)
+      fb.map2(accF)(_ :: _)
+    }
+    responses.map(r => jsonSupport.asArray(r.toVector))
   }
 
   private def handleObject(
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
       obj: Json
-  ): F[Either[JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json]]] = {
+  ): F[Json] = {
     val codec = jsonSupport.inRpcCodec
     codec.decode(obj.asInstanceOf[codec.L]) match {
       case _: DecodeResult.Failure => monadError.unit(createErrorResponse(InvalidRequest))
@@ -90,18 +90,25 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
   private def handleObjectWithEndpoint(
       serverEndpoint: JsonRpcServerEndpoint[F],
       jsonParams: Json
-  ): F[Either[JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json]]] = {
+  ): F[Json] = {
     decodeJsonRpcParamsForEndpoint(serverEndpoint.endpoint, jsonParams) match {
-      case _: DecodeResult.Failure    => monadError.unit(createErrorResponse(InvalidParams))
-      case DecodeResult.Value(params) => serverLogicForEndpoint(params, serverEndpoint)
+      case _: DecodeResult.Failure => monadError.unit(createErrorResponse(InvalidParams))
+      case DecodeResult.Value(params) =>
+        serverLogicForEndpoint(params, serverEndpoint).map {
+          case Left(value)  => jsonSupport.encodeError(value)
+          case Right(value) => jsonSupport.encodeSuccess(value)
+        }
     }
   }
 
-  private def defaultHandler(json: Json): F[Either[JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json]]] = {
+  private def defaultHandler(json: Json): F[Json] = {
     monadError.unit(createErrorResponse(InvalidRequest))
   }
 
-  private def serverLogicForEndpoint(params: ParamsAsVector, matchedEndpoint: JsonRpcServerEndpoint[F]) = {
+  private def serverLogicForEndpoint(
+      params: ParamsAsVector,
+      matchedEndpoint: JsonRpcServerEndpoint[F]
+  ): F[Either[JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json]]] = {
     val matchedBody = params.asAny.asInstanceOf[matchedEndpoint.INPUT]
     matchedEndpoint.logic(monadError)(matchedBody).map {
       case Left(value) =>
@@ -167,15 +174,13 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
 
     override def encode(h: String): String = h
 
-    override def schema: Schema[String] = anythingSchema[String]
+    override def schema: Schema[String] = Schema[String](
+      SCoproduct(Nil, None)(_ => None),
+      None
+    )
 
     override def format: CodecFormat.Json = CodecFormat.Json()
   }
-
-  private def anythingSchema[T]: Schema[T] = Schema[T](
-    SCoproduct(Nil, None)(_ => None),
-    None
-  )
 
   private val ParseError = JsonRpcErrorNoData(-32700, "Parse error")
   private val InvalidRequest = JsonRpcErrorNoData(-32600, "Invalid Request")
@@ -201,6 +206,14 @@ object TapirInterpreter {
       decodeResult match {
         case failure: DecodeResult.Failure => error(failure)
         case DecodeResult.Value(v)         => success(v)
+      }
+    }
+  }
+
+  implicit class RichMonadErrorOps[F[_]: MonadError, A](fa: F[A]) {
+    def map2[B, C](fb: F[B])(f: (A, B) => C): F[C] = {
+      fa.flatMap { a =>
+        fb.map(b => f(a, b))
       }
     }
   }

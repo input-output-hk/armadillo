@@ -6,7 +6,11 @@ import io.circe.literal.*
 import io.iohk.armadillo.Armadillo.*
 import io.iohk.armadillo.tapir.http4s.Endpoints.*
 
+import java.lang.Integer.parseInt
+
 object Http4sServerTest extends BaseSuite {
+  // TODO add test for non-unique methods
+  // TODO add test for non-unique id within batch request
 
   test(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
     request = JsonRpcRequest[Json]("2.0", "hello", json"[42]", 1),
@@ -51,5 +55,15 @@ object Http4sServerTest extends BaseSuite {
   test(empty, "internal server error")(_ => IO.raiseError(new RuntimeException("something went wrong")))(
     request = JsonRpcRequest[Json]("2.0", "empty", json"[]", 1),
     expectedResponse = JsonRpcErrorResponse("2.0", json"""{"code": -32603, "message": "Internal error"}""", 1)
+  )
+
+  testMultiple("batch_request_successful")(
+    List(
+      hello_in_int_out_string.serverLogic[IO](int => IO.pure(Right(int.toString))),
+      e1_int_string_out_int.serverLogic[IO](str => IO.delay(Right(parseInt(str))))
+    )
+  )(
+    request = List(JsonRpcRequest("2.0", "hello", json"[11]", 1), JsonRpcRequest("2.0", "e1", json"""{"param1": "22"}""", 1)),
+    expectedResponse = List(JsonRpcSuccessResponse("2.0", Json.fromString("11"), 1), JsonRpcSuccessResponse("2.0", Json.fromInt(22), 1))
   )
 }
