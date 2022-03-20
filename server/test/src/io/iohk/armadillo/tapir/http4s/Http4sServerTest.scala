@@ -75,4 +75,22 @@ object Http4sServerTest extends BaseSuite {
       JsonRpcResponse.v2(Json.fromInt(22), 2)
     )
   )
+
+  testMultiple("batch_request_success_error_notification")(
+    List(
+      hello_in_int_out_string.serverLogic[IO](int => IO.pure(Right(int.toString))),
+      e1_int_string_out_int.serverLogic[IO](str => IO.delay(Right(parseInt(str)))),
+      error_with_data.serverLogic[IO](_ => IO.pure(Left(JsonRpcError(123, "error", 123))))
+    )
+  )(
+    request = List(
+      JsonRpcRequest.v2("hello", json"[11]", "1"),
+      Notification.v2("e1", json"""{"param1": "22"}"""),
+      JsonRpcRequest.v2("error_with_data", json"[11]", "3")
+    ),
+    expectedResponse = List(
+      JsonRpcResponse.v2(Json.fromString("11"), 1),
+      JsonRpcResponse.error_v2(json"""{"code": 123, "message": "error", "data": 123}""", Some(3))
+    )
+  )
 }
