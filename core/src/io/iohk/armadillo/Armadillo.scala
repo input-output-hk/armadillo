@@ -3,6 +3,7 @@ package io.iohk.armadillo
 import io.iohk.armadillo.Armadillo.{JsonRpcCodec, JsonRpcError, param}
 import sttp.monad.MonadError
 import sttp.tapir.EndpointIO.Info
+import sttp.tapir.SchemaType.SchemaWithValue
 import sttp.tapir.internal.{CombineParams, SplitParams, mkCombine, mkSplit}
 import sttp.tapir.typelevel.ParamConcat
 import sttp.tapir.{DecodeResult, EndpointIO, Schema, SchemaType}
@@ -47,28 +48,45 @@ object Armadillo {
     }
   }
 
-  case class JsonRpcRequest[Raw](jsonrpc: String, method: String, params: Raw, id: Int)
+  case class JsonRpcRequest[Raw](jsonrpc: String, method: String, params: Raw, id: JsonRpcId)
   object JsonRpcRequest {
     implicit def schema[Raw: Schema]: Schema[JsonRpcRequest[Raw]] = Schema.derived[JsonRpcRequest[Raw]]
   }
 
   sealed trait JsonRpcResponse[Raw] {
     def jsonrpc: String
-    def id: Int
+    def id: JsonRpcId
   }
 
   sealed trait JsonRpcId
   object JsonRpcId {
     case class IntId(value: Int) extends JsonRpcId
     case class StringId(value: String) extends JsonRpcId
+    case object NullId extends JsonRpcId
+
+    implicit val schema: Schema[JsonRpcId] = {
+      val s1 = Schema.schemaForInt.asOption
+      val s2 = Schema.schemaForString.asOption
+      Schema[JsonRpcId](
+        SchemaType.SCoproduct(List(s1, s2), None) {
+          case IntId(v)    => Some(SchemaWithValue(s1, Some(v)))
+          case StringId(v) => Some(SchemaWithValue(s2, Some(v)))
+          case NullId      => Some(SchemaWithValue(s1, None))
+        },
+        for {
+          na <- s1.name
+          nb <- s2.name
+        } yield Schema.SName("JsonRpcId", List(na.show, nb.show))
+      )
+    }
   }
 
-  case class JsonRpcSuccessResponse[Raw](jsonrpc: String, result: Raw, id: Int) extends JsonRpcResponse[Raw]
+  case class JsonRpcSuccessResponse[Raw](jsonrpc: String, result: Raw, id: JsonRpcId) extends JsonRpcResponse[Raw]
   object JsonRpcSuccessResponse {
     implicit def schema[Raw: Schema]: Schema[JsonRpcSuccessResponse[Raw]] = Schema.derived[JsonRpcSuccessResponse[Raw]]
   }
 
-  case class JsonRpcErrorResponse[Raw](jsonrpc: String, error: Raw, id: Int) extends JsonRpcResponse[Raw]
+  case class JsonRpcErrorResponse[Raw](jsonrpc: String, error: Raw, id: JsonRpcId) extends JsonRpcResponse[Raw]
   object JsonRpcErrorResponse {
     implicit def schema[Raw: Schema]: Schema[JsonRpcErrorResponse[Raw]] = Schema.derived[JsonRpcErrorResponse[Raw]]
   }

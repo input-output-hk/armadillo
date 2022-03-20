@@ -2,14 +2,13 @@ package io.iohk.armadillo.json.circe
 
 import cats.syntax.all.*
 import io.circe.*
-import io.circe.generic.semiauto.*
 import io.iohk.armadillo.Armadillo.*
 import io.iohk.armadillo.tapir.JsonSupport
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.SchemaType.SCoproduct
 import sttp.tapir.json.circe.circeCodec
 import sttp.tapir.{DecodeResult, Schema}
-import io.iohk.armadillo.tapir.JsonSupport.Json as AJson
+import io.iohk.armadillo.tapir.JsonSupport.{Json => AJson}
 
 class CirceJsonSupport extends JsonSupport[Json] {
   // Json is a coproduct with unknown implementations
@@ -59,26 +58,17 @@ class CirceJsonSupport extends JsonSupport[Json] {
       )
     }
   }
-  private val jsonRpcErrorNoDataEncoder = deriveEncoder[JsonRpcErrorNoData]
-  override def encodeErrorNoData(error: JsonRpcErrorNoData): Json = {
-    jsonRpcErrorNoDataEncoder.apply(error)
-  }
+
+  override def encodeErrorNoData(error: JsonRpcErrorNoData): Json = Encoder[JsonRpcErrorNoData].apply(error)
 
   override def outRawCodec: JsonCodec[Json] = circeCodec[Json]
 
-  private val jsonRpcErrorResponseEncoder = deriveEncoder[JsonRpcErrorResponse[Json]]
-  override def encodeError(e: JsonRpcErrorResponse[Json]): Json = {
-    jsonRpcErrorResponseEncoder.apply(e)
-  }
+  override def encodeError(e: JsonRpcErrorResponse[Json]): Json = Encoder[JsonRpcErrorResponse[Json]].apply(e)
 
-  private val jsonRpcSuccessResponseEncoder = deriveEncoder[JsonRpcSuccessResponse[Json]]
-  override def encodeSuccess(e: JsonRpcSuccessResponse[Json]): Json = {
-    jsonRpcSuccessResponseEncoder.apply(e)
-  }
+  override def encodeSuccess(e: JsonRpcSuccessResponse[Json]): Json = Encoder[JsonRpcSuccessResponse[Json]].apply(e)
 
-  private val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
   override def decodeJsonRpcRequest(raw: Json): DecodeResult[JsonRpcRequest[Json]] = {
-    jsonRpcRequestDecoder.decodeJson(raw) match {
+    Decoder[JsonRpcRequest[Json]].decodeJson(raw) match {
       case Left(value)  => DecodeResult.Error(raw.noSpaces, value)
       case Right(value) => DecodeResult.Value(value)
     }
