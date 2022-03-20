@@ -44,4 +44,4 @@ curl --location --request POST 'localhost:8545/' \
 - [ ] Create sttp-client interpreter
 - [ ] Add tests
 - [ ] Cross-compile against other scala versions
-- [ ] setup CI
+- [x] setup CI
