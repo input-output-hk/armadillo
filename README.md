@@ -42,6 +42,6 @@ curl --location --request POST 'localhost:8545/' \
 - [ ] Unify the design, decide whether user logic should accept envelop
 - [ ] Create openrpc interpreter
 - [ ] Create sttp-client interpreter
-- [ ] Add tests
+- [x] Add tests
 - [ ] Cross-compile against other scala versions
 - [x] setup CI
