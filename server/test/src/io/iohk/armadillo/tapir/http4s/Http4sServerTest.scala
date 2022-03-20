@@ -47,4 +47,9 @@ object Http4sServerTest extends BaseSuite {
     request = JsonRpcRequest[Json]("2.0", "error_with_data", json"[]", 1),
     expectedResponse = JsonRpcErrorResponse("2.0", json"""{"code": 123, "message": "error", "data": 42}""", 1)
   )
+
+  test(empty, "internal server error")(_ => IO.raiseError(new RuntimeException("something went wrong")))(
+    request = JsonRpcRequest[Json]("2.0", "empty", json"[]", 1),
+    expectedResponse = JsonRpcErrorResponse("2.0", json"""{"code": -32603, "message": "Internal error"}""", 1)
+  )
 }

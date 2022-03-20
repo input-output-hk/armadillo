@@ -1,10 +1,8 @@
 package io.iohk.armadillo.tapir.http4s
 
-import io.circe.{Decoder, Encoder}
-import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcErrorWithData, JsonRpcErrorNoData, error, jsonRpcEndpoint, noDataError, param}
-import io.iohk.armadillo.{Armadillo, JsonRpcEndpoint, MethodName}
+import io.iohk.armadillo.Armadillo.{error, jsonRpcEndpoint, param}
 import io.iohk.armadillo.json.circe.*
-import sttp.tapir.Schema
+import io.iohk.armadillo.{JsonRpcEndpoint, MethodName}
 
 object Endpoints {
   val hello_in_int_out_string: JsonRpcEndpoint[Int, Unit, String] = jsonRpcEndpoint(MethodName("hello"))
