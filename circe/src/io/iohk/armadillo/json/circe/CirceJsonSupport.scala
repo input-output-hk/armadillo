@@ -4,11 +4,11 @@ import cats.syntax.all.*
 import io.circe.*
 import io.iohk.armadillo.Armadillo.*
 import io.iohk.armadillo.tapir.JsonSupport
+import io.iohk.armadillo.tapir.JsonSupport.Json as AJson
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.SchemaType.SCoproduct
 import sttp.tapir.json.circe.circeCodec
 import sttp.tapir.{DecodeResult, Schema}
-import io.iohk.armadillo.tapir.JsonSupport.{Json => AJson}
 
 class CirceJsonSupport extends JsonSupport[Json] {
   // Json is a coproduct with unknown implementations
@@ -41,8 +41,6 @@ class CirceJsonSupport extends JsonSupport[Json] {
   }
 
   override def asArray(seq: Vector[Json]): Json = Json.arr(seq *)
-
-  override def asObject(fields: Map[String, Json]): Json = Json.obj(fields.toList *)
 
   override def jsNull: Json = Json.Null
 
