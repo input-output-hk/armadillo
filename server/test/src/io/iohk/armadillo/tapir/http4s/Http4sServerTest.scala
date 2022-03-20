@@ -12,48 +12,52 @@ object Http4sServerTest extends BaseSuite {
   // TODO add test for non-unique methods
 
   test(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
-    request = JsonRpcRequest[Json]("2.0", "hello", json"[42]", JsonRpcId.IntId(1)),
-    expectedResponse = JsonRpcSuccessResponse("2.0", json"${"42"}", JsonRpcId.IntId(1))
+    request = JsonRpcRequest.v2("hello", json"[42]", 1),
+    expectedResponse = JsonRpcResponse.v2(json"${"42"}", 1)
+  )
+
+  testNotification(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
+    request = Notification.v2("hello", json"[42]")
   )
 
   test(hello_in_int_out_string, "by_name")(int => IO.pure(Right(int.toString)))(
-    request = JsonRpcRequest[Json]("2.0", "hello", json"""{"param1": 42}""", JsonRpcId.IntId(1)),
-    expectedResponse = JsonRpcSuccessResponse("2.0", json"${"42"}", JsonRpcId.IntId(1))
+    request = JsonRpcRequest.v2("hello", json"""{"param1": 42}""", 1),
+    expectedResponse = JsonRpcResponse.v2(json"${"42"}", 1)
   )
 
   test(hello_in_multiple_int_out_string) { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
-    request = JsonRpcRequest[Json]("2.0", "hello", json"[42, 43]", JsonRpcId.IntId(1)),
-    expectedResponse = JsonRpcSuccessResponse("2.0", json"${"85"}", JsonRpcId.IntId(1))
+    request = JsonRpcRequest.v2("hello", json"[42, 43]", 1),
+    expectedResponse = JsonRpcResponse.v2(json"${"85"}", 1)
   )
 
   test(hello_in_multiple_int_out_string, "by_name") { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
-    request = JsonRpcRequest[Json]("2.0", "hello", json"""{"param1": 42, "param2": 43}""", JsonRpcId.IntId(1)),
-    expectedResponse = JsonRpcSuccessResponse("2.0", json"${"85"}", JsonRpcId.IntId(1))
+    request = JsonRpcRequest.v2("hello", json"""{"param1": 42, "param2": 43}""", 1),
+    expectedResponse = JsonRpcResponse.v2(json"${"85"}", 1)
   )
 
   test(empty)(_ => IO.delay(Right(println("hello from server"))))(
-    request = JsonRpcRequest[Json]("2.0", "empty", json"""[]""", JsonRpcId.IntId(1)),
-    expectedResponse = JsonRpcSuccessResponse("2.0", Json.Null, JsonRpcId.IntId(1))
+    request = JsonRpcRequest.v2("empty", json"""[]""", 1),
+    expectedResponse = JsonRpcResponse.v2(Json.Null, 1)
   )
 
   test(empty, "method not found")(_ => IO.delay(Right(println("hello from server"))))(
-    request = JsonRpcRequest[Json]("2.0", "non_existing_method", json"""[]""", JsonRpcId.IntId(1)),
-    expectedResponse = JsonRpcErrorResponse("2.0", json"""{"code": -32601, "message": "Method not found"}""", JsonRpcId.IntId(1))
+    request = JsonRpcRequest.v2("non_existing_method", json"""[]""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32601, "message": "Method not found"}""", Some(1))
   )
 
   test(empty, "no_data_error")(_ => IO.pure(Left(JsonRpcError.noData(123, "error"))))(
-    request = JsonRpcRequest[Json]("2.0", "empty", json"[]", JsonRpcId.IntId(1)),
-    expectedResponse = JsonRpcErrorResponse("2.0", json"""{"code": 123, "message": "error"}""", JsonRpcId.IntId(1))
+    request = JsonRpcRequest.v2("empty", json"[]", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": 123, "message": "error"}""", Some(1))
   )
 
   test(error_with_data)(_ => IO.pure(Left(JsonRpcError(123, "error", 42))))(
-    request = JsonRpcRequest[Json]("2.0", "error_with_data", json"[]", JsonRpcId.IntId(1)),
-    expectedResponse = JsonRpcErrorResponse("2.0", json"""{"code": 123, "message": "error", "data": 42}""", JsonRpcId.IntId(1))
+    request = JsonRpcRequest.v2("error_with_data", json"[]", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": 123, "message": "error", "data": 42}""", Some(1))
   )
 
   test(empty, "internal server error")(_ => IO.raiseError(new RuntimeException("something went wrong")))(
-    request = JsonRpcRequest[Json]("2.0", "empty", json"[]", JsonRpcId.IntId(1)),
-    expectedResponse = JsonRpcErrorResponse("2.0", json"""{"code": -32603, "message": "Internal error"}""", JsonRpcId.IntId(1))
+    request = JsonRpcRequest.v2("empty", json"[]", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32603, "message": "Internal error"}""", Some(1))
   )
 
   testMultiple("batch_request_successful")(
@@ -63,12 +67,12 @@ object Http4sServerTest extends BaseSuite {
     )
   )(
     request = List(
-      JsonRpcRequest("2.0", "hello", json"[11]", JsonRpcId.IntId(1)),
-      JsonRpcRequest("2.0", "e1", json"""{"param1": "22"}""", JsonRpcId.IntId(1))
+      JsonRpcRequest.v2("hello", json"[11]", "1"),
+      JsonRpcRequest.v2("e1", json"""{"param1": "22"}""", 2)
     ),
     expectedResponse = List(
-      JsonRpcSuccessResponse("2.0", Json.fromString("11"), JsonRpcId.IntId(1)),
-      JsonRpcSuccessResponse("2.0", Json.fromInt(22), JsonRpcId.IntId(1))
+      JsonRpcResponse.v2(Json.fromString("11"), 1),
+      JsonRpcResponse.v2(Json.fromInt(22), 2)
     )
   )
 }

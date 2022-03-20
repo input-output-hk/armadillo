@@ -16,7 +16,7 @@ import org.http4s.server.Router
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import sttp.client3.circe.*
 import sttp.client3.{SttpBackend, basicRequest}
-import sttp.model.Uri
+import sttp.model.{StatusCode, Uri}
 import sttp.tapir.integ.cats.CatsMonadError
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 import weaver.SimpleIOSuite
@@ -46,6 +46,26 @@ trait BaseSuite extends SimpleIOSuite {
             .send(backend)
             .map { response =>
               expect.same(Right(expectedResponse), response.body)
+            }
+        }
+    }
+  }
+
+  def testNotification[I, E, O](
+      endpoint: JsonRpcEndpoint[I, E, O],
+      suffix: String = ""
+  )(
+      f: I => IO[Either[JsonRpcError[E], O]]
+  )(request: JsonRpcRequest[Json]): Unit = {
+    test(endpoint.showDetail + " as notification " + suffix) {
+      testSingleEndpoint(endpoint)(f)
+        .use { case (backend, baseUri) =>
+          basicRequest
+            .post(baseUri)
+            .body(request)
+            .send(backend)
+            .map { response =>
+              expect.same(StatusCode.Ok, response.code)
             }
         }
     }

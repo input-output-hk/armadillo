@@ -92,13 +92,11 @@ object Json4sSupport {
         (
           {
             case JInt(value)    => JsonRpcId.IntId(value.intValue)
-            case JNull          => JsonRpcId.NullId
             case JString(value) => JsonRpcId.StringId(value)
           },
           {
             case JsonRpcId.IntId(v)    => JInt(v)
             case JsonRpcId.StringId(v) => JString(v)
-            case JsonRpcId.NullId      => JNull
           }
         )
       )

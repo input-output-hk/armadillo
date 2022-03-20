@@ -25,14 +25,12 @@ trait ArmadilloCirceJson {
   implicit val jsonRpcIdEncoder: Encoder[JsonRpcId] = Encoder.instance[JsonRpcId] {
     case JsonRpcId.IntId(value)    => Encoder.encodeInt(value)
     case JsonRpcId.StringId(value) => Encoder.encodeString(value)
-    case JsonRpcId.NullId          => Encoder.encodeNone(None)
   }
 
   implicit val jsonRpcIdDecoder: Decoder[JsonRpcId] = Decoder.decodeInt
     .map(JsonRpcId.IntId)
     .widen
     .or(Decoder.decodeString.map(JsonRpcId.StringId).widen[JsonRpcId])
-    .or(Decoder.decodeNone.map(_ => JsonRpcId.NullId).widen[JsonRpcId])
 
   implicit val jsonRpcErrorNoDataEncoder: Encoder[JsonRpcError[Unit]] = Encoder { i =>
     Json.obj("code" -> Json.fromInt(i.code), "message" -> Json.fromString(i.message))
