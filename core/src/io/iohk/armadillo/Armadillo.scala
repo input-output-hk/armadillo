@@ -18,32 +18,32 @@ object Armadillo {
 
   def jsonRpcEndpoint(
       str: MethodName
-  ): JsonRpcEndpoint[Unit, Unit, Unit] =
+  )(implicit _codec: JsonRpcCodec[JsonRpcNoDataError]): JsonRpcEndpoint[Unit, Unit, Unit] =
     JsonRpcEndpoint(
       methodName = str,
       input = JsonRpcInput.emptyInput,
       output = JsonRpcOutput.emptyOutput(JsonRpcOutput.emptyOutputCodec()),
-      error = JsonRpcErrorOutput.emptyErrorOutput(JsonRpcErrorOutput.emptyErrorCodec())
+      error = JsonRpcErrorOutput.Single(noDataError)
     )
 
   def param[T: JsonRpcCodec](name: String): JsonRpcIO[T] = JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], Info.empty[T], name)
 
-  def error[T](implicit _codec: JsonRpcCodec[JsonRpcError[T]]): JsonRpcErrorPart[JsonRpcError[T]] =
-    new JsonRpcErrorPart.Single[JsonRpcError[T]] {
-      override type DATA = JsonRpcError[T]
+  def error[T](implicit _codec: JsonRpcCodec[JsonRpcErrorWithData[T]]): JsonRpcErrorPart[T] =
+    new JsonRpcErrorPart[T] {
+      override type DATA = JsonRpcErrorWithData[T]
 
-      override def codec: JsonRpcCodec[JsonRpcError[T]] = _codec
+      override def codec: JsonRpcCodec[JsonRpcErrorWithData[T]] = _codec
 
-      override def info: Info[JsonRpcError[T]] = Info.empty[JsonRpcError[T]]
+      override def info: Info[T] = Info.empty[T]
     }
 
-  def noDataError(implicit _codec: JsonRpcCodec[JsonRpcNoDataError]): JsonRpcErrorPart[JsonRpcNoDataError] = {
-    new JsonRpcErrorPart.Single[JsonRpcNoDataError] {
+  def noDataError(implicit _codec: JsonRpcCodec[JsonRpcNoDataError]): JsonRpcErrorPart[Unit] = {
+    new JsonRpcErrorPart[Unit] {
       override type DATA = JsonRpcNoDataError
 
       override def codec: JsonRpcCodec[JsonRpcNoDataError] = _codec
 
-      override def info: Info[JsonRpcNoDataError] = Info.empty[JsonRpcNoDataError]
+      override def info: Info[Unit] = Info.empty
     }
   }
 
@@ -67,12 +67,14 @@ object Armadillo {
     implicit def schema[Raw: Schema]: Schema[JsonRpcErrorResponse[Raw]] = Schema.derived[JsonRpcErrorResponse[Raw]]
   }
 
-  case class JsonRpcError[Data](code: Int, message: String, data: Data)
-  object JsonRpcError {
-    implicit def schema[Data: Schema]: Schema[JsonRpcError[Data]] = Schema.derived[JsonRpcError[Data]]
+  sealed trait JsonRpcError[Data]
+
+  case class JsonRpcErrorWithData[Data](code: Int, message: String, data: Data) extends JsonRpcError[Data]
+  object JsonRpcErrorWithData {
+    implicit def schema[Data: Schema]: Schema[JsonRpcErrorWithData[Data]] = Schema.derived[JsonRpcErrorWithData[Data]]
   }
 
-  case class JsonRpcNoDataError(code: Int, message: String)
+  case class JsonRpcNoDataError(code: Int, message: String) extends JsonRpcError[Unit]
   object JsonRpcNoDataError {
     implicit val schema: Schema[JsonRpcNoDataError] = Schema.derived[JsonRpcNoDataError]
   }
@@ -88,7 +90,7 @@ case class JsonRpcEndpoint[I, E, O](
   def in[J](i: JsonRpcInput[J]): JsonRpcEndpoint[J, E, O] =
     copy(input = i)
 
-  def serverLogic[F[_]](f: I => F[Either[E, O]]): JsonRpcServerEndpoint.Full[I, E, O, F] = {
+  def serverLogic[F[_]](f: I => F[Either[JsonRpcError[E], O]]): JsonRpcServerEndpoint.Full[I, E, O, F] = {
     import sttp.monad.syntax.*
     JsonRpcServerEndpoint[I, E, O, F](this, implicit m => i => f(i).map(x => x))
   }
@@ -140,57 +142,16 @@ object JsonRpcInput {
   }
 }
 
-sealed trait JsonRpcErrorPart[T] extends JsonRpcEndpointTransput[T] {
-  def and[U, TU](param: JsonRpcErrorPart[U])(implicit concat: ParamConcat.Aux[T, U, TU]): JsonRpcErrorPart[TU] = {
-    JsonRpcErrorPart.Pair(this, param, mkCombine(concat), mkSplit(concat))
-  }
-}
-
-object JsonRpcErrorPart {
-  trait Single[T] extends JsonRpcErrorPart[T] {
-    type DATA
-    def codec: JsonRpcCodec[DATA]
-    def info: Info[T]
-    override def show: String = s"single"
-  }
-
-  case class Pair[T, U, TU](left: JsonRpcErrorPart[T], right: JsonRpcErrorPart[U], combine: CombineParams, split: SplitParams)
-      extends JsonRpcErrorPart[TU] {
-    override def show: String = {
-      def flattenedPairs(et: JsonRpcErrorPart[_]): Vector[JsonRpcErrorPart[_]] =
-        et match {
-          case p: Pair[_, _, _] => flattenedPairs(p.left) ++ flattenedPairs(p.right)
-          case other            => Vector(other)
-        }
-      flattenedPairs(this).map(_.show).mkString("[", ",", "]")
-    }
-  }
+trait JsonRpcErrorPart[T] extends JsonRpcEndpointTransput[T] {
+  type DATA
+  def codec: JsonRpcCodec[DATA]
+  def info: Info[T]
+  override def show: String = s"single"
 }
 
 sealed trait JsonRpcErrorOutput[T] extends JsonRpcEndpointTransput[T]
 
 object JsonRpcErrorOutput {
-  def emptyErrorCodec(
-      s: Schema[Unit] = Schema[Unit](SchemaType.SString())
-  ): JsonRpcCodec[Unit] =
-    new JsonRpcCodec[Unit] {
-      override type L = Nothing
-
-      override def schema: Schema[Unit] = s
-
-      override def decode(l: Nothing): DecodeResult[Unit] = DecodeResult.Value(())
-
-      override def encode(h: Unit): Nothing = throw new RuntimeException("should not be called")
-
-    }
-
-  def emptyErrorOutput(emptyCodec: JsonRpcCodec[Unit]): JsonRpcErrorOutput[Unit] =
-    EmptyError(emptyCodec, Info.empty)
-
-  case class EmptyError[T](codec: JsonRpcCodec[Unit], info: Info[T]) extends JsonRpcErrorOutput[T] {
-    override def show: String = "-"
-  }
-
   case class Single[T](error: JsonRpcErrorPart[T]) extends JsonRpcErrorOutput[T] {
     override def show: String = s"single(${error.show})"
   }
@@ -229,7 +190,7 @@ abstract class JsonRpcServerEndpoint[F[_]] {
   type OUTPUT
 
   def endpoint: JsonRpcEndpoint[INPUT, ERROR_OUTPUT, OUTPUT]
-  def logic: MonadError[F] => INPUT => F[Either[ERROR_OUTPUT, OUTPUT]]
+  def logic: MonadError[F] => INPUT => F[Either[JsonRpcError[ERROR_OUTPUT], OUTPUT]]
 }
 object JsonRpcServerEndpoint {
 
@@ -244,7 +205,7 @@ object JsonRpcServerEndpoint {
 
   def apply[INPUT, ERROR_OUTPUT, OUTPUT, F[_]](
       endpoint: JsonRpcEndpoint[INPUT, ERROR_OUTPUT, OUTPUT],
-      logic: MonadError[F] => INPUT => F[Either[ERROR_OUTPUT, OUTPUT]]
+      logic: MonadError[F] => INPUT => F[Either[JsonRpcError[ERROR_OUTPUT], OUTPUT]]
   ): JsonRpcServerEndpoint.Full[INPUT, ERROR_OUTPUT, OUTPUT, F] = {
     type _INPUT = INPUT
     type _ERROR_OUTPUT = ERROR_OUTPUT
@@ -258,7 +219,7 @@ object JsonRpcServerEndpoint {
 
       override def endpoint: JsonRpcEndpoint[INPUT, ERROR_OUTPUT, OUTPUT] = e
 
-      override def logic: MonadError[F] => INPUT => F[Either[ERROR_OUTPUT, OUTPUT]] = f
+      override def logic: MonadError[F] => INPUT => F[Either[JsonRpcError[ERROR_OUTPUT], OUTPUT]] = f
     }
   }
 }

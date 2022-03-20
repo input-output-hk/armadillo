@@ -1,16 +1,16 @@
 package io.iohk.armadillo.tapir
 
 import io.iohk.armadillo.*
-import io.iohk.armadillo.Armadillo.{JsonRpcErrorResponse, JsonRpcRequest, JsonRpcSuccessResponse, jsonRpcEndpoint}
+import io.iohk.armadillo.Armadillo.{JsonRpcErrorResponse, JsonRpcSuccessResponse}
 import io.iohk.armadillo.tapir.TapirInterpreter.RichDecodeResult
-import io.iohk.armadillo.tapir.Utils.{RichEndpointErrorPart, RichEndpointInput}
+import io.iohk.armadillo.tapir.Utils.RichEndpointInput
 import sttp.model.StatusCode
 import sttp.monad.MonadError
 import sttp.monad.syntax.*
-import sttp.tapir.Codec.{JsonCodec, json}
+import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.EndpointIO.Info
 import sttp.tapir.SchemaType.SCoproduct
-import sttp.tapir.internal.{ParamsAsAny, ParamsAsVector}
+import sttp.tapir.internal.ParamsAsVector
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.{CodecFormat, DecodeResult, EndpointIO, RawBodyType, Schema, statusCode}
 
@@ -103,44 +103,17 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
     matchedEndpoint.logic(monadError)(matchedBody).map {
       case Left(value) =>
         val encodedError = matchedEndpoint.endpoint.error match {
-          case JsonRpcErrorOutput.EmptyError(_, _) => Vector.empty[Json]
-          case JsonRpcErrorOutput.Single(error) =>
-            val valueAsVector = ParamsAsAny(value).asVector
-            val partsAsVector = error.asVectorOfBasicErrorParts
-            val jsonVector = valueAsVector.zip(partsAsVector).map { case (value, part) =>
-              part.codec.encode(value.asInstanceOf[part.DATA]).asInstanceOf[Json]
-            }
-            jsonVector
+          case single @ JsonRpcErrorOutput.Single(_) =>
+            val error = single.error
+            error.codec.encode(value.asInstanceOf[error.DATA]).asInstanceOf[Json]
         }
-        Left(JsonRpcErrorResponse("2.0", jsonSupport.asArray(encodedError), 1))
+        Left(JsonRpcErrorResponse("2.0", encodedError, 1))
       case Right(value) =>
         val encodedOutput = matchedEndpoint.endpoint.output match {
           case o: JsonRpcIO.Empty[matchedEndpoint.OUTPUT]  => jsonSupport.emptyObject.asInstanceOf[o.codec.L]
           case o: JsonRpcIO.Single[matchedEndpoint.OUTPUT] => o.codec.encode(value)
         }
         Right(JsonRpcSuccessResponse("2.0", encodedOutput.asInstanceOf[Json], 1))
-    }
-  }
-
-  private def encodeJsonRpcParams(endpoints: List[JsonRpcEndpoint[_, _, _]], envelop: JsonRpcRequest[ParamsAsVector]) = {
-    endpoints.find(_.methodName.value == envelop.method) match {
-      case Some(jsonRpcEndpoint) =>
-        encodeJsonRpcParamsForEndpoint(jsonRpcEndpoint, envelop)
-      case None => ???
-    }
-  }
-
-  private def encodeJsonRpcParamsForEndpoint(jsonRpcEndpoint: JsonRpcEndpoint[_, _, _], envelop: JsonRpcRequest[ParamsAsVector]) = {
-    val encoder = combineEncodeAsVector(jsonRpcEndpoint.input.asVectorOfBasicInputs)
-    envelop.copy(params = encoder(envelop.params))
-  }
-
-  private def decodeJsonRpcParams(endpoints: List[JsonRpcEndpoint[_, _, _]], envelop: JsonRpcRequest[Json]) = {
-    endpoints.find(_.methodName.value == envelop.method) match {
-      case Some(jsonRpcEndpoint) =>
-        decodeJsonRpcParamsForEndpoint(jsonRpcEndpoint, envelop.params)
-      case None =>
-        DecodeResult.Mismatch(endpoints.map(_.methodName).mkString(","), envelop.method)
     }
   }
 
@@ -162,6 +135,7 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
     jsonSupport.asArray(ss)
   }
 
+  // TODO This is left to be used when deriving sttp.client
   private def combineEncodeAsObject(in: Vector[JsonRpcIO.Single[_]]): ParamsAsVector => Json = { params =>
     val ss = in.zipWithIndex.map { case (JsonRpcIO.Single(codec, _, name), index) =>
       name -> codec.encode(params.asVector(index)).asInstanceOf[Json]

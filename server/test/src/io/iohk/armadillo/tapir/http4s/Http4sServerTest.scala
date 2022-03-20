@@ -3,7 +3,7 @@ package io.iohk.armadillo.tapir.http4s
 import cats.effect.IO
 import io.circe.Json
 import io.circe.literal.*
-import io.iohk.armadillo.Armadillo.{JsonRpcNoDataError, JsonRpcError, JsonRpcErrorResponse, JsonRpcRequest, JsonRpcSuccessResponse}
+import io.iohk.armadillo.Armadillo.*
 import io.iohk.armadillo.tapir.http4s.Endpoints.*
 
 object Http4sServerTest extends BaseSuite {
@@ -38,23 +38,13 @@ object Http4sServerTest extends BaseSuite {
     expectedResponse = JsonRpcErrorResponse("2.0", json"""{"code": -32601, "message": "Method not found"}""", 1)
   )
 
-  test(no_data_error)(_ => IO.pure(Left(JsonRpcNoDataError(123, "error"))))(
-    request = JsonRpcRequest[Json]("2.0", "no_data_error", json"[]", 1),
-    expectedResponse = JsonRpcErrorResponse("2.0", json"""[{"code": 123, "message": "error"}]""", 1)
+  test(empty, "no_data_error")(_ => IO.pure(Left(JsonRpcNoDataError(123, "error"))))(
+    request = JsonRpcRequest[Json]("2.0", "empty", json"[]", 1),
+    expectedResponse = JsonRpcErrorResponse("2.0", json"""{"code": 123, "message": "error"}""", 1)
   )
 
-  test(single_error)(_ => IO.pure(Left(JsonRpcError(123, "error", 42))))(
-    request = JsonRpcRequest[Json]("2.0", "single_error", json"[]", 1),
-    expectedResponse = JsonRpcErrorResponse("2.0", json"""[{"code": 123, "message": "error", "data": 42}]""", 1)
-  )
-
-  // TODO empty input should not swallow data
-  test(multiple_errors)(_ => IO.pure(Left((JsonRpcError(123, "error1", 42), JsonRpcError(124, "error2", "42")))))(
-    request = JsonRpcRequest[Json]("2.0", "multiple_errors", json"[]", 1),
-    expectedResponse = JsonRpcErrorResponse(
-      "2.0",
-      json"""[{"code": 123, "message": "error1", "data": 42}, {"code": 124, "message": "error2", "data": "42"}]""",
-      1
-    )
+  test(error_with_data)(_ => IO.pure(Left(JsonRpcErrorWithData(123, "error", 42))))(
+    request = JsonRpcRequest[Json]("2.0", "error_with_data", json"[]", 1),
+    expectedResponse = JsonRpcErrorResponse("2.0", json"""{"code": 123, "message": "error", "data": 42}""", 1)
   )
 }
