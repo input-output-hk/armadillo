@@ -1,7 +1,7 @@
 package io.iohk.armadillo.tapir
 
 import io.iohk.armadillo.*
-import io.iohk.armadillo.Armadillo.{JsonRpcErrorResponse, JsonRpcSuccessResponse}
+import io.iohk.armadillo.Armadillo.{JsonRpcErrorNoData, JsonRpcErrorResponse, JsonRpcSuccessResponse}
 import io.iohk.armadillo.tapir.TapirInterpreter.RichDecodeResult
 import io.iohk.armadillo.tapir.Utils.RichEndpointInput
 import sttp.model.StatusCode
@@ -40,7 +40,9 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
         statusCode(StatusCode.Ok)
           .and(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.errorOutCodec, Info.empty))
       )
-      .serverLogic[F](serverLogic2(jsonRpcEndpoints, _))
+      .serverLogic[F](serverLogic2(jsonRpcEndpoints, _).handleError { case _ =>
+        monadError.unit(createErrorResponse(InternalError))
+      })
   }
 
   private def serverLogic2(
@@ -48,7 +50,7 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
       stringRequest: String
   ): F[Either[JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json]]] = {
     jsonSupport.parse(stringRequest) match {
-      case failure: DecodeResult.Failure => ??? // TODO parseError
+      case _: DecodeResult.Failure => monadError.unit(createErrorResponse(ParseError))
       case DecodeResult.Value(jsonRequest) =>
         jsonSupport.fold(jsonRequest)(
           handleArray(jsonRpcEndpoints, _),
@@ -57,6 +59,10 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
         ) // TODO combine parse and fold?
     }
 
+  }
+
+  private def createErrorResponse(error: JsonRpcErrorNoData): Either[JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json]] = {
+    Left(JsonRpcErrorResponse("2.0", jsonSupport.encodeErrorNoData(error), 1))
   }
 
   private def handleArray(
@@ -72,13 +78,10 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
   ): F[Either[JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json]]] = {
     val codec = jsonSupport.inRpcCodec
     codec.decode(obj.asInstanceOf[codec.L]) match {
-      case _: DecodeResult.Failure => monadError.unit(Left(JsonRpcErrorResponse("2.0", ???, 1))) // TODO invalidRequest
+      case _: DecodeResult.Failure => monadError.unit(createErrorResponse(InvalidRequest))
       case DecodeResult.Value(request) =>
         jsonRpcEndpoints.find(_.endpoint.methodName.value == request.method) match {
-          case None =>
-            throw new IllegalStateException(
-              "Cannot happen because filtering codec passes through only matching methods"
-            ) // TODO return notFoundError
+          case None        => monadError.unit(createErrorResponse(MethodNotFound))
           case Some(value) => handleObjectWithEndpoint(value, request.params)
         }
     }
@@ -89,13 +92,13 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
       jsonParams: Json
   ): F[Either[JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json]]] = {
     decodeJsonRpcParamsForEndpoint(serverEndpoint.endpoint, jsonParams) match {
-      case failure: DecodeResult.Failure => ??? // TODO invalidParams
-      case DecodeResult.Value(params)    => serverLogicForEndpoint(params, serverEndpoint)
+      case _: DecodeResult.Failure    => monadError.unit(createErrorResponse(InvalidParams))
+      case DecodeResult.Value(params) => serverLogicForEndpoint(params, serverEndpoint)
     }
   }
 
   private def defaultHandler(json: Json): F[Either[JsonRpcErrorResponse[Json], JsonRpcSuccessResponse[Json]]] = {
-    ??? // TODO invalidRequest
+    monadError.unit(createErrorResponse(InvalidRequest))
   }
 
   private def serverLogicForEndpoint(params: ParamsAsVector, matchedEndpoint: JsonRpcServerEndpoint[F]) = {
@@ -173,6 +176,12 @@ class TapirInterpreter[F[_], Json](jsonSupport: JsonSupport[Json])(implicit
     SCoproduct(Nil, None)(_ => None),
     None
   )
+
+  private val ParseError = JsonRpcErrorNoData(-32700, "Parse error")
+  private val InvalidRequest = JsonRpcErrorNoData(-32600, "Invalid Request")
+  private val MethodNotFound = JsonRpcErrorNoData(-32601, "Method not found")
+  private val InvalidParams = JsonRpcErrorNoData(-32602, "Invalid params")
+  private val InternalError = JsonRpcErrorNoData(-32603, "Internal error")
 }
 
 object TapirInterpreter {

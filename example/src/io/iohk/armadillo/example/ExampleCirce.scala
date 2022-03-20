@@ -3,7 +3,7 @@ package io.iohk.armadillo.example
 import cats.effect.{ExitCode, IO, IOApp}
 import io.circe.generic.semiauto.*
 import io.circe.{Decoder, Encoder, Json}
-import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcRequest, jsonRpcEndpoint, param}
+import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcErrorWithData, JsonRpcRequest, jsonRpcEndpoint, param}
 import io.iohk.armadillo.json.circe.*
 import io.iohk.armadillo.tapir.TapirInterpreter
 import io.iohk.armadillo.{JsonRpcServerEndpoint, MethodName}
@@ -37,7 +37,7 @@ object ExampleCirce extends IOApp {
     .serverLogic[IO] { case (int, string) =>
       println("user logic")
       println(s"with input ${int + 123} ${string.toUpperCase}")
-      IO.delay(Left(List(JsonRpcError[Unit](1, "q", int))))
+      IO.delay(Left(JsonRpcErrorWithData[Unit](1, "q", int)))
     }
 
   override def run(args: List[String]): IO[ExitCode] = {

@@ -3,7 +3,8 @@ package io.iohk.armadillo.json.circe
 import cats.syntax.all.*
 import io.circe.*
 import io.circe.generic.semiauto.*
-import io.iohk.armadillo.Armadillo.{JsonRpcCodec, JsonRpcErrorResponse, JsonRpcRequest, JsonRpcSuccessResponse}
+import io.iohk.armadillo.Armadillo
+import io.iohk.armadillo.Armadillo.{JsonRpcCodec, JsonRpcErrorNoData, JsonRpcErrorResponse, JsonRpcRequest, JsonRpcSuccessResponse}
 import io.iohk.armadillo.tapir.JsonSupport
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.SchemaType.SCoproduct
@@ -88,5 +89,10 @@ class CirceJsonSupport extends JsonSupport[Json] {
       jsonArray = asArray,
       jsonObject = _ => asObject(raw)
     )
+  }
+
+  private val jsonRpcErrorNoDataEncoder = deriveEncoder[JsonRpcErrorNoData]
+  override def encodeErrorNoData(error: JsonRpcErrorNoData): Json = {
+    jsonRpcErrorNoDataEncoder.apply(error)
   }
 }

@@ -38,7 +38,7 @@ object Http4sServerTest extends BaseSuite {
     expectedResponse = JsonRpcErrorResponse("2.0", json"""{"code": -32601, "message": "Method not found"}""", 1)
   )
 
-  test(empty, "no_data_error")(_ => IO.pure(Left(JsonRpcNoDataError(123, "error"))))(
+  test(empty, "no_data_error")(_ => IO.pure(Left(JsonRpcErrorNoData(123, "error"))))(
     request = JsonRpcRequest[Json]("2.0", "empty", json"[]", 1),
     expectedResponse = JsonRpcErrorResponse("2.0", json"""{"code": 123, "message": "error"}""", 1)
   )

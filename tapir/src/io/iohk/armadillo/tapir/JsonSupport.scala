@@ -1,6 +1,13 @@
 package io.iohk.armadillo.tapir
 
-import io.iohk.armadillo.Armadillo.{JsonRpcCodec, JsonRpcErrorResponse, JsonRpcRequest, JsonRpcSuccessResponse}
+import io.iohk.armadillo.Armadillo.{
+  JsonRpcCodec,
+  JsonRpcErrorResponse,
+  JsonRpcErrorWithData,
+  JsonRpcErrorNoData,
+  JsonRpcRequest,
+  JsonRpcSuccessResponse
+}
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.DecodeResult
 
@@ -21,6 +28,7 @@ trait JsonSupport[Raw] {
   def getByField(obj: Raw, field: String): DecodeResult[Raw]
 
   def inRpcCodec: JsonRpcCodec[JsonRpcRequest[Raw]]
+  def encodeErrorNoData(error: JsonRpcErrorNoData): Raw
 
   def fold[T](raw: Raw)(asArray: Vector[Raw] => T, asObject: Raw => T, other: Raw => T): T
 }

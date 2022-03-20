@@ -18,7 +18,7 @@ object Armadillo {
 
   def jsonRpcEndpoint(
       str: MethodName
-  )(implicit _codec: JsonRpcCodec[JsonRpcNoDataError]): JsonRpcEndpoint[Unit, Unit, Unit] =
+  )(implicit _codec: JsonRpcCodec[JsonRpcErrorNoData]): JsonRpcEndpoint[Unit, Unit, Unit] =
     JsonRpcEndpoint(
       methodName = str,
       input = JsonRpcInput.emptyInput,
@@ -37,11 +37,11 @@ object Armadillo {
       override def info: Info[T] = Info.empty[T]
     }
 
-  def noDataError(implicit _codec: JsonRpcCodec[JsonRpcNoDataError]): JsonRpcErrorPart[Unit] = {
+  def noDataError(implicit _codec: JsonRpcCodec[JsonRpcErrorNoData]): JsonRpcErrorPart[Unit] = {
     new JsonRpcErrorPart[Unit] {
-      override type DATA = JsonRpcNoDataError
+      override type DATA = JsonRpcErrorNoData
 
-      override def codec: JsonRpcCodec[JsonRpcNoDataError] = _codec
+      override def codec: JsonRpcCodec[JsonRpcErrorNoData] = _codec
 
       override def info: Info[Unit] = Info.empty
     }
@@ -74,9 +74,9 @@ object Armadillo {
     implicit def schema[Data: Schema]: Schema[JsonRpcErrorWithData[Data]] = Schema.derived[JsonRpcErrorWithData[Data]]
   }
 
-  case class JsonRpcNoDataError(code: Int, message: String) extends JsonRpcError[Unit]
-  object JsonRpcNoDataError {
-    implicit val schema: Schema[JsonRpcNoDataError] = Schema.derived[JsonRpcNoDataError]
+  case class JsonRpcErrorNoData(code: Int, message: String) extends JsonRpcError[Unit]
+  object JsonRpcErrorNoData {
+    implicit val schema: Schema[JsonRpcErrorNoData] = Schema.derived[JsonRpcErrorNoData]
   }
 }
 
