@@ -76,7 +76,7 @@ object Http4sServerTest extends BaseSuite {
     )
   )
 
-  testMultiple("batch_request_success_error_notification")(
+  testMultiple("batch_request_mixed: success & error & notification")(
     List(
       hello_in_int_out_string.serverLogic[IO](int => IO.pure(Right(int.toString))),
       e1_int_string_out_int.serverLogic[IO](str => IO.delay(Right(parseInt(str)))),
