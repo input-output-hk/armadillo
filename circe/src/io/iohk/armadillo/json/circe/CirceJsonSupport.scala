@@ -9,6 +9,7 @@ import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.SchemaType.SCoproduct
 import sttp.tapir.json.circe.circeCodec
 import sttp.tapir.{DecodeResult, Schema}
+import io.iohk.armadillo.tapir.JsonSupport.Json as AJson
 
 class CirceJsonSupport extends JsonSupport[Json] {
   // Json is a coproduct with unknown implementations
@@ -17,24 +18,6 @@ class CirceJsonSupport extends JsonSupport[Json] {
       SCoproduct(Nil, None)(_ => None),
       None
     )
-
-  override def inRpcCodec: JsonRpcCodec[JsonRpcRequest[Json]] = {
-    val outerEncoder = deriveEncoder[JsonRpcRequest[Json]]
-    val outerDecoder = deriveDecoder[JsonRpcRequest[Json]]
-    jsonRpcCodec[JsonRpcRequest[Json]](outerEncoder, outerDecoder, implicitly[Schema[JsonRpcRequest[Json]]])
-  }
-
-  override def outCodec: JsonCodec[JsonRpcSuccessResponse[Json]] = {
-    val outerEncoder = deriveEncoder[JsonRpcSuccessResponse[Json]]
-    val outerDecoder = deriveDecoder[JsonRpcSuccessResponse[Json]]
-    circeCodec[JsonRpcSuccessResponse[Json]](outerEncoder, outerDecoder, implicitly[Schema[JsonRpcSuccessResponse[Json]]])
-  }
-
-  override def errorOutCodec: JsonCodec[JsonRpcErrorResponse[Json]] = {
-    val outerEncoder = deriveEncoder[JsonRpcErrorResponse[Json]]
-    val outerDecoder = deriveDecoder[JsonRpcErrorResponse[Json]]
-    circeCodec[JsonRpcErrorResponse[Json]](outerEncoder, outerDecoder, implicitly[Schema[JsonRpcErrorResponse[Json]]])
-  }
 
   override def getByIndex(arr: Json, index: Int): DecodeResult[Json] = {
     arr.asArray match {
@@ -58,29 +41,24 @@ class CirceJsonSupport extends JsonSupport[Json] {
     }
   }
 
-//  override def emptyList: Json = Json.arr()
-
   override def asArray(seq: Vector[Json]): Json = Json.arr(seq *)
 
   override def asObject(fields: Map[String, Json]): Json = Json.obj(fields.toList *)
 
-  override def emptyObject: Json = Json.Null
+  override def jsNull: Json = Json.Null
 
-  override def parse(string: String): DecodeResult[Json] = {
-    circeCodec[Json].decode(string)
+  override def parse(string: String): DecodeResult[AJson[Json]] = {
+    circeCodec[Json].decode(string).map { json =>
+      json.fold(
+        jsonNull = AJson.Other(json),
+        jsonBoolean = _ => AJson.Other(json),
+        jsonNumber = _ => AJson.Other(json),
+        jsonString = _ => AJson.Other(json),
+        jsonArray = AJson.JsonArray.apply,
+        jsonObject = _ => AJson.JsonObject(json)
+      )
+    }
   }
-
-  override def fold[T](raw: Json)(asArray: Vector[Json] => T, asObject: Json => T, other: Json => T): T = {
-    raw.fold(
-      jsonNull = other(raw),
-      jsonBoolean = _ => other(raw),
-      jsonNumber = _ => other(raw),
-      jsonString = _ => other(raw),
-      jsonArray = asArray,
-      jsonObject = _ => asObject(raw)
-    )
-  }
-
   private val jsonRpcErrorNoDataEncoder = deriveEncoder[JsonRpcErrorNoData]
   override def encodeErrorNoData(error: JsonRpcErrorNoData): Json = {
     jsonRpcErrorNoDataEncoder.apply(error)
@@ -96,5 +74,13 @@ class CirceJsonSupport extends JsonSupport[Json] {
   private val jsonRpcSuccessResponseEncoder = deriveEncoder[JsonRpcSuccessResponse[Json]]
   override def encodeSuccess(e: JsonRpcSuccessResponse[Json]): Json = {
     jsonRpcSuccessResponseEncoder.apply(e)
+  }
+
+  private val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
+  override def decodeJsonRpcRequest(raw: Json): DecodeResult[JsonRpcRequest[Json]] = {
+    jsonRpcRequestDecoder.decodeJson(raw) match {
+      case Left(value)  => DecodeResult.Error(raw.noSpaces, value)
+      case Right(value) => DecodeResult.Value(value)
+    }
   }
 }
