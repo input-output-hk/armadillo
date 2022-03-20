@@ -3,7 +3,7 @@ package io.iohk.armadillo.json.circe
 import cats.syntax.all.*
 import io.circe.*
 import io.circe.generic.semiauto.*
-import io.iohk.armadillo.Armadillo.{JsonRpcErrorResponse, JsonRpcRequest, JsonRpcSuccessResponse}
+import io.iohk.armadillo.Armadillo.{JsonRpcCodec, JsonRpcErrorResponse, JsonRpcRequest, JsonRpcSuccessResponse}
 import io.iohk.armadillo.tapir.JsonSupport
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.SchemaType.SCoproduct
@@ -23,6 +23,15 @@ class CirceJsonSupport extends JsonSupport[Json] {
     val outerDecoder = deriveDecoder[JsonRpcRequest[Json]]
     circeCodec[JsonRpcRequest[Json]](outerEncoder, outerDecoder, implicitly[Schema[JsonRpcRequest[Json]]])
   }
+
+  override def inRpcCodec: JsonRpcCodec[JsonRpcRequest[Json]] = {
+    val outerEncoder = deriveEncoder[JsonRpcRequest[Json]]
+    val outerDecoder = deriveDecoder[JsonRpcRequest[Json]]
+    jsonRpcCodec[JsonRpcRequest[Json]](outerEncoder, outerDecoder, implicitly[Schema[JsonRpcRequest[Json]]])
+  }
+
+  override def rawCodec: JsonCodec[Json] =
+    circeCodec[Json](Encoder[Json], Decoder[Json], schemaForCirceJson)
 
   override def outCodec: JsonCodec[JsonRpcSuccessResponse[Json]] = {
     val outerEncoder = deriveEncoder[JsonRpcSuccessResponse[Json]]
@@ -65,4 +74,19 @@ class CirceJsonSupport extends JsonSupport[Json] {
   override def asObject(fields: Map[String, Json]): Json = Json.obj(fields.toList *)
 
   override def emptyObject: Json = Json.Null
+
+  override def parse(string: String): DecodeResult[Json] = {
+    circeCodec[Json].decode(string)
+  }
+
+  override def fold[T](raw: Json)(asArray: Vector[Json] => T, asObject: Json => T, other: Json => T): T = {
+    raw.fold(
+      jsonNull = other(raw),
+      jsonBoolean = _ => other(raw),
+      jsonNumber = _ => other(raw),
+      jsonString = _ => other(raw),
+      jsonArray = asArray,
+      jsonObject = _ => asObject(raw)
+    )
+  }
 }

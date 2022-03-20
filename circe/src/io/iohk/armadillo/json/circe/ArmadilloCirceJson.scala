@@ -24,6 +24,6 @@ trait ArmadilloCirceJson {
   implicit def jsonRpcErrorEncoder[T: Encoder]: Encoder[JsonRpcError[T]] = deriveEncoder[JsonRpcError[T]]
   implicit def jsonRpcErrorDecoder[T: Decoder]: Decoder[JsonRpcError[T]] = deriveDecoder[JsonRpcError[T]]
 
-  implicit def jsonRpcNoDataErrorEncoder: Encoder[JsonRpcNoDataError] = deriveEncoder[JsonRpcNoDataError]
-  implicit def jsonRpcNoDataErrorDecoder: Decoder[JsonRpcNoDataError] = deriveDecoder[JsonRpcNoDataError]
+  implicit val jsonRpcNoDataErrorEncoder: Encoder[JsonRpcNoDataError] = deriveEncoder[JsonRpcNoDataError]
+  implicit val jsonRpcNoDataErrorDecoder: Decoder[JsonRpcNoDataError] = deriveDecoder[JsonRpcNoDataError]
 }
