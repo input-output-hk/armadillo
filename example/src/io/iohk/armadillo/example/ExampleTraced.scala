@@ -4,7 +4,7 @@ import cats.Applicative
 import cats.data.Kleisli
 import cats.effect.kernel.{MonadCancelThrow, Resource, Sync}
 import cats.effect.{ExitCode, IO, IOApp}
-import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcErrorWithData, error, jsonRpcEndpoint, param}
+import io.iohk.armadillo.Armadillo.{JsonRpcError, error, jsonRpcEndpoint, param}
 import io.iohk.armadillo.example.ExampleCirce.RpcBlockResponse
 import io.iohk.armadillo.json.json4s.*
 import io.iohk.armadillo.tapir.TapirInterpreter
@@ -40,7 +40,7 @@ object ExampleTraced extends IOApp {
       .serverLogic[G] { case (int, string) =>
         println("user logic")
         println(s"with input ${int + 123} ${string.toUpperCase}")
-        Applicative[G].pure(Left(JsonRpcErrorWithData(11, "qwe", 11)))
+        Applicative[G].pure(Left(JsonRpcError(11, "qwe", 11)))
       }
 
     def tracedEndpoints(entryPoint: EntryPoint[F])(implicit P: Provide[F, G, Span[F]]): List[JsonRpcServerEndpoint[F]] =
@@ -49,7 +49,7 @@ object ExampleTraced extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = {
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
-    val tapirInterpreter = new TapirInterpreter[IO, JValue](new Json4sSupport())(new CatsMonadError)
+    val tapirInterpreter = new TapirInterpreter[IO, JValue](Json4sSupport(org.json4s.jackson.parseJson(_)))(new CatsMonadError)
     val endpoints = new Endpoints[IO, Kleisli[IO, Span[IO], *]]
     val routesR = for {
       completer <- Resource.eval(LogSpanCompleter.create[IO](TraceProcess("example")))
@@ -59,7 +59,6 @@ object ExampleTraced extends IOApp {
     } yield routes
 
     routesR.use { routes =>
-      //    IO.unit.as(ExitCode.Success)
       BlazeServerBuilder[IO]
         .withExecutionContext(ec)
         .bindHttp(8545, "localhost")

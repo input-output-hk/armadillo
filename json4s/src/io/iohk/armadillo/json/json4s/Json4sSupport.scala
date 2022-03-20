@@ -1,6 +1,6 @@
 package io.iohk.armadillo.json.json4s
 
-import io.iohk.armadillo.Armadillo.{JsonRpcErrorNoData, JsonRpcErrorResponse, JsonRpcRequest, JsonRpcSuccessResponse}
+import io.iohk.armadillo.Armadillo.*
 import io.iohk.armadillo.tapir.JsonSupport
 import io.iohk.armadillo.tapir.JsonSupport.Json
 import org.json4s.*
@@ -12,7 +12,8 @@ import sttp.tapir.{DecodeResult, Schema}
 
 import scala.util.{Failure, Success, Try}
 
-class Json4sSupport(parseAsJValue: String => JValue)(implicit formats: Formats, serialization: Serialization) extends JsonSupport[JValue] {
+class Json4sSupport private (parseAsJValue: String => JValue)(implicit formats: Formats, serialization: Serialization)
+    extends JsonSupport[JValue] {
   // JValue is a coproduct with unknown implementations
   implicit val schemaForJson4s: Schema[JValue] =
     Schema(
@@ -54,8 +55,9 @@ class Json4sSupport(parseAsJValue: String => JValue)(implicit formats: Formats, 
     Extraction.decompose(e)
   }
 
-  override def encodeErrorNoData(error: JsonRpcErrorNoData): JValue = {
-    Extraction.decompose(error)
+  override def encodeErrorNoData(error: JsonRpcError[Unit]): JValue = {
+    val map = Map("code" -> error.code, "message" -> error.message)
+    Extraction.decompose(map)
   }
 
   override def encodeSuccess(e: JsonRpcSuccessResponse[JValue]): JValue = {
@@ -67,9 +69,9 @@ class Json4sSupport(parseAsJValue: String => JValue)(implicit formats: Formats, 
       case Failure(exception) => DecodeResult.Error(string, exception)
       case Success(value) =>
         value match {
-          case JObject(obj) => DecodeResult.Value(Json.JsonObject(obj))
-          case JArray(arr)  => DecodeResult.Value(Json.JsonArray(arr.toVector))
-          case other        => DecodeResult.Value(Json.Other(other))
+          case obj @ JObject(_) => DecodeResult.Value(Json.JsonObject(obj))
+          case JArray(arr)      => DecodeResult.Value(Json.JsonArray(arr.toVector))
+          case other            => DecodeResult.Value(Json.Other(other))
         }
     }
   }
@@ -80,4 +82,26 @@ class Json4sSupport(parseAsJValue: String => JValue)(implicit formats: Formats, 
       case Success(value)     => DecodeResult.Value(value)
     }
   }
+}
+
+object Json4sSupport {
+  def apply(parseAsJValue: String => JValue)(implicit formats: Formats, serialization: Serialization): Json4sSupport = {
+    new Json4sSupport(parseAsJValue)(formats + new JsonRpcIdSerializer, serialization)
+  }
+
+  private class JsonRpcIdSerializer
+      extends CustomSerializer[JsonRpcId](_ =>
+        (
+          {
+            case JInt(value)    => JsonRpcId.IntId(value.intValue)
+            case JNull          => JsonRpcId.NullId
+            case JString(value) => JsonRpcId.StringId(value)
+          },
+          {
+            case JsonRpcId.IntId(v)    => JInt(v)
+            case JsonRpcId.StringId(v) => JString(v)
+            case JsonRpcId.NullId      => JNull
+          }
+        )
+      )
 }

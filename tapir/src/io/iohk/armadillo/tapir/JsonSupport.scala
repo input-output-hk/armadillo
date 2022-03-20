@@ -9,7 +9,7 @@ trait JsonSupport[Raw] {
   def outRawCodec: JsonCodec[Raw]
 
   def encodeError(e: JsonRpcErrorResponse[Raw]): Raw
-  def encodeErrorNoData(error: JsonRpcErrorNoData): Raw
+  def encodeErrorNoData(error: JsonRpcError[Unit]): Raw
   def encodeSuccess(e: JsonRpcSuccessResponse[Raw]): Raw
 
   def parse(string: String): DecodeResult[Json[Raw]]

@@ -1,7 +1,7 @@
 package io.iohk.armadillo.tapir
 
 import io.iohk.armadillo.*
-import io.iohk.armadillo.Armadillo.{JsonRpcErrorNoData, JsonRpcErrorResponse, JsonRpcId, JsonRpcRequest, JsonRpcSuccessResponse}
+import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcErrorResponse, JsonRpcId, JsonRpcRequest, JsonRpcSuccessResponse}
 import io.iohk.armadillo.tapir.JsonSupport.Json
 import io.iohk.armadillo.tapir.TapirInterpreter.{RichDecodeResult, RichMonadErrorOps}
 import io.iohk.armadillo.tapir.Utils.RichEndpointInput
@@ -60,7 +60,7 @@ class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
     }
   }
 
-  private def createErrorResponse(error: JsonRpcErrorNoData, id: JsonRpcId): Raw = {
+  private def createErrorResponse(error: JsonRpcError[Unit], id: JsonRpcId): Raw = {
     jsonSupport.encodeError(JsonRpcErrorResponse("2.0", jsonSupport.encodeErrorNoData(error), id))
   }
 
@@ -80,7 +80,9 @@ class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
       obj: Raw
   ): F[Raw] = {
     jsonSupport.decodeJsonRpcRequest(obj) match {
-      case _: DecodeResult.Failure => monadError.unit(createErrorResponse(InvalidRequest, JsonRpcId.NullId))
+      case e: DecodeResult.Failure =>
+        println(s"qweqweqweqw ${e}")
+        monadError.unit(createErrorResponse(InvalidRequest, JsonRpcId.NullId))
       case DecodeResult.Value(request) =>
         jsonRpcEndpoints.find(_.endpoint.methodName.value == request.method) match {
           case None        => monadError.unit(createErrorResponse(MethodNotFound, request.id))
@@ -188,11 +190,11 @@ class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
     override def format: CodecFormat.Json = CodecFormat.Json()
   }
 
-  private val ParseError = JsonRpcErrorNoData(-32700, "Parse error")
-  private val InvalidRequest = JsonRpcErrorNoData(-32600, "Invalid Request")
-  private val MethodNotFound = JsonRpcErrorNoData(-32601, "Method not found")
-  private val InvalidParams = JsonRpcErrorNoData(-32602, "Invalid params")
-  private val InternalError = JsonRpcErrorNoData(-32603, "Internal error")
+  private val ParseError = JsonRpcError[Unit](-32700, "Parse error", ())
+  private val InvalidRequest = JsonRpcError[Unit](-32600, "Invalid Request", ())
+  private val MethodNotFound = JsonRpcError[Unit](-32601, "Method not found", ())
+  private val InvalidParams = JsonRpcError[Unit](-32602, "Invalid params", ())
+  private val InternalError = JsonRpcError[Unit](-32603, "Internal error", ())
 }
 
 object TapirInterpreter {

@@ -19,7 +19,7 @@ object Armadillo {
 
   def jsonRpcEndpoint(
       str: MethodName
-  )(implicit _codec: JsonRpcCodec[JsonRpcErrorNoData]): JsonRpcEndpoint[Unit, Unit, Unit] =
+  )(implicit _codec: JsonRpcCodec[JsonRpcError[Unit]]): JsonRpcEndpoint[Unit, Unit, Unit] =
     JsonRpcEndpoint(
       methodName = str,
       input = JsonRpcInput.emptyInput,
@@ -29,20 +29,20 @@ object Armadillo {
 
   def param[T: JsonRpcCodec](name: String): JsonRpcIO[T] = JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], Info.empty[T], name)
 
-  def error[T](implicit _codec: JsonRpcCodec[JsonRpcErrorWithData[T]]): JsonRpcErrorPart[T] =
+  def error[T](implicit _codec: JsonRpcCodec[JsonRpcError[T]]): JsonRpcErrorPart[T] =
     new JsonRpcErrorPart[T] {
-      override type DATA = JsonRpcErrorWithData[T]
+      override type DATA = JsonRpcError[T]
 
-      override def codec: JsonRpcCodec[JsonRpcErrorWithData[T]] = _codec
+      override def codec: JsonRpcCodec[JsonRpcError[T]] = _codec
 
       override def info: Info[T] = Info.empty[T]
     }
 
-  def noDataError(implicit _codec: JsonRpcCodec[JsonRpcErrorNoData]): JsonRpcErrorPart[Unit] = {
+  def noDataError(implicit _codec: JsonRpcCodec[JsonRpcError[Unit]]): JsonRpcErrorPart[Unit] = {
     new JsonRpcErrorPart[Unit] {
-      override type DATA = JsonRpcErrorNoData
+      override type DATA = JsonRpcError[Unit]
 
-      override def codec: JsonRpcCodec[JsonRpcErrorNoData] = _codec
+      override def codec: JsonRpcCodec[JsonRpcError[Unit]] = _codec
 
       override def info: Info[Unit] = Info.empty
     }
@@ -91,17 +91,18 @@ object Armadillo {
     implicit def schema[Raw: Schema]: Schema[JsonRpcErrorResponse[Raw]] = Schema.derived[JsonRpcErrorResponse[Raw]]
   }
 
-  sealed trait JsonRpcError[Data]
+//  sealed trait JsonRpcError[Data]
 
-  case class JsonRpcErrorWithData[Data](code: Int, message: String, data: Data) extends JsonRpcError[Data]
-  object JsonRpcErrorWithData {
-    implicit def schema[Data: Schema]: Schema[JsonRpcErrorWithData[Data]] = Schema.derived[JsonRpcErrorWithData[Data]]
+  case class JsonRpcError[Data](code: Int, message: String, data: Data) // extends JsonRpcError[Data]
+  object JsonRpcError {
+    implicit def schema[Data: Schema]: Schema[JsonRpcError[Data]] = Schema.derived[JsonRpcError[Data]]
+    def noData(code: Int, msg: String): JsonRpcError[Unit] = JsonRpcError(code, msg, ())
   }
 
-  case class JsonRpcErrorNoData(code: Int, message: String) extends JsonRpcError[Unit]
-  object JsonRpcErrorNoData {
-    implicit val schema: Schema[JsonRpcErrorNoData] = Schema.derived[JsonRpcErrorNoData]
-  }
+//  case class JsonRpcErrorNoData(code: Int, message: String) extends JsonRpcError[Unit]
+//  object JsonRpcErrorNoData {
+//    implicit val schema: Schema[JsonRpcErrorNoData] = Schema.derived[JsonRpcErrorNoData]
+//  }
 }
 
 case class MethodName(value: String) extends AnyVal

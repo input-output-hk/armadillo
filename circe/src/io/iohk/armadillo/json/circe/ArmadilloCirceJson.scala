@@ -34,11 +34,17 @@ trait ArmadilloCirceJson {
     .or(Decoder.decodeString.map(JsonRpcId.StringId).widen[JsonRpcId])
     .or(Decoder.decodeNone.map(_ => JsonRpcId.NullId).widen[JsonRpcId])
 
-  implicit def jsonRpcErrorWithDataEncoder[T: Encoder]: Encoder[JsonRpcErrorWithData[T]] = deriveEncoder[JsonRpcErrorWithData[T]]
-  implicit def jsonRpcErrorWithDataDecoder[T: Decoder]: Decoder[JsonRpcErrorWithData[T]] = deriveDecoder[JsonRpcErrorWithData[T]]
-
-  implicit val jsonRpcNoDataErrorEncoder: Encoder[JsonRpcErrorNoData] = deriveEncoder[JsonRpcErrorNoData]
-  implicit val jsonRpcNoDataErrorDecoder: Decoder[JsonRpcErrorNoData] = deriveDecoder[JsonRpcErrorNoData]
+  implicit val jsonRpcErrorNoDataEncoder: Encoder[JsonRpcError[Unit]] = Encoder { i =>
+    Json.obj("code" -> Json.fromInt(i.code), "message" -> Json.fromString(i.message))
+  }
+  implicit val jsonRpcErrorNoDataDecoder: Decoder[JsonRpcError[Unit]] = Decoder { i =>
+    for {
+      code <- i.downField("code").as[Int]
+      msg <- i.downField("message").as[String]
+    } yield JsonRpcError(code, msg, ())
+  }
+  implicit def jsonRpcErrorEncoder[T: Encoder]: Encoder[JsonRpcError[T]] = deriveEncoder[JsonRpcError[T]]
+  implicit def jsonRpcErrorDecoder[T: Decoder]: Decoder[JsonRpcError[T]] = deriveDecoder[JsonRpcError[T]]
 
   implicit val jsonRpcSuccessResponseEncoder: Encoder[JsonRpcSuccessResponse[Json]] = deriveEncoder[JsonRpcSuccessResponse[Json]]
   implicit val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]

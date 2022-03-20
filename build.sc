@@ -82,7 +82,8 @@ object example extends CommonModule {
       ivy"io.janstenpickle::trace4cats-avro-exporter::${Version.Trace4cats}",
       ivy"ch.qos.logback:logback-classic:1.2.7",
       ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
-      ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1"
+      ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1",
+      ivy"io.circe::circe-literal::0.14.1"
     )
 }
 

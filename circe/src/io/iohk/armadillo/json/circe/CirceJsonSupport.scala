@@ -59,7 +59,7 @@ class CirceJsonSupport extends JsonSupport[Json] {
     }
   }
 
-  override def encodeErrorNoData(error: JsonRpcErrorNoData): Json = Encoder[JsonRpcErrorNoData].apply(error)
+  override def encodeErrorNoData(error: JsonRpcError[Unit]): Json = Encoder[JsonRpcError[Unit]].apply(error)
 
   override def outRawCodec: JsonCodec[Json] = circeCodec[Json]
 
