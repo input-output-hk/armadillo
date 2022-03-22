@@ -16,75 +16,124 @@ object core extends CommonModule {
   object test extends Tests with CommonTestModule
 }
 
-object circe extends CommonModule {
-  override def moduleDeps = Seq(core, tapir)
-  override def ivyDeps = Agg(
-    ivy"com.softwaremill.sttp.tapir::tapir-json-circe:${Version.Tapir}"
-  )
+object json extends CommonModule {
+  object circe extends CommonModule {
+    override def moduleDeps = Seq(core, server)
+    override def ivyDeps = Agg(
+      ivy"com.softwaremill.sttp.tapir::tapir-json-circe:${Version.Tapir}"
+    )
 
-  object test extends Tests with CommonTestModule
+    object test extends Tests with CommonTestModule
 
+  }
+  object json4s extends CommonModule {
+    override def moduleDeps = Seq(core, server)
+    override def ivyDeps = Agg(
+      ivy"com.softwaremill.sttp.tapir::tapir-json-json4s:${Version.Tapir}"
+    )
+
+    object test extends Tests with CommonTestModule
+  }
 }
 
-object json4s extends CommonModule {
-  override def moduleDeps = Seq(core, tapir)
-  override def ivyDeps = Agg(
-    ivy"com.softwaremill.sttp.tapir::tapir-json-json4s:${Version.Tapir}"
-  )
-
-  object test extends Tests with CommonTestModule
-
-}
-
-object tapir extends CommonModule {
-  override def moduleDeps = Seq(core)
-  override def ivyDeps = Agg(
-    ivy"com.softwaremill.sttp.tapir::tapir-core::${Version.Tapir}"
-  )
-
-  object test extends Tests with CommonTestModule
-}
 
 object server extends CommonModule {
-  override def moduleDeps = Seq(core, tapir, circe)
+  override def moduleDeps = Seq(core)
+  override def ivyDeps = Agg(
+    ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
+  )
 
-  object test extends Tests with CommonTestModule {
-    override def testFramework: Target[String] = "weaver.framework.CatsEffect"
-    def ivyDeps = Agg(
-      ivy"com.softwaremill.sttp.tapir::tapir-core::${Version.Tapir}",
-      ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::${Version.Tapir}",
+  object tapir extends CommonModule {
+    override def moduleDeps = Seq(core, server)
+    override def ivyDeps = Agg(
+      ivy"com.softwaremill.sttp.tapir::tapir-core::${Version.Tapir}"
+    )
+
+    object test extends Tests with CommonTestModule {
+      override def moduleDeps = Seq(core, json.circe, tapir)
+      override def testFramework: Target[String] = "weaver.framework.CatsEffect"
+      def ivyDeps = Agg(
+        ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::${Version.Tapir}",
+        ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
+        ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
+        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.4.1",
+        ivy"org.http4s::http4s-blaze-server::${Version.Http4s}",
+        ivy"com.disneystreaming::weaver-cats:0.7.11",
+        ivy"io.circe::circe-literal::0.14.1",
+        ivy"com.softwaremill.sttp.client3::circe::3.4.1",
+        ivy"org.typelevel::cats-effect::3.2.9"
+      )
+    }
+  }
+
+  object fs2 extends CommonModule {
+    override def moduleDeps = Seq(core, json.circe, server)
+    override def ivyDeps = Agg(
+      ivy"co.fs2::fs2-core::3.2.5",
+      ivy"co.fs2::fs2-io::3.2.5",
       ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
-      ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
-      ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.4.1",
-      ivy"org.http4s::http4s-blaze-server::${Version.Http4s}",
-      ivy"com.disneystreaming::weaver-cats:0.7.11",
-      ivy"io.circe::circe-literal::0.14.1",
-      ivy"com.softwaremill.sttp.client3::circe::3.4.1",
-      ivy"org.typelevel::cats-effect::3.2.9"
+      ivy"com.github.jnr:jnr-unixsocket:0.38.8"
     )
   }
 }
 
 object example extends CommonModule {
-  override def moduleDeps = Seq(core, tapir, circe, json4s, trace4cats)
 
-  override def ivyDeps =
-    Agg(
-      ivy"org.typelevel::cats-effect::3.3.5",
-      ivy"org.http4s::http4s-dsl::${Version.Http4s}",
-      ivy"org.http4s::http4s-circe::${Version.Http4s}",
-      ivy"org.http4s::http4s-blaze-server::${Version.Http4s}",
-      ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::${Version.Tapir}",
-      ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
-      ivy"org.json4s::json4s-core::${Version.Json4s}",
-      ivy"org.json4s::json4s-jackson:${Version.Json4s}",
-      ivy"io.janstenpickle::trace4cats-log-exporter::${Version.Trace4cats}",
-      ivy"io.janstenpickle::trace4cats-avro-exporter::${Version.Trace4cats}",
-      ivy"ch.qos.logback:logback-classic:1.2.7",
-      ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
-      ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1",
-      ivy"io.circe::circe-literal::0.14.1"
-    )
+  object json4sApp extends CommonModule {
+    override def moduleDeps = Seq(core, server.tapir, json.json4s)
+
+    override def ivyDeps =
+      Agg(
+        ivy"org.typelevel::cats-effect::3.3.5",
+        ivy"org.http4s::http4s-dsl::${Version.Http4s}",
+        ivy"org.http4s::http4s-circe::${Version.Http4s}",
+        ivy"org.http4s::http4s-blaze-server::${Version.Http4s}",
+        ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::${Version.Tapir}",
+        ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
+        ivy"org.json4s::json4s-core::${Version.Json4s}",
+        ivy"org.json4s::json4s-jackson:${Version.Json4s}",
+        ivy"ch.qos.logback:logback-classic:1.2.7",
+        ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
+        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1",
+      )
+  }
+  object circeApp extends CommonModule {
+    override def moduleDeps = Seq(core, server.tapir, json.circe)
+
+    override def ivyDeps =
+      Agg(
+        ivy"org.typelevel::cats-effect::3.3.5",
+        ivy"org.http4s::http4s-dsl::${Version.Http4s}",
+        ivy"org.http4s::http4s-circe::${Version.Http4s}",
+        ivy"org.http4s::http4s-blaze-server::${Version.Http4s}",
+        ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::${Version.Tapir}",
+        ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
+        ivy"ch.qos.logback:logback-classic:1.2.7",
+        ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
+        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1",
+        ivy"io.circe::circe-literal::0.14.1"
+      )
+  }
+  object json4sAndTrace4cats extends CommonModule {
+    override def moduleDeps = Seq(core, server.tapir, json.json4s, trace4cats)
+
+    override def ivyDeps =
+      Agg(
+        ivy"org.typelevel::cats-effect::3.3.5",
+        ivy"org.http4s::http4s-dsl::${Version.Http4s}",
+        ivy"org.http4s::http4s-blaze-server::${Version.Http4s}",
+        ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::${Version.Tapir}",
+        ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
+        ivy"org.json4s::json4s-core::${Version.Json4s}",
+        ivy"org.json4s::json4s-jackson:${Version.Json4s}",
+        ivy"io.janstenpickle::trace4cats-log-exporter::${Version.Trace4cats}",
+        ivy"io.janstenpickle::trace4cats-avro-exporter::${Version.Trace4cats}",
+        ivy"ch.qos.logback:logback-classic:1.2.7",
+        ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
+        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1",
+      )
+  }
+
 }
 
 object trace4cats extends CommonModule {
@@ -94,16 +143,6 @@ object trace4cats extends CommonModule {
     ivy"io.janstenpickle::trace4cats-core::${Version.Trace4cats}",
     ivy"io.janstenpickle::trace4cats-inject::${Version.Trace4cats}",
     ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}"
-  )
-}
-
-object fs2 extends CommonModule {
-  override def moduleDeps = Seq(core, circe)
-  override def ivyDeps = Agg(
-    ivy"co.fs2::fs2-core::3.2.5",
-    ivy"co.fs2::fs2-io::3.2.5",
-    ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
-    ivy"com.github.jnr:jnr-unixsocket:0.38.8"
   )
 }
 
