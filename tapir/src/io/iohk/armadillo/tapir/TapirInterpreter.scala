@@ -3,7 +3,7 @@ package io.iohk.armadillo.tapir
 import io.iohk.armadillo.*
 import io.iohk.armadillo.Armadillo.*
 import io.iohk.armadillo.tapir.JsonSupport.Json
-import io.iohk.armadillo.tapir.TapirInterpreter.{Result, RichDecodeResult, RichMonadErrorOps}
+import io.iohk.armadillo.tapir.TapirInterpreter.{InterpretationError, Result, RichDecodeResult, RichMonadErrorOps}
 import io.iohk.armadillo.tapir.Utils.RichEndpointInput
 import sttp.monad.MonadError
 import sttp.monad.syntax.*
@@ -26,7 +26,16 @@ class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
 
   def apply(
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]
-  ): ServerEndpoint.Full[Unit, Unit, String, Unit, Raw, Any, F] = {
+  ): Either[InterpretationError, ServerEndpoint.Full[Unit, Unit, String, Unit, Raw, Any, F]] = {
+    val nonUniqueMethodNames = jsonRpcEndpoints.groupBy(_.endpoint.methodName).values.filter(_.size != 1).map(_.head.endpoint.methodName)
+    Either.cond(
+      nonUniqueMethodNames.isEmpty,
+      toTapirEndpoint(jsonRpcEndpoints),
+      InterpretationError.NonUniqueMethod(nonUniqueMethodNames.toList)
+    )
+  }
+
+  private def toTapirEndpoint(jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]) = {
     sttp.tapir.endpoint.post
       .in(
         EndpointIO.Body(
@@ -209,6 +218,11 @@ class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
 }
 
 object TapirInterpreter {
+  sealed trait InterpretationError
+  object InterpretationError {
+    case class NonUniqueMethod(names: List[MethodName]) extends InterpretationError
+  }
+
   private sealed trait Result[T]
   private object Result {
     case class RequestResponse[T](value: T) extends Result[T]

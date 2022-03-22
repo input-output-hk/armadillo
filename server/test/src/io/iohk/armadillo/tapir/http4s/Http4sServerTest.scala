@@ -4,12 +4,12 @@ import cats.effect.IO
 import io.circe.Json
 import io.circe.literal.*
 import io.iohk.armadillo.Armadillo.*
+import io.iohk.armadillo.tapir.TapirInterpreter.InterpretationError
 import io.iohk.armadillo.tapir.http4s.Endpoints.*
 
 import java.lang.Integer.parseInt
 
 object Http4sServerTest extends BaseSuite {
-  // TODO add test for non-unique methods
 
   test(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
     request = JsonRpcRequest.v2("hello", json"[42]", 1),
@@ -93,4 +93,10 @@ object Http4sServerTest extends BaseSuite {
       JsonRpcResponse.error_v2(json"""{"code": 123, "message": "error", "data": 123}""", Some(3))
     )
   )
+
+  test("should return error when trying to pass non-unique methods to tapir interpreter") {
+    val se = hello_in_int_out_string.serverLogic[IO](int => IO.pure(Right(int.toString)))
+    val result = toTapir(List(se, se))
+    IO.delay(expect.same(result, Left(InterpretationError.NonUniqueMethod(List(hello_in_int_out_string.methodName)))))
+  }
 }

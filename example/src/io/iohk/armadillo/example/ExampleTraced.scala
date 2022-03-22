@@ -54,7 +54,7 @@ object ExampleTraced extends IOApp {
     val routesR = for {
       completer <- Resource.eval(LogSpanCompleter.create[IO](TraceProcess("example")))
       ep = EntryPoint(SpanSampler.always[IO], completer)
-      tapirEndpoints = tapirInterpreter.apply(endpoints.tracedEndpoints(ep))
+      tapirEndpoints = tapirInterpreter.apply(endpoints.tracedEndpoints(ep)).getOrElse(???)
       routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
     } yield routes
 

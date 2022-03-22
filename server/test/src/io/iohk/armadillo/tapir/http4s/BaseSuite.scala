@@ -10,6 +10,7 @@ import io.iohk.armadillo.json.circe.*
 import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcServerEndpoint}
 import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.tapir.TapirInterpreter
+import io.iohk.armadillo.tapir.TapirInterpreter.InterpretationError
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
@@ -18,6 +19,7 @@ import sttp.client3.circe.*
 import sttp.client3.{SttpBackend, basicRequest}
 import sttp.model.{StatusCode, Uri}
 import sttp.tapir.integ.cats.CatsMonadError
+import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 import weaver.SimpleIOSuite
 
@@ -96,10 +98,14 @@ trait BaseSuite extends SimpleIOSuite {
   }
 
   private def testMultipleEndpoints(se: List[JsonRpcServerEndpoint[IO]]): Resource[IO, (SttpBackend[IO, Any], Uri)] = {
-    val tapirInterpreter = new TapirInterpreter[IO, Json](new CirceJsonSupport)(new CatsMonadError)
-    val tapirEndpoints = tapirInterpreter.apply(se)
+    val tapirEndpoints = toTapir(se).getOrElse(throw new RuntimeException("Error during conversion to tapir"))
     val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
     testServer(routes)
+  }
+
+  def toTapir(se: List[JsonRpcServerEndpoint[IO]]): Either[InterpretationError, ServerEndpoint[Any, IO]] = {
+    val tapirInterpreter = new TapirInterpreter[IO, Json](new CirceJsonSupport)(new CatsMonadError)
+    tapirInterpreter.apply(se)
   }
 
   private def testServer(routes: HttpRoutes[IO]): Resource[IO, (SttpBackend[IO, Any], Uri)] = {

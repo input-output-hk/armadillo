@@ -39,7 +39,7 @@ object ExampleCirce extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = {
     val tapirInterpreter = new TapirInterpreter[IO, Json](new CirceJsonSupport)(new CatsMonadError)
-    val tapirEndpoints = tapirInterpreter.apply(List(endpoint))
+    val tapirEndpoints = tapirInterpreter.apply(List(endpoint)).getOrElse(???)
     val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
     import sttp.tapir.client.sttp.SttpClientInterpreter
