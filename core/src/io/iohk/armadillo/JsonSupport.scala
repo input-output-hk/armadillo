@@ -1,7 +1,7 @@
-package io.iohk.armadillo.tapir
+package io.iohk.armadillo
 
 import io.iohk.armadillo.Armadillo.*
-import io.iohk.armadillo.tapir.JsonSupport.Json
+import io.iohk.armadillo.JsonSupport.Json
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.DecodeResult
 
@@ -13,6 +13,8 @@ trait JsonSupport[Raw] {
   def encodeSuccess(e: JsonRpcSuccessResponse[Raw]): Raw
 
   def parse(string: String): DecodeResult[Json[Raw]]
+  def stringify(raw: Raw): String
+
   def decodeJsonRpcRequest(raw: Raw): DecodeResult[JsonRpcRequest[Raw]]
 
   def asArray(seq: Vector[Raw]): Raw

@@ -3,8 +3,8 @@ package io.iohk.armadillo.json.circe
 import cats.syntax.all.*
 import io.circe.*
 import io.iohk.armadillo.Armadillo.*
-import io.iohk.armadillo.tapir.JsonSupport
-import io.iohk.armadillo.tapir.JsonSupport.Json as AJson
+import io.iohk.armadillo.JsonSupport
+import io.iohk.armadillo.JsonSupport.Json as AJson
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.SchemaType.SCoproduct
 import sttp.tapir.json.circe.circeCodec
@@ -56,6 +56,8 @@ class CirceJsonSupport extends JsonSupport[Json] {
       )
     }
   }
+
+  override def stringify(raw: Json): String = raw.noSpaces
 
   override def encodeErrorNoData(error: JsonRpcError[Unit]): Json = Encoder[JsonRpcError[Unit]].apply(error)
 

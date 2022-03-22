@@ -97,6 +97,16 @@ object trace4cats extends CommonModule {
   )
 }
 
+object fs2 extends CommonModule {
+  override def moduleDeps = Seq(core, circe)
+  override def ivyDeps = Agg(
+    ivy"co.fs2::fs2-core::3.2.5",
+    ivy"co.fs2::fs2-io::3.2.5",
+    ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
+    ivy"com.github.jnr:jnr-unixsocket:0.38.8"
+  )
+}
+
 trait BaseModule extends ScalaModule with ScalafmtModule with TpolecatModule with ScalafixModule {
   override def scalacOptions = T {
     super.scalacOptions().filterNot(Set("-Xfatal-warnings")) ++ Seq(

@@ -1,54 +1,30 @@
-package io.iohk.armadillo.tapir
+package io.iohk.armadillo.fs2
 
-import io.iohk.armadillo.*
-import io.iohk.armadillo.Armadillo.*
+import cats.effect.kernel.Async
+import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcErrorResponse, JsonRpcId, JsonRpcRequest, JsonRpcResponse, JsonRpcSuccessResponse}
 import io.iohk.armadillo.JsonSupport.Json
-import io.iohk.armadillo.tapir.TapirInterpreter.{InterpretationError, Result, RichDecodeResult, RichMonadErrorOps}
-import io.iohk.armadillo.tapir.Utils.RichEndpointInput
+import io.iohk.armadillo.fs2.Fs2Interpreter.{Result, RichDecodeResult, RichMonadErrorOps}
+import io.iohk.armadillo.fs2.Utils.RichEndpointInput
+import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcErrorOutput, JsonRpcIO, JsonRpcServerEndpoint, JsonSupport, MethodName}
 import sttp.monad.MonadError
 import sttp.monad.syntax.*
-import sttp.tapir.Codec.JsonCodec
-import sttp.tapir.EndpointIO.Info
-import sttp.tapir.SchemaType.SCoproduct
+import sttp.tapir.DecodeResult
 import sttp.tapir.internal.ParamsAsVector
-import sttp.tapir.server.ServerEndpoint
-import sttp.tapir.{CodecFormat, DecodeResult, EndpointIO, RawBodyType, Schema}
+import sttp.tapir.integ.cats.CatsMonadError
 
-import java.nio.charset.StandardCharsets
+class Fs2Interpreter[F[_]: Async, Raw](jsonSupport: JsonSupport[Raw]) {
+  private implicit val monadError: CatsMonadError[F] = new CatsMonadError[F]
 
-class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
-    monadError: MonadError[F]
-) {
-
-  def apply(
-      jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]
-  ): Either[InterpretationError, ServerEndpoint.Full[Unit, Unit, String, Unit, Raw, Any, F]] = {
-    val nonUniqueMethodNames = jsonRpcEndpoints.groupBy(_.endpoint.methodName).values.filter(_.size != 1).map(_.head.endpoint.methodName)
-    Either.cond(
-      nonUniqueMethodNames.isEmpty,
-      toTapirEndpoint(jsonRpcEndpoints),
-      InterpretationError.NonUniqueMethod(nonUniqueMethodNames.toList)
-    )
-  }
-
-  private def toTapirEndpoint(jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]) = {
-    sttp.tapir.endpoint.post
-      .in(
-        EndpointIO.Body(
-          RawBodyType.StringBody(StandardCharsets.UTF_8),
-          idJsonCodec,
-          Info.empty
-        )
-      )
-      .errorOut(sttp.tapir.statusCode(sttp.model.StatusCode.Ok))
-      .out(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.outRawCodec, Info.empty))
-      .serverLogic[F] { input =>
-        requestDispatcher(jsonRpcEndpoints, input)
-          .map {
-            case Result.RequestResponse(r) => Right(r)
-            case Result.Notification()     => Left(())
-          }
+  def toFs2Pipe(jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]): fs2.Pipe[F, Byte, Byte] = { stream =>
+    stream
+      .through(fs2.text.utf8.decode)
+      .flatMap { request =>
+        fs2.Stream
+          .eval(requestDispatcher(jsonRpcEndpoints, request))
+          .collect { case Result.RequestResponse(response) => response }
+          .map(jsonSupport.stringify)
       }
+      .through(fs2.text.utf8.encode)
   }
 
   private def requestDispatcher(
@@ -64,8 +40,8 @@ class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
           case Json.Other(raw)        => defaultHandler(raw)
         }
     }
-    result.handleError[Any] { case _ =>
-      monadError.unit(Result.RequestResponse[Raw](createErrorResponse(InternalError, None)): Result[Raw])
+    result.handleError { case _ =>
+      monadError.unit(Result.RequestResponse(createErrorResponse(InternalError, None)))
     }
   }
 
@@ -193,19 +169,6 @@ class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
     DecodeResult.sequence(ss).map(_.toVector)
   }
 
-  private val idJsonCodec: JsonCodec[String] = new JsonCodec[String] {
-    override def rawDecode(l: String): DecodeResult[String] = DecodeResult.Value(l)
-
-    override def encode(h: String): String = h
-
-    override def schema: Schema[String] = Schema[String](
-      SCoproduct(Nil, None)(_ => None),
-      None
-    )
-
-    override def format: CodecFormat.Json = CodecFormat.Json()
-  }
-
   private val ParseError = JsonRpcError[Unit](-32700, "Parse error", ())
   private val InvalidRequest = JsonRpcError[Unit](-32600, "Invalid Request", ())
   private val MethodNotFound = JsonRpcError[Unit](-32601, "Method not found", ())
@@ -213,7 +176,7 @@ class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
   private val InternalError = JsonRpcError[Unit](-32603, "Internal error", ())
 }
 
-object TapirInterpreter {
+object Fs2Interpreter {
   sealed trait InterpretationError
   object InterpretationError {
     case class NonUniqueMethod(names: List[MethodName]) extends InterpretationError

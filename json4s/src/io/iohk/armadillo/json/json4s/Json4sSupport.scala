@@ -1,8 +1,8 @@
 package io.iohk.armadillo.json.json4s
 
 import io.iohk.armadillo.Armadillo.*
-import io.iohk.armadillo.tapir.JsonSupport
-import io.iohk.armadillo.tapir.JsonSupport.Json
+import io.iohk.armadillo.JsonSupport
+import io.iohk.armadillo.JsonSupport.Json
 import org.json4s.*
 import org.json4s.JsonAST.JValue
 import sttp.tapir.Codec.JsonCodec
@@ -12,8 +12,10 @@ import sttp.tapir.{DecodeResult, Schema}
 
 import scala.util.{Failure, Success, Try}
 
-class Json4sSupport private (parseAsJValue: String => JValue)(implicit formats: Formats, serialization: Serialization)
-    extends JsonSupport[JValue] {
+class Json4sSupport private (parseAsJValue: String => JValue, render: JValue => String)(implicit
+    formats: Formats,
+    serialization: Serialization
+) extends JsonSupport[JValue] {
   // JValue is a coproduct with unknown implementations
   implicit val schemaForJson4s: Schema[JValue] =
     Schema(
@@ -74,6 +76,8 @@ class Json4sSupport private (parseAsJValue: String => JValue)(implicit formats: 
     }
   }
 
+  override def stringify(raw: JValue): String = render(raw)
+
   override def decodeJsonRpcRequest(raw: JValue): DecodeResult[JsonRpcRequest[JValue]] = {
     Try(raw.extract[JsonRpcRequest[JValue]]) match {
       case Failure(exception) => DecodeResult.Error(raw.toString, exception)
@@ -83,8 +87,11 @@ class Json4sSupport private (parseAsJValue: String => JValue)(implicit formats: 
 }
 
 object Json4sSupport {
-  def apply(parseAsJValue: String => JValue)(implicit formats: Formats, serialization: Serialization): Json4sSupport = {
-    new Json4sSupport(parseAsJValue)(formats + new JsonRpcIdSerializer, serialization)
+  def apply(parseAsJValue: String => JValue, render: JValue => String)(implicit
+      formats: Formats,
+      serialization: Serialization
+  ): Json4sSupport = {
+    new Json4sSupport(parseAsJValue, render)(formats + new JsonRpcIdSerializer, serialization)
   }
 
   private class JsonRpcIdSerializer
