@@ -54,11 +54,10 @@ object ExampleTraced extends IOApp {
     val routesR = for {
       completer <- Resource.eval(LogSpanCompleter.create[IO](TraceProcess("example")))
       ep = EntryPoint(SpanSampler.always[IO], completer)
-      tapirInterpreter = TapirInterpreter[IO, JValue](
-        endpoints.tracedEndpoints(ep),
+      tapirInterpreter = new TapirInterpreter[IO, JValue](
         Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
-      )(new CatsMonadError).getOrElse(???)
-      tapirEndpoints = tapirInterpreter.toTapirEndpoint
+      )(new CatsMonadError)
+      tapirEndpoints = tapirInterpreter.toTapirEndpoint(endpoints.tracedEndpoints(ep)).getOrElse(???)
       routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
     } yield routes
 

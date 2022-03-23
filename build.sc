@@ -70,9 +70,7 @@ object server extends CommonModule {
     override def moduleDeps = Seq(core, json.circe, server)
     override def ivyDeps = Agg(
       ivy"co.fs2::fs2-core::3.2.5",
-      ivy"co.fs2::fs2-io::3.2.5",
       ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
-      ivy"com.github.jnr:jnr-unixsocket:0.38.8"
     )
   }
 }
@@ -133,7 +131,15 @@ object example extends CommonModule {
         ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1",
       )
   }
-
+  object circeFs2 extends CommonModule {
+    override def moduleDeps = Seq(core, server.fs2, json.circe)
+    override def ivyDeps = Agg(
+      ivy"co.fs2::fs2-core::3.2.5",
+      ivy"co.fs2::fs2-io::3.2.5",
+      ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
+      ivy"com.github.jnr:jnr-unixsocket:0.38.8"
+    )
+  }
 }
 
 object trace4cats extends CommonModule {

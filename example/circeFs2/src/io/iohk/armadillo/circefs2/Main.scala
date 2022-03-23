@@ -1,9 +1,10 @@
-package io.iohk.armadillo.fs2
+package io.iohk.armadillo.circefs2
 
 import cats.effect.{ExitCode, IO, IOApp}
 import fs2.io.net.unixsocket.{UnixSocketAddress, UnixSockets}
 import io.circe.Json
 import io.iohk.armadillo.Armadillo.{jsonRpcEndpoint, param}
+import io.iohk.armadillo.fs2.Fs2Interpreter
 import io.iohk.armadillo.{JsonRpcEndpoint, MethodName}
 import io.iohk.armadillo.json.circe.*
 
@@ -13,16 +14,16 @@ object Main extends IOApp {
     .out[String]("response")
 
   override def run(args: List[String]): IO[ExitCode] = {
-    val address = UnixSocketAddress("fs2-unix-sockets-test.sock")
+    val address = UnixSocketAddress("./example/circeFs2/fs2-unix-sockets-test.sock")
 
     val se = hello_in_int_out_string.serverLogic[IO](int => IO.pure(Right(int.toString)))
-    val inter = Fs2Interpreter[IO, Json](List(se), new CirceJsonSupport).getOrElse(???)
+    val jsonRpcServer = new Fs2Interpreter[IO, Json](new CirceJsonSupport).toFs2Pipe(List(se)).getOrElse(???)
 
     UnixSockets[IO]
       .server(address)
       .flatMap { client =>
         client.reads
-          .through(inter.toFs2Pipe)
+          .through(jsonRpcServer)
           .through(client.writes)
       }
       .compile

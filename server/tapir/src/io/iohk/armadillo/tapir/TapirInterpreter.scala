@@ -13,11 +13,18 @@ import sttp.tapir.{CodecFormat, DecodeResult, EndpointIO, RawBodyType, Schema}
 
 import java.nio.charset.StandardCharsets
 
-class TapirInterpreter[F[_], Raw](serverInterpreter: ServerInterpreter[F, Raw], jsonSupport: JsonSupport[Raw])(implicit
+class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
     monadError: MonadError[F]
 ) {
 
-  def toTapirEndpoint: ServerEndpoint.Full[Unit, Unit, String, Unit, Raw, Any, F] = {
+  def toTapirEndpoint(
+      jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]
+  ): Either[InterpretationError, ServerEndpoint.Full[Unit, Unit, String, Unit, Raw, Any, F]] = {
+    ServerInterpreter[F, Raw](jsonRpcEndpoints, jsonSupport).map(toTapirEndpointUnsafe)
+
+  }
+
+  private def toTapirEndpointUnsafe(serverInterpreter: ServerInterpreter[F, Raw]) = {
     sttp.tapir.endpoint.post
       .in(
         EndpointIO.Body(
@@ -37,6 +44,7 @@ class TapirInterpreter[F[_], Raw](serverInterpreter: ServerInterpreter[F, Raw], 
           }
       }
   }
+
   private val idJsonCodec: JsonCodec[String] = new JsonCodec[String] {
     override def rawDecode(l: String): DecodeResult[String] = DecodeResult.Value(l)
 
@@ -48,14 +56,5 @@ class TapirInterpreter[F[_], Raw](serverInterpreter: ServerInterpreter[F, Raw], 
     )
 
     override def format: CodecFormat.Json = CodecFormat.Json()
-  }
-}
-
-object TapirInterpreter {
-  def apply[F[_]: MonadError, Raw](
-      jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
-      jsonSupport: JsonSupport[Raw]
-  ): Either[InterpretationError, TapirInterpreter[F, Raw]] = {
-    ServerInterpreter[F, Raw](jsonRpcEndpoints, jsonSupport).map(new TapirInterpreter(_, jsonSupport))
   }
 }

@@ -104,8 +104,8 @@ trait BaseSuite extends SimpleIOSuite {
   }
 
   def toTapir(se: List[JsonRpcServerEndpoint[IO]]): Either[InterpretationError, ServerEndpoint[Any, IO]] = {
-    val tapirInterpreter = TapirInterpreter[IO, Json](se, new CirceJsonSupport)(new CatsMonadError)
-    tapirInterpreter.map(_.toTapirEndpoint)
+    val tapirInterpreter = new TapirInterpreter[IO, Json](new CirceJsonSupport)(new CatsMonadError)
+    tapirInterpreter.toTapirEndpoint(se)
   }
 
   private def testServer(routes: HttpRoutes[IO]): Resource[IO, (SttpBackend[IO, Any], Uri)] = {

@@ -20,4 +20,4 @@ jobs:
         with:
           jvm: adopt:11
       - name: Run tests
-        run: ./millw _.test
+        run: ./millw __.test

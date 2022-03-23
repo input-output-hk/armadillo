@@ -6,9 +6,14 @@ import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, Result}
 import io.iohk.armadillo.server.{JsonSupport, ServerInterpreter}
 import sttp.tapir.integ.cats.CatsMonadError
 
-class Fs2Interpreter[F[_]: Async, Raw] private (serverInterpreter: ServerInterpreter[F, Raw], jsonSupport: JsonSupport[Raw]) {
+class Fs2Interpreter[F[_]: Async, Raw](jsonSupport: JsonSupport[Raw]) {
 
-  def toFs2Pipe: fs2.Pipe[F, Byte, Byte] = { stream =>
+  def toFs2Pipe(jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]): Either[InterpretationError, fs2.Pipe[F, Byte, Byte]] = {
+    implicit val monadError: CatsMonadError[F] = new CatsMonadError[F]
+    ServerInterpreter(jsonRpcEndpoints, jsonSupport).map(si => stream => stream.through(toFs2Unsafe(si)))
+  }
+
+  private def toFs2Unsafe(serverInterpreter: ServerInterpreter[F, Raw]): fs2.Pipe[F, Byte, Byte] = { stream =>
     stream
       .through(fs2.text.utf8.decode)
       .flatMap { request =>
@@ -18,15 +23,5 @@ class Fs2Interpreter[F[_]: Async, Raw] private (serverInterpreter: ServerInterpr
           .map(jsonSupport.stringify)
       }
       .through(fs2.text.utf8.encode)
-  }
-}
-
-object Fs2Interpreter {
-  def apply[F[_]: Async, Raw](
-      jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
-      jsonSupport: JsonSupport[Raw]
-  ): Either[InterpretationError, Fs2Interpreter[F, Raw]] = {
-    implicit val monadError: CatsMonadError[F] = new CatsMonadError[F]
-    ServerInterpreter(jsonRpcEndpoints, jsonSupport).map(new Fs2Interpreter(_, jsonSupport))
   }
 }
