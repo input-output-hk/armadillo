@@ -1,14 +1,16 @@
 import $ivy.`com.goyeau::mill-scalafix_mill0.9:0.2.8`
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.9:0.1.1`
 import $ivy.`io.github.davidgregory084::mill-tpolecat:0.2.0`
 import com.goyeau.mill.scalafix.ScalafixModule
 import io.github.davidgregory084.TpolecatModule
 import mill._
 import mill.define.Target
 import mill.scalalib._
+import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import mill.scalalib.scalafmt.ScalafmtModule
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.9:0.1.4`
+import de.tobiasroeser.mill.vcs.version.VcsVersion
 
-object core extends CommonModule {
+object core extends CommonModule with ArmadilloPublishModule {
   override def ivyDeps = Agg(
     ivy"com.softwaremill.sttp.tapir::tapir-core::${Version.Tapir}"
   )
@@ -176,6 +178,21 @@ trait CommonModule extends BaseModule {
     ivy"org.typelevel:::kind-projector:0.13.2"
   )
 }
+
+trait ArmadilloPublishModule extends PublishModule {
+  def publishVersion = VcsVersion.vcsState().format()
+  def pomSettings = PomSettings(
+    description = "Hello",
+    organization = "com.lihaoyi",
+    url = "https://github.com/lihaoyi/example",
+    licenses = Seq(License.MIT),
+    versionControl = VersionControl.github("lihaoyi", "example"),
+    developers = Seq(
+      Developer("lihaoyi", "Li Haoyi", "https://github.com/lihaoyi")
+    )
+  )
+}
+
 
 object Version {
   val Trace4cats = "0.12.0"
