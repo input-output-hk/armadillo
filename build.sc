@@ -19,7 +19,7 @@ object core extends CommonModule with ArmadilloPublishModule {
 }
 
 object json extends CommonModule {
-  object circe extends CommonModule {
+  object circe extends CommonModule with ArmadilloPublishModule {
     override def moduleDeps = Seq(core, server)
     override def ivyDeps = Agg(
       ivy"com.softwaremill.sttp.tapir::tapir-json-circe:${Version.Tapir}"
@@ -28,7 +28,7 @@ object json extends CommonModule {
     object test extends Tests with CommonTestModule
 
   }
-  object json4s extends CommonModule {
+  object json4s extends CommonModule with ArmadilloPublishModule {
     override def moduleDeps = Seq(core, server)
     override def ivyDeps = Agg(
       ivy"com.softwaremill.sttp.tapir::tapir-json-json4s:${Version.Tapir}"
@@ -39,13 +39,13 @@ object json extends CommonModule {
 }
 
 
-object server extends CommonModule {
+object server extends CommonModule with ArmadilloPublishModule {
   override def moduleDeps = Seq(core)
   override def ivyDeps = Agg(
     ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
   )
 
-  object tapir extends CommonModule {
+  object tapir extends CommonModule with ArmadilloPublishModule {
     override def moduleDeps = Seq(core, server)
     override def ivyDeps = Agg(
       ivy"com.softwaremill.sttp.tapir::tapir-core::${Version.Tapir}"
@@ -68,7 +68,7 @@ object server extends CommonModule {
     }
   }
 
-  object fs2 extends CommonModule {
+  object fs2 extends CommonModule with ArmadilloPublishModule {
     override def moduleDeps = Seq(core, json.circe, server)
     override def ivyDeps = Agg(
       ivy"co.fs2::fs2-core::3.2.5",
@@ -144,7 +144,7 @@ object example extends CommonModule {
   }
 }
 
-object trace4cats extends CommonModule {
+object trace4cats extends CommonModule with ArmadilloPublishModule {
   override def moduleDeps = Seq(core)
   override def ivyDeps = Agg(
     ivy"io.janstenpickle::trace4cats-base::${Version.Trace4cats}",
