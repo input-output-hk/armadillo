@@ -182,13 +182,13 @@ trait CommonModule extends BaseModule {
 trait ArmadilloPublishModule extends PublishModule {
   def publishVersion = VcsVersion.vcsState().format()
   def pomSettings = PomSettings(
-    description = "Hello",
-    organization = "com.lihaoyi",
-    url = "https://github.com/lihaoyi/example",
-    licenses = Seq(License.MIT),
-    versionControl = VersionControl.github("lihaoyi", "example"),
+    description = artifactName(),
+    organization = "io.iohk.armadillo",
+    url = "https://github.com/input-output-hk/armadillo",
+    licenses = Seq(License.`Apache-2.0`),
+    versionControl = VersionControl.github("input-output-hk", "armadillo"),
     developers = Seq(
-      Developer("lihaoyi", "Li Haoyi", "https://github.com/lihaoyi")
+      Developer("ghostbuster91", "Kasper Kondzielski", "https://github.com/ghostbuster91")
     )
   )
 }
