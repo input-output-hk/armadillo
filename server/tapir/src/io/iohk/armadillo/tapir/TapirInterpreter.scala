@@ -1,8 +1,8 @@
 package io.iohk.armadillo.tapir
 
 import io.iohk.armadillo.*
-import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, Result}
-import io.iohk.armadillo.server.{JsonSupport, ServerInterpreter}
+import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, defaultInterpreterStack}
+import io.iohk.armadillo.server.{Interceptor, JsonSupport, ServerInterpreter}
 import sttp.monad.MonadError
 import sttp.monad.syntax.*
 import sttp.tapir.Codec.JsonCodec
@@ -13,15 +13,14 @@ import sttp.tapir.{CodecFormat, DecodeResult, EndpointIO, RawBodyType, Schema}
 
 import java.nio.charset.StandardCharsets
 
-class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
-    monadError: MonadError[F]
+class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw], interceptors: List[Interceptor[F, Raw]] = defaultInterpreterStack[F, Raw])(
+    implicit monadError: MonadError[F]
 ) {
 
   def toTapirEndpoint(
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]
   ): Either[InterpretationError, ServerEndpoint.Full[Unit, Unit, String, Unit, Raw, Any, F]] = {
-    ServerInterpreter[F, Raw](jsonRpcEndpoints, jsonSupport).map(toTapirEndpointUnsafe)
-
+    ServerInterpreter[F, Raw](jsonRpcEndpoints, jsonSupport, interceptors).map(toTapirEndpointUnsafe)
   }
 
   private def toTapirEndpointUnsafe(serverInterpreter: ServerInterpreter[F, Raw]) = {
@@ -39,8 +38,8 @@ class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw])(implicit
         serverInterpreter
           .dispatchRequest(input)
           .map {
-            case Result.RequestResponse(r) => Right(r)
-            case Result.Notification()     => Left(())
+            case Some(r) => Right(r)
+            case None    => Left(())
           }
       }
   }

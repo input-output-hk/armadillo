@@ -63,9 +63,12 @@ class CirceJsonSupport extends JsonSupport[Json] {
 
   override def outRawCodec: JsonCodec[Json] = circeCodec[Json]
 
-  override def encodeError(e: JsonRpcErrorResponse[Json]): Json = Encoder[JsonRpcErrorResponse[Json]].apply(e)
-
-  override def encodeSuccess(e: JsonRpcSuccessResponse[Json]): Json = Encoder[JsonRpcSuccessResponse[Json]].apply(e)
+  override def encodeResponse(response: JsonRpcResponse[Json]): Json = {
+    response match {
+      case success: JsonRpcSuccessResponse[Json] => Encoder[JsonRpcSuccessResponse[Json]].apply(success)
+      case er : JsonRpcErrorResponse[Json] => Encoder[JsonRpcErrorResponse[Json]].apply(er)
+    }
+  }
 
   override def decodeJsonRpcRequest(raw: Json): DecodeResult[JsonRpcRequest[Json]] = {
     Decoder[JsonRpcRequest[Json]].decodeJson(raw) match {

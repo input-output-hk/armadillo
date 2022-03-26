@@ -1,131 +1,188 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcErrorResponse, JsonRpcId, JsonRpcRequest, JsonRpcResponse, JsonRpcSuccessResponse}
+import io.iohk.armadillo.Armadillo.*
+import io.iohk.armadillo.server.EndpointHandler.{DecodeFailureContext, DecodeSuccessContext}
 import io.iohk.armadillo.server.JsonSupport.Json
 import io.iohk.armadillo.server.ServerInterpreter.*
 import io.iohk.armadillo.server.Utils.{RichDecodeResult, RichEndpointInput, RichMonadErrorOps}
-import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcErrorOutput, JsonRpcIO, JsonRpcServerEndpoint, MethodName}
+import io.iohk.armadillo.*
 import sttp.monad.MonadError
+import sttp.monad.syntax.*
 import sttp.tapir.DecodeResult
 import sttp.tapir.internal.ParamsAsVector
-import sttp.monad.syntax.*
 
-class ServerInterpreter[F[_], Raw] private (jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]], jsonSupport: JsonSupport[Raw])(implicit
+class ServerInterpreter[F[_], Raw] private (
+    jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
+    jsonSupport: JsonSupport[Raw],
+    interceptors: List[Interceptor[F, Raw]]
+)(implicit
     monadError: MonadError[F]
 ) {
 
-  def dispatchRequest(stringRequest: String): F[Result[Raw]] = {
-    val result = jsonSupport.parse(stringRequest) match {
-      case _: DecodeResult.Failure => monadError.unit(Result.RequestResponse(createErrorResponse(ParseError, None)): Result[Raw])
+  def dispatchRequest(stringRequest: String): F[Option[Raw]] = {
+    jsonSupport.parse(stringRequest) match {
+      case f: DecodeResult.Failure =>
+        monadError.suspend(
+          callRequestInterceptors(interceptors, Nil, defaultResponder).onDecodeFailure(
+            RequestHandler.DecodeFailureContext(f, stringRequest)
+          )
+        )
       case DecodeResult.Value(jsonRequest) =>
-        jsonRequest match {
-          case Json.JsonObject(raw)   => handleObject(jsonRpcEndpoints, raw)
-          case Json.JsonArray(values) => handleBatchRequest(jsonRpcEndpoints, values)
-          case Json.Other(raw)        => defaultHandler(raw)
-        }
-    }
-    result.handleError { case _ =>
-      monadError.unit(Result.RequestResponse(createErrorResponse(InternalError, None)))
+        monadError.suspend(callRequestInterceptors(interceptors, Nil, defaultResponder).onDecodeSuccess(jsonRequest))
     }
   }
 
-  private def createErrorResponse(error: JsonRpcError[Unit], id: Option[JsonRpcId]): Raw = {
-    jsonSupport.encodeError(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(error), id))
+  def callRequestInterceptors(
+      is: List[Interceptor[F, Raw]],
+      eisAcc: List[MethodOrEndpointInterceptor[F, Raw]],
+      responder: Responder[F, Raw]
+  ): RequestHandler[F, Raw] = {
+    is match {
+      case Nil => defaultRequestHandler(eisAcc.reverse)
+      case (ri: RequestInterceptor[F, Raw]) :: tail =>
+        ri.apply(
+          responder,
+          jsonSupport,
+          { ei =>
+            RequestHandler(
+              onSuccess = callRequestInterceptors(tail, ei :: eisAcc, responder).onDecodeSuccess,
+              callRequestInterceptors(tail, ei :: eisAcc, responder).onDecodeFailure
+            )
+          }
+        )
+      case (ei: MethodInterceptor[F, Raw]) :: tail   => callRequestInterceptors(tail, ei :: eisAcc, responder)
+      case (ei: EndpointInterceptor[F, Raw]) :: tail => callRequestInterceptors(tail, ei :: eisAcc, responder)
+    }
+  }
+
+  private def defaultRequestHandler(eis: List[MethodOrEndpointInterceptor[F, Raw]]) = {
+    new RequestHandler[F, Raw] {
+      override def onDecodeSuccess(request: Json[Raw])(implicit monad: MonadError[F]): F[Option[Raw]] = {
+        request match {
+          case Json.JsonObject(raw)   => handleObject(jsonRpcEndpoints, raw, eis)
+          case Json.JsonArray(values) => handleBatchRequest(jsonRpcEndpoints, values, eis)
+          case Json.Other(raw) =>
+            monad.suspend(
+              callMethodOrEndpointInterceptors(eis, Nil, defaultResponder).onDecodeFailure(
+                MethodHandler.DecodeFailureContext(
+                  jsonRpcEndpoints,
+                  raw,
+                  DecodeResult.Mismatch("json object or json array", jsonSupport.stringify(raw))
+                )
+              )(monad)
+            )
+        }
+      }
+
+      override def onDecodeFailure(ctx: RequestHandler.DecodeFailureContext)(implicit monad: MonadError[F]): F[Option[Raw]] = {
+        monad.unit(None)
+      }
+    }
+  }
+
+  private def defaultMethodHandler(eis: List[EndpointInterceptor[F, Raw]]) = {
+    new MethodHandler[F, Raw] {
+      override def onDecodeSuccess[I](ctx: MethodHandler.DecodeSuccessContext[F, Raw])(implicit monad: MonadError[F]): F[Option[Raw]] = {
+        ctx.endpoints.find(_.endpoint.methodName.value == ctx.request.method) match {
+          case None        => monadError.unit(None)
+          case Some(value) => handleObjectWithEndpoint(value, ctx.request, eis)
+        }
+      }
+
+      override def onDecodeFailure(ctx: MethodHandler.DecodeFailureContext[F, Raw])(implicit monad: MonadError[F]): F[Option[Raw]] = {
+        monadError.unit(None)
+      }
+    }
   }
 
   private def handleBatchRequest(
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
-      requests: Vector[Raw]
-  ): F[Result[Raw]] = {
+      requests: Vector[Raw],
+      eis: List[MethodOrEndpointInterceptor[F, Raw]]
+  ): F[Option[Raw]] = {
     requests
-      .foldRight(monadError.unit(List.empty[Result[Raw]])) { case (req, accF) =>
-        val fb = handleObject(jsonRpcEndpoints, req)
+      .foldRight(monadError.unit(List.empty[Option[Raw]])) { case (req, accF) =>
+        val fb = handleObject(jsonRpcEndpoints, req, eis)
         fb.map2(accF)(_ :: _)
       }
       .map { responses =>
-        val withoutNotifications = responses.collect { case Result.RequestResponse(response) => response }
+        val withoutNotifications = responses.collect { case Some(response) => response }
         if (withoutNotifications.isEmpty) {
-          Result.Notification()
+          None
         } else {
-          Result.RequestResponse(jsonSupport.asArray(withoutNotifications.toVector))
+          Some(jsonSupport.asArray(withoutNotifications.toVector))
         }
       }
   }
 
   private def handleObject(
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
-      obj: Raw
-  ): F[Result[Raw]] = {
+      obj: Raw,
+      eis: List[MethodOrEndpointInterceptor[F, Raw]]
+  ): F[Option[Raw]] = {
     jsonSupport.decodeJsonRpcRequest(obj) match {
-      case _: DecodeResult.Failure =>
-        monadError.unit(Result.RequestResponse(createErrorResponse(InvalidRequest, None)))
-      case DecodeResult.Value(request) =>
-        jsonRpcEndpoints.find(_.endpoint.methodName.value == request.method) match {
-          case None        => monadError.unit(Result.RequestResponse(createErrorResponse(MethodNotFound, request.id)))
-          case Some(value) => handleObjectWithEndpoint(value, request)
-        }
+      case failure: DecodeResult.Failure =>
+        val ctx = MethodHandler.DecodeFailureContext(jsonRpcEndpoints, obj, failure)
+        monadError.suspend(callMethodOrEndpointInterceptors(eis, Nil, defaultResponder).onDecodeFailure(ctx))
+      case DecodeResult.Value(v) =>
+        val ctx = MethodHandler.DecodeSuccessContext(jsonRpcEndpoints, v)
+        monadError.suspend(callMethodOrEndpointInterceptors(eis, Nil, defaultResponder).onDecodeSuccess(ctx))
+    }
+  }
+
+  def callMethodOrEndpointInterceptors(
+      is: List[MethodOrEndpointInterceptor[F, Raw]],
+      eisAcc: List[EndpointInterceptor[F, Raw]],
+      responder: Responder[F, Raw]
+  ): MethodHandler[F, Raw] = {
+    is match {
+      case Nil => defaultMethodHandler(eisAcc.reverse)
+      case (ri: MethodInterceptor[F, Raw]) :: tail =>
+        ri.apply(
+          responder,
+          jsonSupport,
+          { ei =>
+            MethodHandler(
+              onSuccess = callMethodOrEndpointInterceptors(tail, ei :: eisAcc, responder).onDecodeSuccess,
+              callMethodOrEndpointInterceptors(tail, ei :: eisAcc, responder).onDecodeFailure
+            )
+          }
+        )
+      case (ei: EndpointInterceptor[F, Raw]) :: tail => callMethodOrEndpointInterceptors(tail, ei :: eisAcc, responder)
     }
   }
 
   private def handleObjectWithEndpoint(
-      serverEndpoint: JsonRpcServerEndpoint[F],
-      request: JsonRpcRequest[Raw]
-  ): F[Result[Raw]] = {
-    decodeJsonRpcParamsForEndpoint(serverEndpoint.endpoint, request.params) match {
-      case _: DecodeResult.Failure =>
-        val result = if (request.isNotification) {
-          Result.Notification[Raw]()
-        } else {
-          Result.RequestResponse(createErrorResponse(InvalidParams, request.id))
-        }
-        monadError.unit(result)
+      se: JsonRpcServerEndpoint[F],
+      request: JsonRpcRequest[Raw],
+      eis: List[EndpointInterceptor[F, Raw]]
+  ): F[Option[Raw]] = {
+    val handler = eis.foldRight(defaultEndpointHandler(defaultResponder, jsonSupport)) { case (interceptor, handler) =>
+      interceptor.apply(defaultResponder, jsonSupport, handler)
+    }
+    decodeJsonRpcParamsForEndpoint(se.endpoint, request.params) match {
+      case e: DecodeResult.Failure => handler.onDecodeFailure(DecodeFailureContext(se, request, e))
       case DecodeResult.Value(params) =>
-        serverLogicForEndpoint(params, serverEndpoint, request.id)
-          .handleError { case _ =>
-            val result = if (request.isNotification) {
-              Result.Notification[Raw]()
-            } else {
-              Result.RequestResponse[Raw](createErrorResponse(InternalError, request.id))
-            }
-            monadError.unit(result)
-          }
+        val matchedBody = params.asAny.asInstanceOf[se.INPUT]
+        onDecodeSuccess[se.INPUT, se.ERROR_OUTPUT, se.OUTPUT](se, request, handler, matchedBody)
     }
   }
 
-  private def defaultHandler(json: Raw): F[Result[Raw]] =
-    monadError.unit(Result.RequestResponse(createErrorResponse(InvalidRequest, None)))
+  private def onDecodeSuccess[I, E, O](
+      serverEndpoint: JsonRpcServerEndpoint.Full[I, E, O, F],
+      request: JsonRpcRequest[Raw],
+      handler: EndpointHandler[F, Raw],
+      matchedBody: I
+  ) = {
+    handler.onDecodeSuccess[serverEndpoint.INPUT](
+      DecodeSuccessContext[F, serverEndpoint.INPUT, Raw](serverEndpoint, request, matchedBody)
+    )
+  }
 
-  private def serverLogicForEndpoint(
-      params: ParamsAsVector,
-      matchedEndpoint: JsonRpcServerEndpoint[F],
-      maybeRequestId: Option[JsonRpcId]
-  ): F[Result[Raw]] = {
-    val matchedBody = params.asAny.asInstanceOf[matchedEndpoint.INPUT]
-    matchedEndpoint
-      .logic(monadError)(matchedBody)
-      .map {
-        case Left(value) =>
-          maybeRequestId match {
-            case Some(requestId) =>
-              val encodedError = matchedEndpoint.endpoint.error match {
-                case single @ JsonRpcErrorOutput.Single(_) =>
-                  val error = single.error // TODO should JsonRpcErrorResponse contain JsonRpcError[T] instead of Json?
-                  error.codec.encode(value.asInstanceOf[error.DATA]).asInstanceOf[Raw]
-              }
-              Result.RequestResponse(jsonSupport.encodeError(JsonRpcErrorResponse("2.0", encodedError, Some(requestId))))
-            case None => Result.Notification()
-          }
-        case Right(value) =>
-          maybeRequestId match {
-            case Some(requestId) =>
-              val encodedOutput = matchedEndpoint.endpoint.output match {
-                case o: JsonRpcIO.Empty[matchedEndpoint.OUTPUT]  => jsonSupport.jsNull.asInstanceOf[o.codec.L]
-                case o: JsonRpcIO.Single[matchedEndpoint.OUTPUT] => o.codec.encode(value)
-              }
-              Result.RequestResponse(jsonSupport.encodeSuccess(JsonRpcSuccessResponse("2.0", encodedOutput.asInstanceOf[Raw], requestId)))
-            case None => Result.Notification()
-          }
-      }
+  private val defaultResponder: Responder[F, Raw] = new Responder[F, Raw] {
+    override def apply(response: Option[JsonRpcResponse[Raw]]): F[Option[Raw]] = {
+      response.map(jsonSupport.encodeResponse).unit
+    }
   }
 
   private def decodeJsonRpcParamsForEndpoint(jsonRpcEndpoint: JsonRpcEndpoint[_, _, _], jsonParams: Raw) = {
@@ -163,12 +220,13 @@ object ServerInterpreter {
 
   def apply[F[_]: MonadError, Raw](
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
-      jsonSupport: JsonSupport[Raw]
+      jsonSupport: JsonSupport[Raw],
+      interpreters: List[Interceptor[F, Raw]]
   ): Either[InterpretationError, ServerInterpreter[F, Raw]] = {
     val nonUniqueMethodNames = jsonRpcEndpoints.groupBy(_.endpoint.methodName).values.filter(_.size != 1).map(_.head.endpoint.methodName)
     Either.cond(
       nonUniqueMethodNames.isEmpty,
-      new ServerInterpreter(jsonRpcEndpoints, jsonSupport),
+      new ServerInterpreter(jsonRpcEndpoints, jsonSupport, interpreters),
       InterpretationError.NonUniqueMethod(nonUniqueMethodNames.toList)
     )
   }
@@ -178,10 +236,50 @@ object ServerInterpreter {
     case class NonUniqueMethod(names: List[MethodName]) extends InterpretationError
   }
 
-  sealed trait Result[T]
-  object Result {
-    case class RequestResponse[T](value: T) extends Result[T]
-    case class Notification[T]() extends Result[T]
+  private def defaultEndpointHandler[F[_], Raw](responder: Responder[F, Raw], jsonSupport: JsonSupport[Raw]): EndpointHandler[F, Raw] = {
+    new EndpointHandler[F, Raw] {
+      override def onDecodeSuccess[I](ctx: DecodeSuccessContext[F, I, Raw])(implicit monad: MonadError[F]): F[Option[Raw]] = {
+        ctx.endpoint
+          .logic(monad)(ctx.input)
+          .flatMap { x =>
+            val response = x match {
+              case Left(value) =>
+                val encodedError = ctx.endpoint.endpoint.error match {
+                  case single @ JsonRpcErrorOutput.Single(_) =>
+                    val error = single.error // TODO should JsonRpcErrorResponse contain JsonRpcError[T] instead of Json?
+                    error.codec.encode(value.asInstanceOf[error.DATA]).asInstanceOf[Raw]
+                }
+                ctx.request.id.map(id => JsonRpcErrorResponse("2.0", encodedError, Some(id)))
+              case Right(value) =>
+                val encodedOutput = ctx.endpoint.endpoint.output match {
+                  case o: JsonRpcIO.Empty[ctx.endpoint.OUTPUT]  => jsonSupport.jsNull
+                  case o: JsonRpcIO.Single[ctx.endpoint.OUTPUT] => o.codec.encode(value).asInstanceOf[Raw]
+                }
+                ctx.request.id.map(JsonRpcSuccessResponse("2.0", encodedOutput, _))
+            }
+            responder.apply(response)
+          }
+      }
+
+      override def onDecodeFailure(ctx: DecodeFailureContext[F, Raw])(implicit monad: MonadError[F]): F[Option[Raw]] = {
+        val result = if (ctx.request.isNotification) {
+          None
+        } else {
+          Some(createErrorResponse(InvalidParams, ctx.request.id))
+        }
+        monad.unit(result)
+      }
+
+      private def createErrorResponse(error: JsonRpcError[Unit], id: Option[JsonRpcId]): Raw = {
+        jsonSupport.encodeResponse(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(error), id))
+      }
+    }
   }
 
+  def defaultInterpreterStack[F[_], Raw]: List[Interceptor[F, Raw]] = List(
+    ExceptionInterceptor.default[F, Raw],
+    MethodNotFoundInterceptor.default[F, Raw],
+    InvalidRequestMethodInterceptor.default[F, Raw],
+    DecodeFailureInterceptor.default[F, Raw]
+  )
 }

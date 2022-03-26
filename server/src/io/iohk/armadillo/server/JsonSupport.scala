@@ -8,9 +8,8 @@ import sttp.tapir.DecodeResult
 trait JsonSupport[Raw] {
   def outRawCodec: JsonCodec[Raw]
 
-  def encodeError(e: JsonRpcErrorResponse[Raw]): Raw
   def encodeErrorNoData(error: JsonRpcError[Unit]): Raw
-  def encodeSuccess(e: JsonRpcSuccessResponse[Raw]): Raw
+  def encodeResponse(e: JsonRpcResponse[Raw]): Raw
 
   def parse(string: String): DecodeResult[Json[Raw]]
   def stringify(raw: Raw): String

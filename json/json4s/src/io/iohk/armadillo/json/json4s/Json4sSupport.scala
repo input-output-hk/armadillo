@@ -51,17 +51,16 @@ class Json4sSupport private (parseAsJValue: String => JValue, render: JValue => 
 
   override def outRawCodec: JsonCodec[JValue] = json4sCodec[JValue]
 
-  override def encodeError(e: JsonRpcErrorResponse[JValue]): JValue = {
-    Extraction.decompose(e)
-  }
-
   override def encodeErrorNoData(error: JsonRpcError[Unit]): JValue = {
     val map = Map("code" -> error.code, "message" -> error.message)
     Extraction.decompose(map)
   }
 
-  override def encodeSuccess(e: JsonRpcSuccessResponse[JValue]): JValue = {
-    Extraction.decompose(e)
+  override def encodeResponse(response: JsonRpcResponse[JValue]): JValue = {
+    response match {
+      case success: JsonRpcSuccessResponse[JValue] => Extraction.decompose(success)
+      case err: JsonRpcErrorResponse[JValue]       => Extraction.decompose(err)
+    }
   }
 
   override def parse(string: String): DecodeResult[JsonSupport.Json[JValue]] = {
