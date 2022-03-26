@@ -19,5 +19,7 @@ jobs:
       - uses: coursier/setup-action@v1.1.2
         with:
           jvm: adopt:11
+      - name: Compile all
+        run: ./millw __.compile
       - name: Run tests
         run: ./millw __.test

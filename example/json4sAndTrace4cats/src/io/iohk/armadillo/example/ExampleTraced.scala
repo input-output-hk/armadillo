@@ -4,11 +4,11 @@ import cats.Applicative
 import cats.data.Kleisli
 import cats.effect.kernel.{MonadCancelThrow, Resource, Sync}
 import cats.effect.{ExitCode, IO, IOApp}
-import io.iohk.armadillo.Armadillo.{JsonRpcError, jsonRpcEndpoint, param}
+import io.iohk.armadillo._
 import io.iohk.armadillo.json.json4s.*
 import io.iohk.armadillo.tapir.TapirInterpreter
 import io.iohk.armadillo.trace4cats.syntax.*
-import io.iohk.armadillo.{JsonRpcServerEndpoint, MethodName}
+import io.iohk.armadillo.JsonRpcServerEndpoint
 import io.janstenpickle.trace4cats.Span
 import io.janstenpickle.trace4cats.base.context.Provide
 import io.janstenpickle.trace4cats.inject.{EntryPoint, Trace}
@@ -33,7 +33,7 @@ object ExampleTraced extends IOApp {
 
   class Endpoints[F[_]: Sync, G[_]: MonadCancelThrow: Trace] {
 
-    val getBlockByNumber = jsonRpcEndpoint(MethodName("eth_getBlockByNumber"))
+    val getBlockByNumber = jsonRpcEndpoint(m"eth_getBlockByNumber")
       .in(
         param[Int]("blockNumber").and(param[String]("includeTransactions"))
       )

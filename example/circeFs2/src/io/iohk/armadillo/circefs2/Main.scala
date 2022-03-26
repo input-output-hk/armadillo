@@ -3,13 +3,12 @@ package io.iohk.armadillo.circefs2
 import cats.effect.{ExitCode, IO, IOApp}
 import fs2.io.net.unixsocket.{UnixSocketAddress, UnixSockets}
 import io.circe.Json
-import io.iohk.armadillo.Armadillo.{jsonRpcEndpoint, param}
+import io.iohk.armadillo._
 import io.iohk.armadillo.fs2.Fs2Interpreter
-import io.iohk.armadillo.{JsonRpcEndpoint, MethodName}
 import io.iohk.armadillo.json.circe.*
 
 object Main extends IOApp {
-  val hello_in_int_out_string: JsonRpcEndpoint[Int, Unit, String] = jsonRpcEndpoint(MethodName("hello"))
+  val hello_in_int_out_string: JsonRpcEndpoint[Int, Unit, String] = jsonRpcEndpoint(m"hello")
     .in(param[Int]("param1"))
     .out[String]("response")
 

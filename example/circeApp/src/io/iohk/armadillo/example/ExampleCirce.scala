@@ -4,11 +4,10 @@ import cats.effect.{ExitCode, IO, IOApp}
 import io.circe.generic.semiauto.*
 import io.circe.literal.*
 import io.circe.{Decoder, Encoder, Json}
-import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcResponse, jsonRpcEndpoint, param}
+import io.iohk.armadillo.*
 import io.iohk.armadillo.json.circe.*
-import io.iohk.armadillo.server.{EndpointHandler, EndpointInterceptor, JsonSupport, RequestHandler, RequestInterceptor, Responder}
+import io.iohk.armadillo.server.*
 import io.iohk.armadillo.tapir.TapirInterpreter
-import io.iohk.armadillo.{JsonRpcServerEndpoint, MethodName}
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
@@ -28,7 +27,7 @@ object ExampleCirce extends IOApp {
 
   case class RpcBlockResponse(number: Int)
 
-  val endpoint: JsonRpcServerEndpoint[IO] = jsonRpcEndpoint(MethodName("eth_getBlockByNumber"))
+  val endpoint: JsonRpcServerEndpoint[IO] = jsonRpcEndpoint(m"eth_getBlockByNumber")
     .in(
       param[Int]("blockNumber").and(param[String]("includeTransactions"))
     )
@@ -129,7 +128,8 @@ class LoggingEndpointInterceptor extends EndpointInterceptor[IO, Json] {
 class LoggingRequestInterceptor extends RequestInterceptor[IO, Json] {
   override def apply(
       responder: Responder[IO, Json],
-      requestHandler: EndpointInterceptor[IO, Json] => RequestHandler[IO, Json]
+      jsonSupport: JsonSupport[Json],
+      requestHandler: MethodInterceptor[IO, Json] => RequestHandler[IO, Json]
   ): RequestHandler[IO, Json] = {
     new RequestHandler[IO, Json] {
       override def onDecodeSuccess(request: JsonSupport.Json[Json])(implicit monad: MonadError[IO]): IO[Option[Json]] = {
@@ -137,14 +137,14 @@ class LoggingRequestInterceptor extends RequestInterceptor[IO, Json] {
         //        responder
         //          .apply(Some(JsonRpcResponse.error_v2[Raw](jsonSupport.jsNull, None)))
         requestHandler
-          .apply(EndpointInterceptor.noop)
+          .apply(MethodInterceptor.noop[IO, Json]())
           .onDecodeSuccess(request)
           .flatTap(_ => IO.println("after onDecodeSuccess"))
       }
 
-      override def onDecodeFailure(ctx: RequestHandler.DecodeFailureContext): IO[Option[Json]] = {
+      override def onDecodeFailure(ctx: RequestHandler.DecodeFailureContext)(implicit monad: MonadError[IO]): IO[Option[Json]] = {
         println(s"onDecodeFailure $ctx")
-        requestHandler.apply(EndpointInterceptor.noop).onDecodeFailure(ctx).flatTap(_ => IO.println("after onDecodeFailure"))
+        requestHandler.apply(MethodInterceptor.noop[IO, Json]()).onDecodeFailure(ctx).flatTap(_ => IO.println("after onDecodeFailure"))
       }
     }
   }

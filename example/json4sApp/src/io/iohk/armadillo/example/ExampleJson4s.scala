@@ -2,10 +2,9 @@ package io.iohk.armadillo.example
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.syntax.all.*
-import io.iohk.armadillo.Armadillo.{jsonRpcEndpoint, param}
+import io.iohk.armadillo.*
 import io.iohk.armadillo.json.json4s.*
 import io.iohk.armadillo.tapir.TapirInterpreter
-import io.iohk.armadillo.{JsonRpcServerEndpoint, MethodName}
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import org.json4s.{Formats, JValue, NoTypeHints, Serialization}
@@ -22,7 +21,7 @@ object ExampleJson4s extends IOApp {
 
   case class RpcBlockResponse(number: Int)
 
-  val endpoint: JsonRpcServerEndpoint[IO] = jsonRpcEndpoint(MethodName("eth_getBlockByNumber"))
+  val endpoint: JsonRpcServerEndpoint[IO] = jsonRpcEndpoint(m"eth_getBlockByNumber")
     .in(
       param[Int]("blockNumber").and(param[String]("includeTransactions"))
     )

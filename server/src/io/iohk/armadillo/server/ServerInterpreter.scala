@@ -72,7 +72,7 @@ class ServerInterpreter[F[_], Raw] private (
   private def defaultMethodHandler(eis: List[EndpointInterceptor[F, Raw]]) = {
     new MethodHandler[F, Raw] {
       override def onDecodeSuccess[I](ctx: MethodHandler.DecodeSuccessContext[F, Raw])(implicit monad: MonadError[F]): F[Option[Raw]] = {
-        ctx.endpoints.find(_.endpoint.methodName.value == ctx.request.method) match {
+        ctx.endpoints.find(_.endpoint.methodName.asString == ctx.request.method) match {
           case None        => monadError.unit(None)
           case Some(value) => handleObjectWithEndpoint(value, ctx.request, eis)
         }
