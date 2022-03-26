@@ -6,17 +6,16 @@ import cats.syntax.all.*
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, Json}
 import io.iohk.armadillo.Armadillo.*
-import io.iohk.armadillo.json.circe.*
-import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcServerEndpoint}
 import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
 import io.iohk.armadillo.tapir.TapirInterpreter
+import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcServerEndpoint}
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import sttp.client3.circe.*
-import sttp.client3.{BodySerializer, SttpBackend, basicRequest}
+import sttp.client3.{SttpBackend, basicRequest}
 import sttp.model.{StatusCode, Uri}
 import sttp.tapir.integ.cats.CatsMonadError
 import sttp.tapir.server.ServerEndpoint
@@ -103,7 +102,8 @@ trait BaseSuite extends SimpleIOSuite {
   }
 
   def toTapir(se: List[JsonRpcServerEndpoint[IO]]): Either[InterpretationError, ServerEndpoint[Any, IO]] = {
-    val tapirInterpreter = new TapirInterpreter[IO, Json](new CirceJsonSupport)(new CatsMonadError)
+    val tapirInterpreter =
+      new TapirInterpreter[IO, Json](new CirceJsonSupport)(new CatsMonadError)
     tapirInterpreter.toTapirEndpoint(se)
   }
 
