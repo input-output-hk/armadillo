@@ -275,11 +275,4 @@ object ServerInterpreter {
       }
     }
   }
-
-  def defaultInterpreterStack[F[_], Raw]: List[Interceptor[F, Raw]] = List(
-    ExceptionInterceptor.default[F, Raw],
-    MethodNotFoundInterceptor.default[F, Raw],
-    InvalidRequestMethodInterceptor.default[F, Raw],
-    DecodeFailureInterceptor.default[F, Raw]
-  )
 }

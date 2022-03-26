@@ -24,7 +24,3 @@ class MethodNotFoundInterceptor[F[_], Raw](methodNotFoundHandler: MethodNotFound
     }
   }
 }
-
-object MethodNotFoundInterceptor {
-  def default[F[_], Raw]: MethodNotFoundInterceptor[F, Raw] = new MethodNotFoundInterceptor[F, Raw](MethodNotFoundHandler.default[Raw])
-}

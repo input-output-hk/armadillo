@@ -2,13 +2,13 @@ package io.iohk.armadillo.fs2
 
 import cats.effect.kernel.Async
 import io.iohk.armadillo.JsonRpcServerEndpoint
-import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, Result}
-import io.iohk.armadillo.server.{Interceptor, JsonSupport, ServerInterpreter}
+import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError}
+import io.iohk.armadillo.server.{CustomInterceptors, Interceptor, JsonSupport, ServerInterpreter}
 import sttp.tapir.integ.cats.CatsMonadError
 
 class Fs2Interpreter[F[_]: Async, Raw](
     jsonSupport: JsonSupport[Raw],
-    interceptors: List[Interceptor[F, Raw]] = ServerInterpreter.defaultInterpreterStack[F, Raw]
+    interceptors: List[Interceptor[F, Raw]] = CustomInterceptors[F, Raw]().interceptors
 ) {
 
   def toFs2Pipe(jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]): Either[InterpretationError, fs2.Pipe[F, Byte, Byte]] = {

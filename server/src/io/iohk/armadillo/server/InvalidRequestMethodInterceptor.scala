@@ -25,8 +25,3 @@ class InvalidRequestMethodInterceptor[F[_], Raw](invalidRequestHandler: InvalidR
     }
   }
 }
-
-object InvalidRequestMethodInterceptor {
-  def default[F[_], Raw]: InvalidRequestMethodInterceptor[F, Raw] =
-    new InvalidRequestMethodInterceptor[F, Raw](InvalidRequestHandler.default[Raw])
-}

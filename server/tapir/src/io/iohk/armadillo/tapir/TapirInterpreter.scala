@@ -1,8 +1,8 @@
 package io.iohk.armadillo.tapir
 
 import io.iohk.armadillo.*
-import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, defaultInterpreterStack}
-import io.iohk.armadillo.server.{Interceptor, JsonSupport, ServerInterpreter}
+import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
+import io.iohk.armadillo.server.{CustomInterceptors, Interceptor, JsonSupport, ServerInterpreter}
 import sttp.monad.MonadError
 import sttp.monad.syntax.*
 import sttp.tapir.Codec.JsonCodec
@@ -13,8 +13,11 @@ import sttp.tapir.{CodecFormat, DecodeResult, EndpointIO, RawBodyType, Schema}
 
 import java.nio.charset.StandardCharsets
 
-class TapirInterpreter[F[_], Raw](jsonSupport: JsonSupport[Raw], interceptors: List[Interceptor[F, Raw]] = defaultInterpreterStack[F, Raw])(
-    implicit monadError: MonadError[F]
+class TapirInterpreter[F[_], Raw](
+    jsonSupport: JsonSupport[Raw],
+    interceptors: List[Interceptor[F, Raw]] = CustomInterceptors[F, Raw]().interceptors
+)(implicit
+    monadError: MonadError[F]
 ) {
 
   def toTapirEndpoint(

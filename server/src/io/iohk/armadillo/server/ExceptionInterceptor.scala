@@ -38,9 +38,6 @@ class ExceptionInterceptor[F[_], Raw](handler: ExceptionHandler[Raw]) extends En
     }
   }
 }
-object ExceptionInterceptor {
-  def default[F[_], Raw]: ExceptionInterceptor[F, Raw] = new ExceptionInterceptor[F, Raw](new DefaultExceptionHandler[Raw])
-}
 
 case class ExceptionContext(e: Throwable, endpoint: AnyEndpoint, request: AnyRequest)
 
@@ -49,11 +46,12 @@ trait ExceptionHandler[Raw] {
   def apply(ctx: ExceptionContext, jsonSupport: JsonSupport[Raw]): Either[Unit, Option[JsonRpcResponse[Raw]]]
 }
 
-class DefaultExceptionHandler[Raw] extends ExceptionHandler[Raw] {
-  override def apply(ctx: ExceptionContext, jsonSupport: JsonSupport[Raw]): Either[Unit, Option[JsonRpcResponse[Raw]]] = {
+object ExceptionHandler {
+  def default[Raw]: ExceptionHandler[Raw] = (ctx: ExceptionContext, jsonSupport: JsonSupport[Raw]) => {
     ctx.request.id match {
-      case Some(value) => Right(Some(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(ServerInterpreter.InternalError), Some(value))))
-      case None        => Right(Option.empty)
+      case Some(value) =>
+        Right(Some(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(ServerInterpreter.InternalError), Some(value))))
+      case None => Right(Option.empty)
     }
   }
 }
