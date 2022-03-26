@@ -1,6 +1,6 @@
 package io.iohk.armadillo.json.json4s
 
-import io.iohk.armadillo.Armadillo.JsonRpcCodec
+import io.iohk.armadillo.*
 import org.json4s.JsonAST.JValue
 import org.json4s.{Extraction, Formats, Serialization}
 import sttp.tapir.{DecodeResult, Schema}

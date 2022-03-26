@@ -1,6 +1,6 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.Armadillo.{error, jsonRpcEndpoint, param}
+import io.iohk.armadillo.{error, jsonRpcEndpoint, param}
 import io.iohk.armadillo.json.circe.*
 import io.iohk.armadillo.{JsonRpcEndpoint, MethodName}
 

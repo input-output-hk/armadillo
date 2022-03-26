@@ -2,7 +2,7 @@ package io.iohk.armadillo.json.circe
 
 import cats.syntax.all.*
 import io.circe.*
-import io.iohk.armadillo.Armadillo.*
+import io.iohk.armadillo.*
 import io.iohk.armadillo.server.JsonSupport
 import io.iohk.armadillo.server.JsonSupport.Json as AJson
 import sttp.tapir.Codec.JsonCodec

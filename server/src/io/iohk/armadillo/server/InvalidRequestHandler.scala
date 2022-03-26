@@ -1,6 +1,6 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.Armadillo.JsonRpcResponse
+import io.iohk.armadillo.JsonRpcResponse
 import sttp.tapir.DecodeResult
 
 trait InvalidRequestHandler[Raw] {

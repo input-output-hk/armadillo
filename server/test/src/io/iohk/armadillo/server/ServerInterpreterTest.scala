@@ -2,10 +2,9 @@ package io.iohk.armadillo.server
 
 import cats.effect.IO
 import io.circe.{Encoder, Json}
-import io.iohk.armadillo.Armadillo.JsonRpcResponse
+import io.iohk.armadillo.*
 import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
-import io.iohk.armadillo.{Armadillo, JsonRpcEndpoint, JsonRpcServerEndpoint}
 import sttp.tapir.integ.cats.CatsMonadError
 
 object ServerInterpreterTest
@@ -14,7 +13,7 @@ object ServerInterpreterTest
   override def invalidBody: String = """{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]"""
 
   override def testNotification[I, E, O, B: Encoder](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
-      f: I => IO[Either[Armadillo.JsonRpcError[E], O]]
+      f: I => IO[Either[JsonRpcError[E], O]]
   )(request: B): Unit = {
     test(endpoint.showDetail + " as notification " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
@@ -25,7 +24,7 @@ object ServerInterpreterTest
     }
   }
 
-  override def testInvalidRequest[I, E, O](name: String)(request: String, expectedResponse: Armadillo.JsonRpcResponse[Json]): Unit = {
+  override def testInvalidRequest[I, E, O](name: String)(request: String, expectedResponse: JsonRpcResponse[Json]): Unit = {
     test(name) {
       val interpreter = createInterpreter(List(hello_in_int_out_string.serverLogic[IO](int => IO.pure(Right(int.toString)))))
       interpreter.dispatchRequest(request).map { response =>
@@ -35,8 +34,8 @@ object ServerInterpreterTest
   }
 
   override def test[I, E, O, B: Encoder](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
-      f: I => IO[Either[Armadillo.JsonRpcError[E], O]]
-  )(request: B, expectedResponse: Armadillo.JsonRpcResponse[Json]): Unit = {
+      f: I => IO[Either[JsonRpcError[E], O]]
+  )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit = {
     test(endpoint.showDetail + " " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
       val strRequest = Encoder[B].apply(request).noSpaces
@@ -48,7 +47,7 @@ object ServerInterpreterTest
 
   override def testMultiple[B: Encoder](name: String)(
       se: List[JsonRpcServerEndpoint[IO]]
-  )(request: List[B], expectedResponse: List[Armadillo.JsonRpcResponse[Json]]): Unit = {
+  )(request: List[B], expectedResponse: List[JsonRpcResponse[Json]]): Unit = {
     test(name) {
       val interpreter = createInterpreter(se)
       val strRequest = Json.arr(request.map(b => Encoder[B].apply(b)) *).noSpaces

@@ -1,6 +1,5 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.Armadillo.*
 import io.iohk.armadillo.server.EndpointHandler.{DecodeFailureContext, DecodeSuccessContext}
 import io.iohk.armadillo.server.JsonSupport.Json
 import io.iohk.armadillo.server.ServerInterpreter.*

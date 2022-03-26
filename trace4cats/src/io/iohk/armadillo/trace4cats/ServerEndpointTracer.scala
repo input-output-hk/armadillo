@@ -3,8 +3,7 @@ package io.iohk.armadillo.trace4cats
 import cats.Monad
 import cats.data.EitherT
 import cats.effect.kernel.MonadCancelThrow
-import io.iohk.armadillo.Armadillo.JsonRpcError
-import io.iohk.armadillo.JsonRpcServerEndpoint
+import io.iohk.armadillo.{JsonRpcError, JsonRpcServerEndpoint}
 import io.janstenpickle.trace4cats.base.context.Provide
 import io.janstenpickle.trace4cats.inject.{ResourceKleisli, Trace}
 import sttp.tapir.integ.cats.MonadErrorSyntax.*
@@ -12,7 +11,7 @@ import sttp.tapir.integ.cats.MonadErrorSyntax.*
 object ServerEndpointTracer {
   def inject[I, E, O, F[_], G[_], Ctx](
       serverEndpoint: JsonRpcServerEndpoint.Full[I, E, O, G],
-      k: ResourceKleisli[F, I, Either[E, Ctx]],
+      k: ResourceKleisli[F, I, Either[JsonRpcError[E], Ctx]],
       errorToSpanStatus: ArmadilloStatusMapping[E]
   )(implicit
       P: Provide[F, G, Ctx],

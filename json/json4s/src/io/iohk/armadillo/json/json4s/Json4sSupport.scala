@@ -1,6 +1,6 @@
 package io.iohk.armadillo.json.json4s
 
-import io.iohk.armadillo.Armadillo.*
+import io.iohk.armadillo.*
 import io.iohk.armadillo.server.JsonSupport
 import io.iohk.armadillo.server.JsonSupport.Json
 import org.json4s.*

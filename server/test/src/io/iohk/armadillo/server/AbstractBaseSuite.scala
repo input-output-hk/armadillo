@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, Json}
-import io.iohk.armadillo.Armadillo.{JsonRpcError, JsonRpcErrorResponse, JsonRpcRequest, JsonRpcResponse, JsonRpcSuccessResponse}
+import io.iohk.armadillo.{JsonRpcError, JsonRpcErrorResponse, JsonRpcRequest, JsonRpcResponse, JsonRpcSuccessResponse}
 import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcServerEndpoint}
 import io.iohk.armadillo.json.circe.*
 import io.iohk.armadillo.server.ServerInterpreter.InterpretationError

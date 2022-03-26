@@ -2,7 +2,7 @@ package io.iohk.armadillo.fs2
 
 import cats.effect.kernel.Async
 import io.iohk.armadillo.JsonRpcServerEndpoint
-import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError}
+import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
 import io.iohk.armadillo.server.{CustomInterceptors, Interceptor, JsonSupport, ServerInterpreter}
 import sttp.tapir.integ.cats.CatsMonadError
 

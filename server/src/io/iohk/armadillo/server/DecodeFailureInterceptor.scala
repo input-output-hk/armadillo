@@ -1,6 +1,6 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.Armadillo.JsonRpcResponse
+import io.iohk.armadillo.JsonRpcResponse
 import io.iohk.armadillo.server.RequestHandler.DecodeFailureContext
 import sttp.monad.MonadError
 import sttp.monad.syntax.*

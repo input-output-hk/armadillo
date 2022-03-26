@@ -3,7 +3,7 @@ package io.iohk.armadillo.tapir.http4s
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import io.circe.{Encoder, Json}
-import io.iohk.armadillo.Armadillo.*
+import io.iohk.armadillo.*
 import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.server.AbstractBaseSuite
 import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string

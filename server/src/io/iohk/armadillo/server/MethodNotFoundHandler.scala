@@ -1,6 +1,6 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.Armadillo.{JsonRpcRequest, JsonRpcResponse}
+import io.iohk.armadillo.{JsonRpcRequest, JsonRpcResponse}
 
 trait MethodNotFoundHandler[Raw] {
   def apply(request: JsonRpcRequest[Raw], jsonSupport: JsonSupport[Raw]): Option[JsonRpcResponse[Raw]]
