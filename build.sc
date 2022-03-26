@@ -9,6 +9,8 @@ import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import mill.scalalib.scalafmt.ScalafmtModule
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.9:0.1.4`
 import de.tobiasroeser.mill.vcs.version.VcsVersion
+import server.ivy
+import server.tapir.ivy
 
 object core extends CommonModule with ArmadilloPublishModule {
   override def ivyDeps = Agg(
@@ -52,16 +54,14 @@ object server extends CommonModule with ArmadilloPublishModule {
     )
 
     object test extends Tests with CommonTestModule {
-      override def moduleDeps = Seq(core, json.circe, tapir)
-      override def testFramework: Target[String] = "weaver.framework.CatsEffect"
+      override def moduleDeps = Seq(core, json.circe, tapir, server.test)
       def ivyDeps = Agg(
+        WeaverDep,
         ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::${Version.Tapir}",
         ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
         ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
         ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.4.1",
         ivy"org.http4s::http4s-blaze-server::${Version.Http4s}",
-        ivy"com.disneystreaming::weaver-cats:0.7.11",
-        ivy"io.circe::circe-literal::0.14.1",
         ivy"com.softwaremill.sttp.client3::circe::3.4.1",
         ivy"org.typelevel::cats-effect::3.2.9"
       )
@@ -73,6 +73,15 @@ object server extends CommonModule with ArmadilloPublishModule {
     override def ivyDeps = Agg(
       ivy"co.fs2::fs2-core::3.2.5",
       ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
+    )
+  }
+
+  object test extends Tests with CommonTestModule { // TODO can it be simplified to `test extends CommonTestModule` ?
+    override def moduleDeps = Seq(core, json.circe)
+    def ivyDeps = Agg(
+      WeaverDep,
+      ivy"io.circe::circe-literal::0.14.1",
+      ivy"org.typelevel::cats-effect::3.2.9"
     )
   }
 }
@@ -165,10 +174,10 @@ trait BaseModule extends ScalaModule with ScalafmtModule with TpolecatModule wit
 }
 
 trait CommonTestModule extends BaseModule with TestModule {
-  override def ivyDeps = Agg(
-    ivy"org.scalameta::munit::0.7.29"
-  )
-  override def testFramework = "munit.Framework"
+  val WeaverDep = ivy"com.disneystreaming::weaver-cats:0.7.11"
+
+  override def ivyDeps = Agg(WeaverDep) //TODO how to reuse it?
+  override def testFramework = "weaver.framework.CatsEffect"
 }
 
 trait CommonModule extends BaseModule {

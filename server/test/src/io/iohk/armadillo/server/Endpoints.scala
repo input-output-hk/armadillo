@@ -1,4 +1,4 @@
-package io.iohk.armadillo.tapir.http4s
+package io.iohk.armadillo.server
 
 import io.iohk.armadillo.Armadillo.{error, jsonRpcEndpoint, param}
 import io.iohk.armadillo.json.circe.*

@@ -2,11 +2,11 @@ package io.iohk.armadillo.tapir.http4s
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import cats.syntax.all.*
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.{Encoder, Json}
 import io.iohk.armadillo.Armadillo.*
 import io.iohk.armadillo.json.circe.CirceJsonSupport
+import io.iohk.armadillo.server.AbstractBaseSuite
+import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
 import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
 import io.iohk.armadillo.tapir.TapirInterpreter
 import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcServerEndpoint}
@@ -15,21 +15,18 @@ import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import sttp.client3.circe.*
-import sttp.client3.{SttpBackend, basicRequest}
-import sttp.model.{StatusCode, Uri}
+import sttp.client3.{StringBody, SttpBackend, basicRequest}
+import sttp.model.{MediaType, StatusCode, Uri}
 import sttp.tapir.integ.cats.CatsMonadError
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
-import weaver.SimpleIOSuite
 
 import scala.concurrent.ExecutionContext
 
-trait BaseSuite extends SimpleIOSuite {
-  implicit val jsonRpcResponseDecoder: Decoder[JsonRpcResponse[Json]] =
-    deriveDecoder[JsonRpcSuccessResponse[Json]].widen.or(deriveDecoder[JsonRpcErrorResponse[Json]].widen)
+trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
 
-  implicit val jsonRpcRequestEncoder: Encoder[JsonRpcRequest[Json]] = deriveEncoder[JsonRpcRequest[Json]]
-  implicit val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
+  override def invalidBody: StringBody =
+    StringBody("""{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]""", "utf-8", MediaType.ApplicationJson)
 
   def testNotification[I, E, O, B: Encoder](
       endpoint: JsonRpcEndpoint[I, E, O],
@@ -51,10 +48,20 @@ trait BaseSuite extends SimpleIOSuite {
     }
   }
 
-  def testSingleEndpoint[I, E, O](
-      endpoint: JsonRpcEndpoint[I, E, O]
-  )(logic: I => IO[Either[JsonRpcError[E], O]]): Resource[IO, (SttpBackend[IO, Any], Uri)] = {
-    testMultipleEndpoints(List(endpoint.serverLogic(logic)))
+  def testInvalidRequest[I, E, O](suffix: String)(request: StringBody, expectedResponse: JsonRpcResponse[Json]): Unit = {
+    test(suffix) {
+      testSingleEndpoint(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))
+        .use { case (backend, baseUri) =>
+          basicRequest
+            .post(baseUri)
+            .body(StringBody("""{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]""", "utf-8", MediaType.ApplicationJson))
+            .response(asJson[JsonRpcResponse[Json]])
+            .send(backend)
+            .map { response =>
+              expect.same(Right(expectedResponse), response.body)
+            }
+        }
+    }
   }
 
   def test[I, E, O, B: Encoder](
@@ -77,6 +84,7 @@ trait BaseSuite extends SimpleIOSuite {
         }
     }
   }
+
   def testMultiple[B: Encoder](name: String)(
       se: List[JsonRpcServerEndpoint[IO]]
   )(request: List[B], expectedResponse: List[JsonRpcResponse[Json]]): Unit = {
@@ -95,13 +103,19 @@ trait BaseSuite extends SimpleIOSuite {
     }
   }
 
+  def testSingleEndpoint[I, E, O](
+      endpoint: JsonRpcEndpoint[I, E, O]
+  )(logic: I => IO[Either[JsonRpcError[E], O]]): Resource[IO, (SttpBackend[IO, Any], Uri)] = {
+    testMultipleEndpoints(List(endpoint.serverLogic(logic)))
+  }
+
   private def testMultipleEndpoints(se: List[JsonRpcServerEndpoint[IO]]): Resource[IO, (SttpBackend[IO, Any], Uri)] = {
-    val tapirEndpoints = toTapir(se).getOrElse(throw new RuntimeException("Error during conversion to tapir"))
+    val tapirEndpoints = toInterpreter(se).getOrElse(throw new RuntimeException("Error during conversion to tapir"))
     val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
     testServer(routes)
   }
 
-  def toTapir(se: List[JsonRpcServerEndpoint[IO]]): Either[InterpretationError, ServerEndpoint[Any, IO]] = {
+  override def toInterpreter(se: List[JsonRpcServerEndpoint[IO]]): Either[InterpretationError, ServerEndpoint[Any, IO]] = {
     val tapirInterpreter =
       new TapirInterpreter[IO, Json](new CirceJsonSupport)(new CatsMonadError)
     tapirInterpreter.toTapirEndpoint(se)
