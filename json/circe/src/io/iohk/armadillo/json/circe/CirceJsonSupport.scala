@@ -1,67 +1,46 @@
 package io.iohk.armadillo.json.circe
 
-import cats.syntax.all.*
 import io.circe.*
 import io.iohk.armadillo.*
 import io.iohk.armadillo.server.JsonSupport
 import io.iohk.armadillo.server.JsonSupport.Json as AJson
-import sttp.tapir.Codec.JsonCodec
-import sttp.tapir.SchemaType.SCoproduct
-import sttp.tapir.json.circe.circeCodec
-import sttp.tapir.{DecodeResult, Schema}
+import sttp.tapir.DecodeResult
 
 class CirceJsonSupport extends JsonSupport[Json] {
-  // Json is a coproduct with unknown implementations
-  implicit val schemaForCirceJson: Schema[Json] =
-    Schema(
-      SCoproduct(Nil, None)(_ => None),
-      None
-    )
-
-  override def getByIndex(arr: Json, index: Int): DecodeResult[Json] = {
-    arr.asArray match {
-      case Some(value) =>
-        value.get(index) match {
-          case Some(value) => DecodeResult.Value(value)
-          case None        => DecodeResult.Missing
-        }
-      case None => DecodeResult.Mismatch("JsonArray", arr.toString())
-    }
-  }
-
-  override def getByField(obj: Json, field: String): DecodeResult[Json] = {
-    obj.asObject match {
-      case Some(value) =>
-        value.toList.toMap.get(field) match {
-          case Some(value) => DecodeResult.Value(value)
-          case None        => DecodeResult.Missing
-        }
-      case None => DecodeResult.Mismatch("JsonObject", obj.toString())
-    }
-  }
 
   override def asArray(seq: Vector[Json]): Json = Json.arr(seq *)
 
   override def jsNull: Json = Json.Null
 
   override def parse(string: String): DecodeResult[AJson[Json]] = {
-    circeCodec[Json].decode(string).map { json =>
-      json.fold(
-        jsonNull = AJson.Other(json),
-        jsonBoolean = _ => AJson.Other(json),
-        jsonNumber = _ => AJson.Other(json),
-        jsonString = _ => AJson.Other(json),
-        jsonArray = AJson.JsonArray.apply,
-        jsonObject = _ => AJson.JsonObject(json)
-      )
+    io.circe.parser.decode[Json](string) match {
+      case Left(value) => DecodeResult.Error(string,value)
+      case Right(value) => DecodeResult.Value(materialize(value))
+    }
+  }
+
+  def materialize(json: Json):AJson[Json] = {
+    json.fold(
+      jsonNull = AJson.Other(json),
+      jsonBoolean = _ => AJson.Other(json),
+      jsonNumber = _ => AJson.Other(json),
+      jsonString = _ => AJson.Other(json),
+      jsonArray = arr => AJson.JsonArray.apply(arr),
+      jsonObject = obj => AJson.JsonObject(obj.toList)
+    )
+  }
+
+  override def demateralize(json: AJson[Json]): Json = {
+    json match {
+      case AJson.JsonObject(raw) => Json.obj(raw*)
+      case AJson.JsonArray(raw) => asArray(raw)
+      case AJson.Other(raw) => raw
     }
   }
 
   override def stringify(raw: Json): String = raw.noSpaces
 
   override def encodeErrorNoData(error: JsonRpcError[Unit]): Json = Encoder[JsonRpcError[Unit]].apply(error)
-
-  override def outRawCodec: JsonCodec[Json] = circeCodec[Json]
 
   override def encodeResponse(response: JsonRpcResponse[Json]): Json = {
     response match {
@@ -70,10 +49,11 @@ class CirceJsonSupport extends JsonSupport[Json] {
     }
   }
 
-  override def decodeJsonRpcRequest(raw: Json): DecodeResult[JsonRpcRequest[Json]] = {
+  override def decodeJsonRpcRequest(obj: AJson.JsonObject[Json]): DecodeResult[JsonRpcRequest[AJson[Json]]] = {
+    val raw = demateralize(obj)
     Decoder[JsonRpcRequest[Json]].decodeJson(raw) match {
       case Left(value)  => DecodeResult.Error(raw.noSpaces, value)
-      case Right(value) => DecodeResult.Value(value)
+      case Right(value) => DecodeResult.Value(value.copy(params = materialize(value.params)))
     }
   }
 }

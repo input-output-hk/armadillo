@@ -5,10 +5,12 @@ import sttp.tapir.EndpointIO.Info
 trait Armadillo {
 
   def jsonRpcEndpoint(
-      str: MethodName
+      methodName: MethodName,
+      paramStructure: ParamStructure = ParamStructure.Either
   )(implicit _codec: JsonRpcCodec[JsonRpcError[Unit]]): JsonRpcEndpoint[Unit, Unit, Unit] =
     JsonRpcEndpoint(
-      methodName = str,
+      methodName = methodName,
+      paramStructure = paramStructure,
       input = JsonRpcInput.emptyInput,
       output = JsonRpcOutput.emptyOutput(JsonRpcOutput.emptyOutputCodec()),
       error = JsonRpcErrorOutput.Single(noDataError)

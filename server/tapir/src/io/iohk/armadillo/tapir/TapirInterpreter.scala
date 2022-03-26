@@ -1,6 +1,7 @@
 package io.iohk.armadillo.tapir
 
 import io.iohk.armadillo.*
+import io.iohk.armadillo.server.JsonSupport.Json
 import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
 import io.iohk.armadillo.server.{CustomInterceptors, Interceptor, JsonSupport, ServerInterpreter}
 import sttp.monad.MonadError
@@ -36,7 +37,7 @@ class TapirInterpreter[F[_], Raw](
         )
       )
       .errorOut(sttp.tapir.statusCode(sttp.model.StatusCode.Ok))
-      .out(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), jsonSupport.outRawCodec, Info.empty))
+      .out(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), outRawCodec, Info.empty))
       .serverLogic[F] { input =>
         serverInterpreter
           .dispatchRequest(input)
@@ -45,6 +46,18 @@ class TapirInterpreter[F[_], Raw](
             case None    => Left(())
           }
       }
+  }
+
+  private val outRawCodec: JsonCodec[Raw] = new JsonCodec[Raw] {
+    override def rawDecode(l: String): DecodeResult[Raw] = jsonSupport.parse(l).map(jsonSupport.demateralize)
+
+    override def encode(h: Raw): String = jsonSupport.stringify(h)
+
+    override def schema: Schema[Raw] = Schema(
+      SCoproduct(Nil, None)(_ => None),
+      None
+    )
+    override def format: CodecFormat.Json = CodecFormat.Json()
   }
 
   private val idJsonCodec: JsonCodec[String] = new JsonCodec[String] {

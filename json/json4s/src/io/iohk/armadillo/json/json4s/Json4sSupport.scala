@@ -5,10 +5,7 @@ import io.iohk.armadillo.server.JsonSupport
 import io.iohk.armadillo.server.JsonSupport.Json
 import org.json4s.*
 import org.json4s.JsonAST.JValue
-import sttp.tapir.Codec.JsonCodec
-import sttp.tapir.SchemaType.SCoproduct
-import sttp.tapir.json.json4s.*
-import sttp.tapir.{DecodeResult, Schema}
+import sttp.tapir.DecodeResult
 
 import scala.util.{Failure, Success, Try}
 
@@ -16,40 +13,10 @@ class Json4sSupport private (parseAsJValue: String => JValue, render: JValue => 
     formats: Formats,
     serialization: Serialization
 ) extends JsonSupport[JValue] {
-  // JValue is a coproduct with unknown implementations
-  implicit val schemaForJson4s: Schema[JValue] =
-    Schema(
-      SCoproduct(Nil, None)(_ => None),
-      None
-    )
-
-  override def getByIndex(arr: JValue, index: Int): DecodeResult[JValue] = {
-    arr match {
-      case JArray(arr) =>
-        arr.lift(index) match {
-          case Some(value) => DecodeResult.Value(value)
-          case None        => DecodeResult.Missing
-        }
-      case _ => DecodeResult.Error(arr.toString, new RuntimeException(s"Expected array but got $arr"))
-    }
-  }
-
-  override def getByField(obj: JValue, field: String): DecodeResult[JValue] = {
-    obj match {
-      case JObject(fields) =>
-        fields.toMap.get(field) match {
-          case Some(value) => DecodeResult.Value(value)
-          case None        => DecodeResult.Missing
-        }
-      case _ => DecodeResult.Error(obj.toString, new RuntimeException(s"Expected object but got $obj"))
-    }
-  }
 
   override def asArray(seq: Vector[JValue]): JValue = JArray(seq.toList)
 
   override def jsNull: JValue = JNull
-
-  override def outRawCodec: JsonCodec[JValue] = json4sCodec[JValue]
 
   override def encodeErrorNoData(error: JsonRpcError[Unit]): JValue = {
     val map = Map("code" -> error.code, "message" -> error.message)
@@ -67,20 +34,33 @@ class Json4sSupport private (parseAsJValue: String => JValue, render: JValue => 
     Try(parseAsJValue(string)) match {
       case Failure(exception) => DecodeResult.Error(string, exception)
       case Success(value) =>
-        value match {
-          case obj @ JObject(_) => DecodeResult.Value(Json.JsonObject(obj))
-          case JArray(arr)      => DecodeResult.Value(Json.JsonArray(arr.toVector))
-          case other            => DecodeResult.Value(Json.Other(other))
-        }
+        DecodeResult.Value(materialize(value))
     }
   }
 
   override def stringify(raw: JValue): String = render(raw)
 
-  override def decodeJsonRpcRequest(raw: JValue): DecodeResult[JsonRpcRequest[JValue]] = {
+  override def decodeJsonRpcRequest(obj: Json.JsonObject[JValue]): DecodeResult[JsonRpcRequest[Json[JValue]]] = {
+    val raw = demateralize(obj)
     Try(raw.extract[JsonRpcRequest[JValue]]) match {
       case Failure(exception) => DecodeResult.Error(raw.toString, exception)
-      case Success(value)     => DecodeResult.Value(value)
+      case Success(value)     => DecodeResult.Value(value.copy(params = materialize(value.params)))
+    }
+  }
+
+  override def materialize(raw: JValue): Json[JValue] = {
+    raw match {
+      case JObject(obj) => Json.JsonObject(obj)
+      case JArray(arr)  => Json.JsonArray(arr.toVector)
+      case other        => Json.Other(other)
+    }
+  }
+
+  override def demateralize(json: Json[JValue]): JValue = {
+    json match {
+      case Json.JsonObject(fields) => JObject(fields)
+      case Json.JsonArray(values)  => JArray(values.toList)
+      case Json.Other(raw)         => raw
     }
   }
 }

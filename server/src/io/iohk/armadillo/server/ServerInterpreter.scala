@@ -1,10 +1,10 @@
 package io.iohk.armadillo.server
 
+import io.iohk.armadillo.*
 import io.iohk.armadillo.server.EndpointHandler.{DecodeFailureContext, DecodeSuccessContext}
 import io.iohk.armadillo.server.JsonSupport.Json
 import io.iohk.armadillo.server.ServerInterpreter.*
-import io.iohk.armadillo.server.Utils.{RichDecodeResult, RichEndpointInput, RichMonadErrorOps}
-import io.iohk.armadillo.*
+import io.iohk.armadillo.server.Utils.RichEndpointInput
 import sttp.monad.MonadError
 import sttp.monad.syntax.*
 import sttp.tapir.DecodeResult
@@ -58,18 +58,8 @@ class ServerInterpreter[F[_], Raw] private (
     new RequestHandler[F, Raw] {
       override def onDecodeSuccess(request: Json[Raw])(implicit monad: MonadError[F]): F[Option[Raw]] = {
         request match {
-          case Json.JsonObject(raw)   => handleObject(jsonRpcEndpoints, raw, eis)
-          case Json.JsonArray(values) => handleBatchRequest(jsonRpcEndpoints, values, eis)
-          case Json.Other(raw) =>
-            monad.suspend(
-              callMethodOrEndpointInterceptors(eis, Nil, defaultResponder).onDecodeFailure(
-                MethodHandler.DecodeFailureContext(
-                  jsonRpcEndpoints,
-                  raw,
-                  DecodeResult.Mismatch("json object or json array", jsonSupport.stringify(raw))
-                )
-              )(monad)
-            )
+          case obj: Json.JsonObject[Raw] => handleObject(jsonRpcEndpoints, obj, eis)
+          case _                         => monad.unit(Option.empty[Raw])
         }
       }
 
@@ -94,29 +84,9 @@ class ServerInterpreter[F[_], Raw] private (
     }
   }
 
-  private def handleBatchRequest(
-      jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
-      requests: Vector[Raw],
-      eis: List[MethodOrEndpointInterceptor[F, Raw]]
-  ): F[Option[Raw]] = {
-    requests
-      .foldRight(monadError.unit(List.empty[Option[Raw]])) { case (req, accF) =>
-        val fb = handleObject(jsonRpcEndpoints, req, eis)
-        fb.map2(accF)(_ :: _)
-      }
-      .map { responses =>
-        val withoutNotifications = responses.collect { case Some(response) => response }
-        if (withoutNotifications.isEmpty) {
-          None
-        } else {
-          Some(jsonSupport.asArray(withoutNotifications.toVector))
-        }
-      }
-  }
-
   private def handleObject(
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
-      obj: Raw,
+      obj: Json.JsonObject[Raw],
       eis: List[MethodOrEndpointInterceptor[F, Raw]]
   ): F[Option[Raw]] = {
     jsonSupport.decodeJsonRpcRequest(obj) match {
@@ -153,7 +123,7 @@ class ServerInterpreter[F[_], Raw] private (
 
   private def handleObjectWithEndpoint(
       se: JsonRpcServerEndpoint[F],
-      request: JsonRpcRequest[Raw],
+      request: JsonRpcRequest[Json[Raw]],
       eis: List[EndpointInterceptor[F, Raw]]
   ): F[Option[Raw]] = {
     val handler = eis.foldRight(defaultEndpointHandler(defaultResponder, jsonSupport)) { case (interceptor, handler) =>
@@ -169,7 +139,7 @@ class ServerInterpreter[F[_], Raw] private (
 
   private def onDecodeSuccess[I, E, O](
       serverEndpoint: JsonRpcServerEndpoint.Full[I, E, O, F],
-      request: JsonRpcRequest[Raw],
+      request: JsonRpcRequest[Json[Raw]],
       handler: EndpointHandler[F, Raw],
       matchedBody: I
   ) = {
@@ -184,29 +154,55 @@ class ServerInterpreter[F[_], Raw] private (
     }
   }
 
-  private def decodeJsonRpcParamsForEndpoint(jsonRpcEndpoint: JsonRpcEndpoint[_, _, _], jsonParams: Raw) = {
+  private def decodeJsonRpcParamsForEndpoint(
+      jsonRpcEndpoint: JsonRpcEndpoint[_, _, _],
+      jsonParams: Json[Raw]
+  ): DecodeResult[ParamsAsVector] = {
     val vectorCombinator = combineDecodeAsVector(jsonRpcEndpoint.input.asVectorOfBasicInputs)
     val objectCombinator = combineDecodeAsObject(jsonRpcEndpoint.input.asVectorOfBasicInputs)
-    vectorCombinator
-      .apply(jsonParams)
-      .orElse(objectCombinator(jsonParams))
-      .map(ParamsAsVector)
+    val result = jsonParams match {
+      case obj: Json.JsonObject[Raw] =>
+        jsonRpcEndpoint.paramStructure match {
+          case ParamStructure.Either     => objectCombinator(obj)
+          case ParamStructure.ByName     => objectCombinator(obj)
+          case ParamStructure.ByPosition => DecodeResult.Mismatch("json object", jsonSupport.stringify(jsonSupport.demateralize(obj)))
+        }
+      case arr: Json.JsonArray[Raw] =>
+        jsonRpcEndpoint.paramStructure match {
+          case ParamStructure.Either     => vectorCombinator(arr)
+          case ParamStructure.ByPosition => vectorCombinator(arr)
+          case ParamStructure.ByName     => DecodeResult.Mismatch("json object", jsonSupport.stringify(jsonSupport.demateralize(arr)))
+        }
+      case Json.Other(raw) => DecodeResult.Mismatch("json array or json object", jsonSupport.stringify(raw))
+    }
+    result.map(ParamsAsVector)
   }
 
-  private def combineDecodeAsVector(in: Vector[JsonRpcIO.Single[_]]): Raw => DecodeResult[Vector[_]] = { json =>
-    val ss = in.zipWithIndex.toList.map { case (JsonRpcIO.Single(codec, _, _), index) =>
-      val rawElement = jsonSupport.getByIndex(json, index)
-      rawElement.flatMap(r => codec.decode(r.asInstanceOf[codec.L]))
+  private def combineDecodeAsVector(in: Vector[JsonRpcIO.Single[_]]): Json.JsonArray[Raw] => DecodeResult[Vector[_]] = { json =>
+    if (json.values.size == in.size) {
+      val ss = in.zipWithIndex.toList.map { case (JsonRpcIO.Single(codec, _, _), index) =>
+        val rawElement = json.values(index)
+        codec.decode(rawElement.asInstanceOf[codec.L])
+      }
+      DecodeResult.sequence(ss).map(_.toVector)
+    } else {
+      DecodeResult.Mismatch(s"expected ${in.size} parameters", s"got ${json.values.size}")
     }
-    DecodeResult.sequence(ss).map(_.toVector)
   }
 
-  private def combineDecodeAsObject(in: Vector[JsonRpcIO.Single[_]]): Raw => DecodeResult[Vector[_]] = { json =>
-    val ss = in.toList.map { case JsonRpcIO.Single(codec, _, name) =>
-      val rawElement = jsonSupport.getByField(json, name)
-      rawElement.flatMap(r => codec.decode(r.asInstanceOf[codec.L]))
+  private def combineDecodeAsObject(in: Vector[JsonRpcIO.Single[_]]): Json.JsonObject[Raw] => DecodeResult[Vector[_]] = { json =>
+    if (json.fields.size == in.size) {
+      val ss = in.toList.map { case JsonRpcIO.Single(codec, _, name) =>
+        val rawElement = json.fields.toMap.get(name) match {
+          case Some(value) => DecodeResult.Value(value)
+          case None        => DecodeResult.Missing
+        }
+        rawElement.flatMap(r => codec.decode(r.asInstanceOf[codec.L]))
+      }
+      DecodeResult.sequence(ss).map(_.toVector)
+    } else {
+      DecodeResult.Mismatch(s"expected ${in.size} parameters", s"got ${json.fields.size}")
     }
-    DecodeResult.sequence(ss).map(_.toVector)
   }
 }
 

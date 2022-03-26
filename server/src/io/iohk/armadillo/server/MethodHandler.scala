@@ -1,5 +1,6 @@
 package io.iohk.armadillo.server
 
+import io.iohk.armadillo.server.JsonSupport.Json
 import io.iohk.armadillo.{JsonRpcRequest, JsonRpcServerEndpoint}
 import io.iohk.armadillo.server.MethodHandler.{DecodeFailureContext, DecodeSuccessContext}
 import sttp.monad.MonadError
@@ -13,12 +14,12 @@ trait MethodHandler[F[_], Raw] {
 object MethodHandler {
   case class DecodeSuccessContext[F[_], Raw](
       endpoints: List[JsonRpcServerEndpoint[F]],
-      request: JsonRpcRequest[Raw]
+      request: JsonRpcRequest[Json[Raw]]
   )
 
   case class DecodeFailureContext[F[_], Raw](
       endpoints: List[JsonRpcServerEndpoint[F]],
-      request: Raw,
+      request: Json[Raw],
       f: DecodeResult.Failure
   )
 

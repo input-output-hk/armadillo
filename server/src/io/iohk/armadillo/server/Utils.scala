@@ -38,6 +38,12 @@ object Utils {
         case DecodeResult.Value(v)         => success(v)
       }
     }
+
+    def map2[B, C](fb: DecodeResult[B])(f: (T, B) => C): DecodeResult[C] = {
+      decodeResult.flatMap { a =>
+        fb.map(b => f(a, b))
+      }
+    }
   }
 
   implicit class RichMonadErrorOps[F[_]: MonadError, A](fa: F[A]) {

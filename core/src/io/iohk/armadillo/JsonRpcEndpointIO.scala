@@ -7,6 +7,7 @@ import sttp.tapir.typelevel.ParamConcat
 
 case class JsonRpcEndpoint[I, E, O](
     methodName: MethodName,
+    paramStructure: ParamStructure,
     input: JsonRpcInput[I],
     output: JsonRpcOutput[O],
     error: JsonRpcErrorOutput[E]

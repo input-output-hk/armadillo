@@ -15,6 +15,26 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     expectedResponse = JsonRpcResponse.v2(json"${"42"}", 1)
   )
 
+  test(hello_in_int_out_string, "invalid params")(int => IO.pure(Right(int.toString)))(
+    request = JsonRpcRequest.v2("hello", json"[true]", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
+  )
+
+  test(hello_in_int_out_string, "too many params")(int => IO.pure(Right(int.toString)))(
+    request = JsonRpcRequest.v2("hello", json"[42, 43]", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
+  )
+
+  test(hello_in_int_out_string_by_name, "expected params by name")(int => IO.pure(Right(int.toString)))(
+    request = JsonRpcRequest.v2("hello", json"[42]", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
+  )
+
+  test(hello_in_int_out_string_by_position, "expected params by pos")(int => IO.pure(Right(int.toString)))(
+    request = JsonRpcRequest.v2("hello", json"""{"param1": 42}""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
+  )
+
   testNotification(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
     request = Notification.v2("hello", json"[42]")
   )
@@ -85,7 +105,7 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     request = List(
       JsonRpcRequest.v2("hello", json"[11]", "1"),
       Notification.v2("e1", json"""{"param1": "22"}"""),
-      JsonRpcRequest.v2("error_with_data", json"[11]", "3")
+      JsonRpcRequest.v2("error_with_data", json"[]", "3")
     ),
     expectedResponse = List(
       JsonRpcResponse.v2(Json.fromString("11"), 1),
@@ -103,7 +123,7 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     request = List(
       JsonRpcRequest.v2("hello", json"[11]", "1"),
       Notification.v2("e1", json"""{"param1": "22"}"""),
-      JsonRpcRequest.v2("error_with_data", json"[11]", "3")
+      JsonRpcRequest.v2("error_with_data", json"[]", "3")
     ),
     expectedResponse = List(
       JsonRpcResponse.error_v2(json"""{"code": -32603, "message": "Internal error"}""", Some(1)),

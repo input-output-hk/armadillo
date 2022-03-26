@@ -2,6 +2,7 @@ package io.iohk.armadillo.server
 
 import io.iohk.armadillo.JsonRpcRequest
 import io.iohk.armadillo.JsonRpcServerEndpoint
+import io.iohk.armadillo.server.JsonSupport.Json
 import sttp.monad.MonadError
 import sttp.monad.syntax.*
 
@@ -37,6 +38,6 @@ class LoggingEndpointInterceptor[F[_], Raw](serverLog: ServerLog[F, Raw]) extend
 
 trait ServerLog[F[_], Raw] {
   def requestHandled(ctx: EndpointHandler.DecodeSuccessContext[F, _, Raw], response: Option[Raw]): F[Unit]
-  def exception(endpoint: JsonRpcServerEndpoint[F], request: JsonRpcRequest[Raw], e: Throwable): F[Unit]
+  def exception(endpoint: JsonRpcServerEndpoint[F], request: JsonRpcRequest[Json[Raw]], e: Throwable): F[Unit]
   def decodeFailure(ctx: EndpointHandler.DecodeFailureContext[F, Raw], response: Option[Raw]): F[Unit]
 }
