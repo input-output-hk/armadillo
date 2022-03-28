@@ -205,7 +205,7 @@ trait ArmadilloPublishModule extends PublishModule {
 
 object Version {
   val Trace4cats = "0.12.0"
-  val Tapir = "0.20.0"
+  val Tapir = "1.0.0-M4"
   val Http4s = "0.23.10"
   val Json4s = "4.0.4"
 }
