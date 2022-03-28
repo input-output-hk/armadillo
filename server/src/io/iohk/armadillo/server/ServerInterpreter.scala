@@ -216,12 +216,12 @@ object ServerInterpreter {
   def apply[F[_]: MonadError, Raw](
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
       jsonSupport: JsonSupport[Raw],
-      interpreters: List[Interceptor[F, Raw]]
+      interceptors: List[Interceptor[F, Raw]]
   ): Either[InterpretationError, ServerInterpreter[F, Raw]] = {
     val nonUniqueMethodNames = jsonRpcEndpoints.groupBy(_.endpoint.methodName).values.filter(_.size != 1).map(_.head.endpoint.methodName)
     Either.cond(
       nonUniqueMethodNames.isEmpty,
-      new ServerInterpreter(jsonRpcEndpoints, jsonSupport, interpreters),
+      new ServerInterpreter(jsonRpcEndpoints, jsonSupport, interceptors),
       InterpretationError.NonUniqueMethod(nonUniqueMethodNames.toList)
     )
   }
