@@ -11,8 +11,8 @@ case class CustomInterceptors[F[_], Raw](
 ) {
   def interceptors: List[Interceptor[F, Raw]] =
     List(
-      new BatchRequestInterceptor[F, Raw](batchRequestHandler),
       new ExceptionInterceptor[F, Raw](exceptionHandler),
+      new BatchRequestInterceptor[F, Raw](batchRequestHandler),
       new DecodeFailureInterceptor[F, Raw](decodeFailureHandler),
       new MethodNotFoundInterceptor[F, Raw](methodNotFoundHandler),
       new InvalidRequestMethodInterceptor[F, Raw](invalidRequestHandler),
