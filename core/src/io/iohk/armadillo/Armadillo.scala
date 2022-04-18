@@ -16,7 +16,7 @@ trait Armadillo {
       error = JsonRpcErrorOutput.Single(noDataError)
     )
 
-  def param[T: JsonRpcCodec](name: String): JsonRpcIO[T] = JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], Info.empty[T], name)
+  def param[T: JsonRpcCodec](name: String): JsonRpcInput[T] = JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], Info.empty[T], name)
 
   def error[T](implicit _codec: JsonRpcCodec[JsonRpcError[T]]): JsonRpcErrorPart[T] =
     new JsonRpcErrorPart[T] {

@@ -21,7 +21,7 @@ case class JsonRpcEndpoint[I, E, O](
   }
 
   def out[P](name: String)(implicit jsonRpcCodec: JsonRpcCodec[P]): JsonRpcEndpoint[I, E, P] =
-    copy(output = param[P](name))
+    copy(output = JsonRpcIO.Single(implicitly[JsonRpcCodec[P]], Info.empty[P], name))
 
   def errorOut[F](error: JsonRpcErrorPart[F]): JsonRpcEndpoint[I, F, O] =
     copy(error = JsonRpcErrorOutput.Single(error))
