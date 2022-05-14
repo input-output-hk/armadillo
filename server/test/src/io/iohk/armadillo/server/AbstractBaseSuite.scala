@@ -14,6 +14,7 @@ import io.iohk.armadillo.{
   JsonRpcServerEndpoint,
   JsonRpcSuccessResponse
 }
+import io.iohk.armadillo.json.circe._
 import weaver.SimpleIOSuite
 
 trait AbstractBaseSuite[Body, Interpreter] extends SimpleIOSuite {
