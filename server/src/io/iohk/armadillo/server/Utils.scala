@@ -2,8 +2,8 @@ package io.iohk.armadillo.server
 
 import io.iohk.armadillo.{JsonRpcIO, JsonRpcInput}
 import sttp.monad.MonadError
-import sttp.tapir.DecodeResult
 import sttp.monad.syntax._
+import sttp.tapir.DecodeResult
 
 object Utils {
   implicit class RichEndpointInput[I](input: JsonRpcInput[I]) {

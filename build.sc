@@ -8,7 +8,6 @@ import mill._
 import mill.scalalib._
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import mill.scalalib.scalafmt.ScalafmtModule
-import openrpc.ivy
 
 object core extends CommonModule with ArmadilloPublishModule {
   override def ivyDeps = Agg(
@@ -39,7 +38,7 @@ object json extends CommonModule {
 }
 
 object openrpc extends CommonModule with ArmadilloPublishModule {
-  object model extends CommonModule with ArmadilloPublishModule{
+  object model extends CommonModule with ArmadilloPublishModule {
     override def ivyDeps = Agg(ivy"com.softwaremill.sttp.tapir::tapir-apispec-model::${Version.Tapir}")
   }
   object circe extends CommonModule with ArmadilloPublishModule {
@@ -191,7 +190,7 @@ object trace4cats extends CommonModule with ArmadilloPublishModule {
 
 trait BaseModule extends ScalaModule with ScalafmtModule with TpolecatModule with ScalafixModule {
   override def scalacOptions = T {
-    super.scalacOptions().filterNot(Set("-Xfatal-warnings")) ++ Seq(
+    super.scalacOptions().filterNot(Set("-Xfatal-warnings", "-Xsource:3")) ++ Seq(
       "-Ymacro-annotations",
       "-Ywarn-value-discard"
     )

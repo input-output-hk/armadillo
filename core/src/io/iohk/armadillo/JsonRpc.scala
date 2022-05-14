@@ -1,7 +1,7 @@
 package io.iohk.armadillo
 
-import sttp.tapir.{Schema, SchemaType}
 import sttp.tapir.SchemaType.SchemaWithValue
+import sttp.tapir.{Schema, SchemaType}
 
 case class JsonRpcRequest[Raw](jsonrpc: String, method: String, params: Raw, id: Option[JsonRpcId]) {
   def isNotification: Boolean = id.isEmpty

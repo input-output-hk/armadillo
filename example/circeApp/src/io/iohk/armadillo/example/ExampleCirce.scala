@@ -1,19 +1,19 @@
 package io.iohk.armadillo.example
 
 import cats.effect.{ExitCode, IO, IOApp}
-import io.circe.generic.semiauto.*
-import io.circe.literal.*
+import io.circe.generic.semiauto._
+import io.circe.literal._
 import io.circe.{Decoder, Encoder, Json}
-import io.iohk.armadillo.*
-import io.iohk.armadillo.json.circe.*
-import io.iohk.armadillo.server.*
+import io.iohk.armadillo._
+import io.iohk.armadillo.json.circe._
+import io.iohk.armadillo.server._
 import io.iohk.armadillo.tapir.TapirInterpreter
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import sttp.model.Uri
 import sttp.monad.MonadError
-import sttp.tapir.integ.cats.*
+import sttp.tapir.integ.cats._
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 import sttp.tapir.{DecodeResult, Schema}
 

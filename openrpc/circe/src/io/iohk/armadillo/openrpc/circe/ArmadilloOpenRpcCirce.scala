@@ -1,20 +1,10 @@
 package io.iohk.armadillo.openrpc.circe
 
-import io.circe.{Encoder, Json}
-import io.circe.generic.semiauto.*
+import io.circe.generic.semiauto._
 import io.circe.parser.parse
-import io.iohk.armadillo.openrpc.model.{OpenRpcDocument, OpenRpcInfo, OpenRpcMethod, OpenRpcParam, OpenRpcResult}
-import sttp.tapir.apispec.{
-  Discriminator,
-  ExampleMultipleValue,
-  ExampleSingleValue,
-  ExampleValue,
-  ExtensionValue,
-  Reference,
-  ReferenceOr,
-  Schema,
-  SchemaType
-}
+import io.circe.{Encoder, Json}
+import io.iohk.armadillo.openrpc.model._
+import sttp.tapir.apispec._
 
 import scala.collection.immutable.ListMap
 
@@ -51,6 +41,9 @@ trait ArmadilloOpenRpcCirce {
 
   implicit val paramEncoder: Encoder[OpenRpcParam] = deriveEncoder[OpenRpcParam]
   implicit val resultEncoder: Encoder[OpenRpcResult] = deriveEncoder[OpenRpcResult]
+
+  implicit val extDescriptionEncoder: Encoder[OpenRpcExternalDocs] = deriveEncoder[OpenRpcExternalDocs]
+  implicit val tagsEncoder: Encoder[OpenRpcMethodTag] = deriveEncoder[OpenRpcMethodTag]
 
   implicit val methodEncoder: Encoder[OpenRpcMethod] = deriveEncoder[OpenRpcMethod]
   implicit val infoEncoder: Encoder[OpenRpcInfo] = deriveEncoder[OpenRpcInfo]

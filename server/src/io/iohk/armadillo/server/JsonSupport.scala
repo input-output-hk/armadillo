@@ -1,6 +1,6 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.*
+import io.iohk.armadillo._
 import io.iohk.armadillo.server.JsonSupport.Json
 import sttp.tapir.DecodeResult
 

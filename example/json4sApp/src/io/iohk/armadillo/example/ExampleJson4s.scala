@@ -1,9 +1,9 @@
 package io.iohk.armadillo.example
 
 import cats.effect.{ExitCode, IO, IOApp}
-import cats.syntax.all.*
-import io.iohk.armadillo.*
-import io.iohk.armadillo.json.json4s.*
+import cats.syntax.all._
+import io.iohk.armadillo._
+import io.iohk.armadillo.json.json4s._
 import io.iohk.armadillo.tapir.TapirInterpreter
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router

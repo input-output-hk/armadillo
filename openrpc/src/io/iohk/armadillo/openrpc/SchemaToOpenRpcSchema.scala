@@ -1,13 +1,14 @@
 package io.iohk.armadillo.openrpc
 
-import sttp.tapir.{Schema as TSchema, SchemaType as TSchemaType}
-import sttp.tapir.apispec.{Discriminator, Reference, ReferenceOr, SchemaFormat, SchemaType, Schema as ASchema}
+import sttp.tapir.apispec.{Discriminator, Reference, ReferenceOr, SchemaFormat, SchemaType, Schema => ASchema}
+import sttp.tapir.{Schema => TSchema, SchemaType => TSchemaType}
 
 import scala.collection.immutable
 
-class SchemaToOpenRpcSchema() {
+class SchemaToOpenRpcSchema(markOptionsAsNullable: Boolean) {
   def apply[T](schema: TSchema[T], isOptionElement: Boolean = false): ReferenceOr[ASchema] = {
-    schema.schemaType match {
+    val nullable = markOptionsAsNullable && isOptionElement
+    val result = schema.schemaType match {
       case TSchemaType.SInteger() => Right(ASchema(SchemaType.Integer))
       case TSchemaType.SNumber()  => Right(ASchema(SchemaType.Number))
       case TSchemaType.SBoolean() => Right(ASchema(SchemaType.Boolean))
@@ -19,16 +20,16 @@ class SchemaToOpenRpcSchema() {
             properties = fields.map { f =>
               f.schema match {
                 case s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _) => f.name.encodedName -> apply(s)
-                case schema                                      => f.name.encodedName -> apply(schema)
+                case schema                                             => f.name.encodedName -> apply(schema)
               }
             }.toListMap
           )
         )
-      case TSchemaType.SArray(s @ TSchema(_, Some(name), _, _, _, _, _, _, _,_)) =>
+      case TSchemaType.SArray(s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _)) =>
         Right(ASchema(SchemaType.Array).copy(items = Some(apply(s))))
       case TSchemaType.SArray(el) => Right(ASchema(SchemaType.Array).copy(items = Some(apply(el))))
-      case TSchemaType.SOption(s @ TSchema(_, Some(name), _, _, _, _, _, _, _,_)) => apply(s)
-      case TSchemaType.SOption(el)                                          => apply(el, isOptionElement = true)
+      case TSchemaType.SOption(s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _)) => apply(s)
+      case TSchemaType.SOption(el)                                                 => apply(el, isOptionElement = true)
       case TSchemaType.SBinary()      => Right(ASchema(SchemaType.String).copy(format = SchemaFormat.Binary))
       case TSchemaType.SDate()        => Right(ASchema(SchemaType.String).copy(format = SchemaFormat.Date))
       case TSchemaType.SDateTime()    => Right(ASchema(SchemaType.String).copy(format = SchemaFormat.DateTime))
@@ -39,8 +40,8 @@ class SchemaToOpenRpcSchema() {
             .apply(
               schemas
                 .map {
-                  case s @ TSchema(_, Some(name), _, _, _, _, _, _, _,_) => apply(s)
-                  case t                                           => apply(t)
+                  case s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _) => apply(s)
+                  case t                                                  => apply(t)
                 }
                 .sortBy {
                   case Left(Reference(ref)) => ref
@@ -60,6 +61,8 @@ class SchemaToOpenRpcSchema() {
           )
         )
     }
+    result
+      .map(s => if (nullable) s.copy(nullable = Some(true)) else s)
   }
 
   private def tDiscriminatorToADiscriminator(discriminator: TSchemaType.SDiscriminator): Discriminator = {

@@ -2,7 +2,7 @@ package io.iohk.armadillo.server
 
 import cats.effect.IO
 import io.circe.{Encoder, Json}
-import io.iohk.armadillo.*
+import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
 import sttp.tapir.integ.cats.CatsMonadError
@@ -50,7 +50,7 @@ object ServerInterpreterTest
   )(request: List[B], expectedResponse: List[JsonRpcResponse[Json]]): Unit = {
     test(name) {
       val interpreter = createInterpreter(se)
-      val strRequest = Json.arr(request.map(b => Encoder[B].apply(b)) *).noSpaces
+      val strRequest = Json.arr(request.map(b => Encoder[B].apply(b)): _*).noSpaces
       interpreter.dispatchRequest(strRequest).map { response =>
         expect.same(
           Some(Right(expectedResponse)),

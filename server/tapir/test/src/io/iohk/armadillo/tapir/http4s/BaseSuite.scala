@@ -3,18 +3,17 @@ package io.iohk.armadillo.tapir.http4s
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import io.circe.{Encoder, Json}
-import io.iohk.armadillo.*
 import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.server.AbstractBaseSuite
 import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
 import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
 import io.iohk.armadillo.tapir.TapirInterpreter
-import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcServerEndpoint}
+import io.iohk.armadillo._
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
-import sttp.client3.circe.*
+import sttp.client3.circe._
 import sttp.client3.{StringBody, SttpBackend, basicRequest}
 import sttp.model.{MediaType, StatusCode, Uri}
 import sttp.tapir.integ.cats.CatsMonadError
@@ -130,7 +129,7 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
       .map(_.address.getPort)
       .flatMap { port =>
         AsyncHttpClientCatsBackend.resource[IO]().map { backend =>
-          import sttp.model.Uri.*
+          import sttp.model.Uri._
           (backend, uri"http://localhost:$port")
         }
       }

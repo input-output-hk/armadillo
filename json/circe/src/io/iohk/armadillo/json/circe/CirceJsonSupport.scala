@@ -1,25 +1,25 @@
 package io.iohk.armadillo.json.circe
 
-import io.circe.*
-import io.iohk.armadillo.*
+import io.circe._
+import io.iohk.armadillo._
 import io.iohk.armadillo.server.JsonSupport
-import io.iohk.armadillo.server.JsonSupport.Json as AJson
+import io.iohk.armadillo.server.JsonSupport.{Json => AJson}
 import sttp.tapir.DecodeResult
 
 class CirceJsonSupport extends JsonSupport[Json] {
 
-  override def asArray(seq: Vector[Json]): Json = Json.arr(seq *)
+  override def asArray(seq: Vector[Json]): Json = Json.arr(seq: _*)
 
   override def jsNull: Json = Json.Null
 
   override def parse(string: String): DecodeResult[AJson[Json]] = {
     io.circe.parser.decode[Json](string) match {
-      case Left(value) => DecodeResult.Error(string,value)
+      case Left(value)  => DecodeResult.Error(string, value)
       case Right(value) => DecodeResult.Value(materialize(value))
     }
   }
 
-  def materialize(json: Json):AJson[Json] = {
+  def materialize(json: Json): AJson[Json] = {
     json.fold(
       jsonNull = AJson.Other(json),
       jsonBoolean = _ => AJson.Other(json),
@@ -32,9 +32,9 @@ class CirceJsonSupport extends JsonSupport[Json] {
 
   override def demateralize(json: AJson[Json]): Json = {
     json match {
-      case AJson.JsonObject(raw) => Json.obj(raw*)
-      case AJson.JsonArray(raw) => asArray(raw)
-      case AJson.Other(raw) => raw
+      case AJson.JsonObject(raw) => Json.obj(raw: _*)
+      case AJson.JsonArray(raw)  => asArray(raw)
+      case AJson.Other(raw)      => raw
     }
   }
 
@@ -45,7 +45,7 @@ class CirceJsonSupport extends JsonSupport[Json] {
   override def encodeResponse(response: JsonRpcResponse[Json]): Json = {
     response match {
       case success: JsonRpcSuccessResponse[Json] => Encoder[JsonRpcSuccessResponse[Json]].apply(success)
-      case er : JsonRpcErrorResponse[Json] => Encoder[JsonRpcErrorResponse[Json]].apply(er)
+      case er: JsonRpcErrorResponse[Json]        => Encoder[JsonRpcErrorResponse[Json]].apply(er)
     }
   }
 

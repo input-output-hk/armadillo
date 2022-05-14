@@ -1,7 +1,7 @@
 package io.iohk.armadillo.server
 
 import sttp.monad.MonadError
-import sttp.monad.syntax.*
+import sttp.monad.syntax._
 
 class InvalidRequestMethodInterceptor[F[_], Raw](invalidRequestHandler: InvalidRequestHandler[Raw]) extends MethodInterceptor[F, Raw] {
   override def apply(

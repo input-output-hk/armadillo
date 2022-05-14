@@ -2,10 +2,10 @@ package io.iohk.armadillo.server
 
 import cats.effect.IO
 import io.circe.Json
-import io.iohk.armadillo.{JsonRpcError, JsonRpcRequest, JsonRpcResponse, Notification}
-import io.iohk.armadillo.server.Endpoints.*
-import io.circe.literal.*
+import io.circe.literal._
+import io.iohk.armadillo.server.Endpoints._
 import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
+import io.iohk.armadillo.{JsonRpcError, JsonRpcRequest, JsonRpcResponse, Notification}
 
 import java.lang.Integer.parseInt
 

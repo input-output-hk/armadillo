@@ -1,12 +1,13 @@
 # armadillo
 
 This is a mill based project, so to work with IJ you have to generate project files using:
+
 ```
 ./millw mill.scalalib.GenIdea/idea
 ```
 
-
 Example request to test the server:
+
 ```curl
 curl --location --request POST 'localhost:8545/' \
 --header 'Content-Type: application/json' \
@@ -29,13 +30,10 @@ curl --location --request POST 'localhost:8545/' \
 - example - module which pulls all the things together to show the power of armadillo
 - trace4cats - support for tracing library
 
-
 ## Design considerations
 
-1. JsonRpcRequest/JsonRpcResponse/JsonRpcErrorResponse
-    TBD
-2. Double deserialization
-    TBD
+1. JsonRpcRequest/JsonRpcResponse/JsonRpcErrorResponse TBD
+2. Double deserialization TBD
 
 ## Roadmap
 
@@ -44,12 +42,11 @@ curl --location --request POST 'localhost:8545/' \
 - [ ] Create sttp-client interpreter
 - [ ] Cross-compile against other scala versions
 
-
 ## Credits
 
-This library is **heavily** inspired by [tapir](https://github.com/softwaremill/tapir). 
-In fact it is just a copy-pasted version of tapir adapted to the json-rpc standard.
+This library is **heavily** inspired by [tapir](https://github.com/softwaremill/tapir). In fact it is just a copy-pasted
+version of tapir adapted to the json-rpc standard.
 
-Also, big thanks to [Adam Warski](https://github.com/adamw) for reviewing my initial design 
-and patiently answering all my questions about design choices he took in tapir.
+Also, big thanks to [Adam Warski](https://github.com/adamw) for reviewing my initial design and patiently answering all
+my questions about design choices he took in tapir.
  

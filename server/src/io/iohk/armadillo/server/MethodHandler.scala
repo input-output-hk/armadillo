@@ -1,8 +1,8 @@
 package io.iohk.armadillo.server
 
 import io.iohk.armadillo.server.JsonSupport.Json
-import io.iohk.armadillo.{JsonRpcRequest, JsonRpcServerEndpoint}
 import io.iohk.armadillo.server.MethodHandler.{DecodeFailureContext, DecodeSuccessContext}
+import io.iohk.armadillo.{JsonRpcRequest, JsonRpcServerEndpoint}
 import sttp.monad.MonadError
 import sttp.tapir.DecodeResult
 

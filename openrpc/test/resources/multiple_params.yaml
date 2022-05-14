@@ -1,0 +1,19 @@
+openrpc: 1.2.1
+info:
+  version: 1.0.0
+  title: Demo Pet Store
+methods:
+- name: hello
+  params:
+  - name: param1
+    required: true
+    schema:
+      type: integer
+  - name: param2
+    required: true
+    schema:
+      type: string
+  result:
+    name: response
+    schema:
+      type: string

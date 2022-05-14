@@ -1,10 +1,9 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.JsonRpcRequest
-import io.iohk.armadillo.JsonRpcServerEndpoint
+import io.iohk.armadillo.{JsonRpcRequest, JsonRpcServerEndpoint}
 import io.iohk.armadillo.server.JsonSupport.Json
 import sttp.monad.MonadError
-import sttp.monad.syntax.*
+import sttp.monad.syntax._
 
 class LoggingEndpointInterceptor[F[_], Raw](serverLog: ServerLog[F, Raw]) extends EndpointInterceptor[F, Raw] {
   override def apply(

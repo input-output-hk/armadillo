@@ -1,7 +1,6 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.{JsonRpcError, JsonRpcResponse}
-import io.iohk.armadillo.JsonRpcServerEndpoint
+import io.iohk.armadillo.{JsonRpcError, JsonRpcResponse, JsonRpcServerEndpoint}
 
 trait Interceptor[F[_], Raw]
 

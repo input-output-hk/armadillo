@@ -6,6 +6,7 @@ methods:
 - name: hello
   params:
   - name: param1
+    required: true
     schema:
       type: integer
   result:

@@ -2,7 +2,7 @@ package io.iohk.armadillo.trace4cats
 
 import cats.Monad
 import cats.effect.kernel.MonadCancelThrow
-import cats.syntax.either.*
+import cats.syntax.either._
 import io.iohk.armadillo.{JsonRpcError, JsonRpcServerEndpoint}
 import io.janstenpickle.trace4cats.Span
 import io.janstenpickle.trace4cats.base.context.Provide

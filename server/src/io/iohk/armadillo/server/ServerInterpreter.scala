@@ -1,12 +1,12 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.*
+import io.iohk.armadillo._
 import io.iohk.armadillo.server.EndpointHandler.{DecodeFailureContext, DecodeSuccessContext}
 import io.iohk.armadillo.server.JsonSupport.Json
-import io.iohk.armadillo.server.ServerInterpreter.*
+import io.iohk.armadillo.server.ServerInterpreter._
 import io.iohk.armadillo.server.Utils.RichEndpointInput
 import sttp.monad.MonadError
-import sttp.monad.syntax.*
+import sttp.monad.syntax._
 import sttp.tapir.DecodeResult
 import sttp.tapir.internal.ParamsAsVector
 

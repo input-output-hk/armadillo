@@ -12,11 +12,16 @@ trait Armadillo {
       methodName = methodName,
       paramStructure = paramStructure,
       input = JsonRpcInput.emptyInput,
-      output = JsonRpcOutput.emptyOutput(JsonRpcOutput.emptyOutputCodec()),
-      error = JsonRpcErrorOutput.Single(noDataError)
+      output = JsonRpcOutput.emptyOutput,
+      error = JsonRpcErrorOutput.Single(noDataError),
+      info = JsonRpcEndpointInfo.Empty
     )
 
-  def param[T: JsonRpcCodec](name: String): JsonRpcInput[T] = JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], Info.empty[T], name)
+  def param[T: JsonRpcCodec](name: String): JsonRpcInput.Basic[T] =
+    JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], JsonRpcIoInfo.Empty, name)
+
+  def result[T: JsonRpcCodec](name: String): JsonRpcOutput.Basic[T] =
+    JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], JsonRpcIoInfo.Empty, name)
 
   def error[T](implicit _codec: JsonRpcCodec[JsonRpcError[T]]): JsonRpcErrorPart[T] =
     new JsonRpcErrorPart[T] {

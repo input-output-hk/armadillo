@@ -1,7 +1,7 @@
 package io.iohk.armadillo.server
 
 import io.iohk.armadillo._
-import io.iohk.armadillo.json.circe.*
+import io.iohk.armadillo.json.circe._
 
 object Endpoints {
   val hello_in_int_out_string: JsonRpcEndpoint[Int, Unit, String] = jsonRpcEndpoint(m"hello")

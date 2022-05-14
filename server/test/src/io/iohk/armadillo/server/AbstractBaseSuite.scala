@@ -1,13 +1,19 @@
 package io.iohk.armadillo.server
 
 import cats.effect.IO
-import cats.syntax.all.*
+import cats.syntax.all._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, Json}
-import io.iohk.armadillo.{JsonRpcError, JsonRpcErrorResponse, JsonRpcRequest, JsonRpcResponse, JsonRpcSuccessResponse}
-import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcServerEndpoint}
-import io.iohk.armadillo.json.circe.*
 import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
+import io.iohk.armadillo.{
+  JsonRpcEndpoint,
+  JsonRpcError,
+  JsonRpcErrorResponse,
+  JsonRpcRequest,
+  JsonRpcResponse,
+  JsonRpcServerEndpoint,
+  JsonRpcSuccessResponse
+}
 import weaver.SimpleIOSuite
 
 trait AbstractBaseSuite[Body, Interpreter] extends SimpleIOSuite {

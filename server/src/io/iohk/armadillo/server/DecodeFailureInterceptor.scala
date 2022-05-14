@@ -3,7 +3,7 @@ package io.iohk.armadillo.server
 import io.iohk.armadillo.JsonRpcResponse
 import io.iohk.armadillo.server.RequestHandler.DecodeFailureContext
 import sttp.monad.MonadError
-import sttp.monad.syntax.*
+import sttp.monad.syntax._
 
 class DecodeFailureInterceptor[F[_], Raw](handler: DecodeFailureHandler[Raw]) extends RequestInterceptor[F, Raw] {
   override def apply(

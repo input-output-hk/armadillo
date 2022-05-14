@@ -1,9 +1,9 @@
 package io.iohk.armadillo.json.circe
 
 import cats.implicits.toFunctorOps
-import io.circe.generic.semiauto.*
+import io.circe.generic.semiauto._
 import io.circe.{Decoder, Encoder, Json}
-import io.iohk.armadillo.*
+import io.iohk.armadillo._
 import sttp.tapir.{DecodeResult, Schema}
 
 trait ArmadilloCirceJson {

@@ -6,7 +6,7 @@ import cats.effect.kernel.MonadCancelThrow
 import io.iohk.armadillo.{JsonRpcError, JsonRpcServerEndpoint}
 import io.janstenpickle.trace4cats.base.context.Provide
 import io.janstenpickle.trace4cats.inject.{ResourceKleisli, Trace}
-import sttp.tapir.integ.cats.MonadErrorSyntax.*
+import sttp.tapir.integ.cats.MonadErrorSyntax._
 
 object ServerEndpointTracer {
   def inject[I, E, O, F[_], G[_], Ctx](

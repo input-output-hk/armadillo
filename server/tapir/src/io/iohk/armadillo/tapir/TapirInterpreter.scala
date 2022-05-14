@@ -1,11 +1,10 @@
 package io.iohk.armadillo.tapir
 
-import io.iohk.armadillo.*
-import io.iohk.armadillo.server.JsonSupport.Json
+import io.iohk.armadillo._
 import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
 import io.iohk.armadillo.server.{CustomInterceptors, Interceptor, JsonSupport, ServerInterpreter}
 import sttp.monad.MonadError
-import sttp.monad.syntax.*
+import sttp.monad.syntax._
 import sttp.tapir.Codec.JsonCodec
 import sttp.tapir.EndpointIO.Info
 import sttp.tapir.SchemaType.SCoproduct

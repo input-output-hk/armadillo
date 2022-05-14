@@ -1,10 +1,10 @@
 package io.iohk.armadillo.json.json4s
 
-import io.iohk.armadillo.*
+import io.iohk.armadillo._
 import io.iohk.armadillo.server.JsonSupport
 import io.iohk.armadillo.server.JsonSupport.Json
-import org.json4s.*
 import org.json4s.JsonAST.JValue
+import org.json4s._
 import sttp.tapir.DecodeResult
 
 import scala.util.{Failure, Success, Try}

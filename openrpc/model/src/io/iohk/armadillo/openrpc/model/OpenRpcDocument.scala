@@ -5,8 +5,31 @@ case class OpenRpcDocument(openrpc: String = "1.2.1", info: OpenRpcInfo, methods
 
 case class OpenRpcInfo(version: String, title: String)
 
-case class OpenRpcMethod(name: String, params: List[OpenRpcParam], result: OpenRpcResult)
+case class OpenRpcMethod(
+    name: String,
+    tags: List[OpenRpcMethodTag] = List.empty,
+    summary: Option[String] = None,
+    description: Option[String] = None,
+    params: List[OpenRpcParam] = List.empty,
+    result: OpenRpcResult
+)
 
-case class OpenRpcParam(name: String, schema: ReferenceOr[Schema])
+case class OpenRpcMethodTag(
+    name: String,
+    summary: Option[String] = None,
+    description: Option[String] = None,
+    externalDocs: Option[OpenRpcExternalDocs] = None
+)
 
-case class OpenRpcResult(name: String, schema: ReferenceOr[Schema])
+case class OpenRpcExternalDocs(url: String, description: Option[String])
+
+case class OpenRpcParam(
+    name: String,
+    summary: Option[String] = None,
+    description: Option[String] = None,
+    required: Boolean,
+    schema: ReferenceOr[Schema],
+    deprecated: Option[Boolean]
+)
+
+case class OpenRpcResult(name: String, summary: Option[String] = None, description: Option[String] = None, schema: ReferenceOr[Schema])
