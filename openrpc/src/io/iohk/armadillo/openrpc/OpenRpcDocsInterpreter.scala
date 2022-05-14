@@ -64,5 +64,5 @@ case class OpenRpcDocsInterpreter(markOptionsAsNullable: Boolean = true) {
 }
 
 object OpenRpcDocsInterpreter {
-  private val EmptyResult = OpenRpcResult(name = "no-response", schema = Right(OpenRpcSchema()))
+  private val EmptyResult = OpenRpcResult(name = "empty result", schema = Right(OpenRpcSchema()))
 }

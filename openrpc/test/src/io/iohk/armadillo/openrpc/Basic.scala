@@ -40,4 +40,5 @@ object Basic {
     .in(param[Option[Int]]("param1"))
     .out[String]("response")
 
+  val empty: JsonRpcEndpoint[Unit, Unit, Unit] = jsonRpcEndpoint(m"empty")
 }
