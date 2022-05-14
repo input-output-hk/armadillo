@@ -1,16 +1,14 @@
 import $ivy.`com.goyeau::mill-scalafix_mill0.9:0.2.8`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.9:0.1.4`
 import $ivy.`io.github.davidgregory084::mill-tpolecat:0.2.0`
 import com.goyeau.mill.scalafix.ScalafixModule
+import de.tobiasroeser.mill.vcs.version.VcsVersion
 import io.github.davidgregory084.TpolecatModule
 import mill._
-import mill.define.Target
 import mill.scalalib._
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import mill.scalalib.scalafmt.ScalafmtModule
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.9:0.1.4`
-import de.tobiasroeser.mill.vcs.version.VcsVersion
-import server.ivy
-import server.tapir.ivy
+import openrpc.ivy
 
 object core extends CommonModule with ArmadilloPublishModule {
   override def ivyDeps = Agg(
@@ -40,11 +38,39 @@ object json extends CommonModule {
   }
 }
 
+object openrpc extends CommonModule with ArmadilloPublishModule {
+  object model extends CommonModule with ArmadilloPublishModule{
+    override def ivyDeps = Agg(ivy"com.softwaremill.sttp.tapir::tapir-apispec-model::${Version.Tapir}")
+  }
+  object circe extends CommonModule with ArmadilloPublishModule {
+    override def moduleDeps = Seq(model)
+    override def ivyDeps = Agg(
+      ivy"io.circe::circe-core::${Version.Circe}",
+      ivy"io.circe::circe-parser::${Version.Circe}",
+      ivy"io.circe::circe-generic::${Version.Circe}"
+    )
+  }
+  object circeYaml extends CommonModule with ArmadilloPublishModule {
+    override def moduleDeps = Seq(circe)
+
+    override def ivyDeps = Agg(ivy"io.circe::circe-yaml::${Version.Circe}")
+  }
+
+  override def moduleDeps = Seq(core, circeYaml)
+
+  object test extends Tests with CommonTestModule {
+    override def moduleDeps = Seq(openrpc, json.circe)
+    def ivyDeps = Agg(
+      WeaverDep,
+      ivy"org.typelevel::cats-effect::3.2.9"
+    )
+  }
+}
 
 object server extends CommonModule with ArmadilloPublishModule {
   override def moduleDeps = Seq(core)
   override def ivyDeps = Agg(
-    ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
+    ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}"
   )
 
   object tapir extends CommonModule with ArmadilloPublishModule {
@@ -72,7 +98,7 @@ object server extends CommonModule with ArmadilloPublishModule {
     override def moduleDeps = Seq(core, json.circe, server)
     override def ivyDeps = Agg(
       ivy"co.fs2::fs2-core::3.2.5",
-      ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
+      ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}"
     )
   }
 
@@ -103,7 +129,7 @@ object example extends CommonModule {
         ivy"org.json4s::json4s-jackson:${Version.Json4s}",
         ivy"ch.qos.logback:logback-classic:1.2.7",
         ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
-        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1",
+        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1"
       )
   }
   object circeApp extends CommonModule {
@@ -120,7 +146,7 @@ object example extends CommonModule {
         ivy"ch.qos.logback:logback-classic:1.2.7",
         ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
         ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1",
-        ivy"io.circe::circe-literal::0.14.1"
+        ivy"io.circe::circe-literal::${Version.Circe}"
       )
   }
   object json4sAndTrace4cats extends CommonModule {
@@ -139,7 +165,7 @@ object example extends CommonModule {
         ivy"io.janstenpickle::trace4cats-avro-exporter::${Version.Trace4cats}",
         ivy"ch.qos.logback:logback-classic:1.2.7",
         ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
-        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1",
+        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1"
       )
   }
   object circeFs2 extends CommonModule {
@@ -176,7 +202,7 @@ trait BaseModule extends ScalaModule with ScalafmtModule with TpolecatModule wit
 trait CommonTestModule extends BaseModule with TestModule {
   val WeaverDep = ivy"com.disneystreaming::weaver-cats:0.7.11"
 
-  override def ivyDeps = Agg(WeaverDep) //TODO how to reuse it?
+  override def ivyDeps = Agg(WeaverDep) // TODO how to reuse it?
   override def testFramework = "weaver.framework.CatsEffect"
 }
 
@@ -202,10 +228,10 @@ trait ArmadilloPublishModule extends PublishModule {
   )
 }
 
-
 object Version {
   val Trace4cats = "0.12.0"
   val Tapir = "1.0.0-M4"
   val Http4s = "0.23.10"
   val Json4s = "4.0.4"
+  val Circe = "0.14.1"
 }
