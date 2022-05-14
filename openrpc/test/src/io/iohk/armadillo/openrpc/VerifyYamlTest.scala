@@ -1,7 +1,7 @@
 package io.iohk.armadillo.openrpc
 
 import cats.effect.IO
-import io.iohk.armadillo.openrpc.Basic.{basic, multiple_params, withInfo}
+import io.iohk.armadillo.openrpc.Basic.{basic, multiple_params, optionalParam, withInfo}
 import io.iohk.armadillo.openrpc.circe.yaml._
 import io.iohk.armadillo.openrpc.model.{OpenRpcDocument, OpenRpcInfo}
 import weaver.SimpleIOSuite
@@ -25,6 +25,8 @@ object VerifyYamlTest extends SimpleIOSuite {
   )
 
   compare("with_info.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(withInfo)))
+
+  compare("optional_param.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(optionalParam)))
 
   private def compare(file: String, document: OpenRpcDocument) = {
     test(file) {

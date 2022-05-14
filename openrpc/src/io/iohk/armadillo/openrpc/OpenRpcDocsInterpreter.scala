@@ -5,7 +5,7 @@ import io.iohk.armadillo.openrpc.model._
 import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcIO, JsonRpcInput}
 import sttp.tapir.apispec.{Schema => OpenRpcSchema}
 
-case class OpenRpcDocsInterpreter(markOptionsAsNullable: Boolean = false) {
+case class OpenRpcDocsInterpreter(markOptionsAsNullable: Boolean = true) {
   def toOpenRpc(info: OpenRpcInfo, endpoints: List[JsonRpcEndpoint[_, _, _]]): OpenRpcDocument = {
     val schemaConverter = new SchemaToOpenRpcSchema(markOptionsAsNullable)
     OpenRpcDocument(info = info, methods = endpoints.map(convertEndpoint(schemaConverter)))
@@ -46,7 +46,7 @@ case class OpenRpcDocsInterpreter(markOptionsAsNullable: Boolean = false) {
     OpenRpcParam(
       name = jsonRpcInput.name,
       schema = schema,
-      required = schema.right.get.nullable.getOrElse(true),
+      required = schema.right.get.nullable.forall(!_),
       deprecated = jsonRpcInput.info.deprecated,
       summary = jsonRpcInput.info.summary,
       description = jsonRpcInput.info.description

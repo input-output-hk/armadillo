@@ -35,4 +35,9 @@ object Basic {
         .summary("A short summary of the content that is being described")
         .description("A verbose explanation of the content descriptor behavior")
     )
+
+  val optionalParam: JsonRpcEndpoint[Option[Int], Unit, String] = jsonRpcEndpoint(m"hello")
+    .in(param[Option[Int]]("param1"))
+    .out[String]("response")
+
 }
