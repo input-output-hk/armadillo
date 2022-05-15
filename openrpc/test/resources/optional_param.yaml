@@ -9,7 +9,6 @@ methods:
     required: false
     schema:
       type: integer
-      nullable: true
   result:
     name: response
     schema:

@@ -47,6 +47,7 @@ trait ArmadilloOpenRpcCirce {
 
   implicit val methodEncoder: Encoder[OpenRpcMethod] = deriveEncoder[OpenRpcMethod]
   implicit val infoEncoder: Encoder[OpenRpcInfo] = deriveEncoder[OpenRpcInfo]
+  implicit val componentsEncoder: Encoder[OpenRpcComponents] = deriveEncoder[OpenRpcComponents]
   implicit val documentEncoder: Encoder[OpenRpcDocument] = deriveEncoder[OpenRpcDocument]
 
   implicit def encodeList[T: Encoder]: Encoder[List[T]] = {

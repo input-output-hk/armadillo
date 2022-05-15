@@ -2,6 +2,9 @@ package io.iohk.armadillo.openrpc
 
 import io.iohk.armadillo.json.circe._
 import io.iohk.armadillo._
+import io.circe.generic.auto._
+import sttp.tapir.Schema
+import sttp.tapir.generic.auto._
 
 object Basic {
   val basic: JsonRpcEndpoint[Int, Unit, String] = jsonRpcEndpoint(m"hello")
@@ -41,4 +44,21 @@ object Basic {
     .out[String]("response")
 
   val empty: JsonRpcEndpoint[Unit, Unit, Unit] = jsonRpcEndpoint(m"empty")
+
+  val product: JsonRpcEndpoint[Pet, Unit, Unit] = jsonRpcEndpoint(m"createPet")
+    .in(param[Pet]("pet"))
+
+  val optionalProduct: JsonRpcEndpoint[Option[Pet], Unit, Unit] = jsonRpcEndpoint(m"createPet")
+    .in(param[Option[Pet]]("pet"))
+
+  val product_with_meta: JsonRpcEndpoint[Pet, Unit, Unit] = {
+    implicit val schema: Schema[Pet] = sttp.tapir.Schema
+      .derived[Pet]
+      .description("Schema description")
+      .deprecated(true)
+      .name(Schema.SName("CustomPetName"))
+    jsonRpcEndpoint(m"createPet")
+      .in(param[Pet]("pet"))
+  }
+  case class Pet(name: String)
 }

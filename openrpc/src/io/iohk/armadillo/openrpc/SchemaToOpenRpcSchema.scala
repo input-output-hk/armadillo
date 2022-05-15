@@ -3,9 +3,7 @@ package io.iohk.armadillo.openrpc
 import sttp.tapir.apispec.{Discriminator, Reference, ReferenceOr, SchemaFormat, SchemaType, Schema => ASchema}
 import sttp.tapir.{Schema => TSchema, SchemaType => TSchemaType}
 
-import scala.collection.immutable
-
-class SchemaToOpenRpcSchema(markOptionsAsNullable: Boolean) {
+class SchemaToOpenRpcSchema(nameToSchemaReference: NameToSchemaReference, markOptionsAsNullable: Boolean) {
   def apply[T](schema: TSchema[T], isOptionElement: Boolean = false): ReferenceOr[ASchema] = {
     val nullable = markOptionsAsNullable && isOptionElement
     val result = schema.schemaType match {
@@ -19,28 +17,28 @@ class SchemaToOpenRpcSchema(markOptionsAsNullable: Boolean) {
             required = p.required.map(_.encodedName),
             properties = fields.map { f =>
               f.schema match {
-                case s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _) => f.name.encodedName -> apply(s)
+                case s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _) => f.name.encodedName -> Left(nameToSchemaReference.map(name))
                 case schema                                             => f.name.encodedName -> apply(schema)
               }
             }.toListMap
           )
         )
       case TSchemaType.SArray(s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _)) =>
-        Right(ASchema(SchemaType.Array).copy(items = Some(apply(s))))
+        Right(ASchema(SchemaType.Array).copy(items = Some(Left(nameToSchemaReference.map(name)))))
       case TSchemaType.SArray(el) => Right(ASchema(SchemaType.Array).copy(items = Some(apply(el))))
-      case TSchemaType.SOption(s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _)) => apply(s)
+      case TSchemaType.SOption(s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _)) => Left(nameToSchemaReference.map(name))
       case TSchemaType.SOption(el)                                                 => apply(el, isOptionElement = true)
       case TSchemaType.SBinary()      => Right(ASchema(SchemaType.String).copy(format = SchemaFormat.Binary))
       case TSchemaType.SDate()        => Right(ASchema(SchemaType.String).copy(format = SchemaFormat.Date))
       case TSchemaType.SDateTime()    => Right(ASchema(SchemaType.String).copy(format = SchemaFormat.DateTime))
-      case TSchemaType.SRef(fullName) => ???
+      case TSchemaType.SRef(fullName) => Left(nameToSchemaReference.map(fullName))
       case TSchemaType.SCoproduct(schemas, d) =>
         Right(
           ASchema
             .apply(
               schemas
                 .map {
-                  case s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _) => apply(s)
+                  case s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _) => Left(nameToSchemaReference.map(name))
                   case t                                                  => apply(t)
                 }
                 .sortBy {
@@ -55,7 +53,7 @@ class SchemaToOpenRpcSchema(markOptionsAsNullable: Boolean) {
           ASchema(SchemaType.Object).copy(
             required = List.empty,
             additionalProperties = Some(valueSchema.name match {
-              case Some(name) => ???
+              case Some(name) => Left(nameToSchemaReference.map(name))
               case _          => apply(valueSchema)
             })
           )
@@ -63,24 +61,25 @@ class SchemaToOpenRpcSchema(markOptionsAsNullable: Boolean) {
     }
     result
       .map(s => if (nullable) s.copy(nullable = Some(true)) else s)
+      .map(addMetadata(_, schema))
+  }
+
+  private def addMetadata(oschema: ASchema, tschema: TSchema[_]): ASchema = {
+    oschema.copy(
+      description = tschema.description.orElse(oschema.description),
+      default = tschema.default.flatMap { case (_, raw) => raw.flatMap(r => exampleValue(tschema, r)) }.orElse(oschema.default),
+      example = tschema.encodedExample.flatMap(exampleValue(tschema, _)).orElse(oschema.example),
+      format = tschema.format.orElse(oschema.format),
+      deprecated = (if (tschema.deprecated) Some(true) else None).orElse(oschema.deprecated)
+    )
   }
 
   private def tDiscriminatorToADiscriminator(discriminator: TSchemaType.SDiscriminator): Discriminator = {
     val schemas = Some(
       discriminator.mapping.map { case (k, TSchemaType.SRef(fullName)) =>
-        k -> ???
+        k -> nameToSchemaReference.map(fullName).$ref
       }.toListMap
     )
     Discriminator(discriminator.name.encodedName, schemas)
-  }
-
-  implicit class IterableToListMap[A](xs: Iterable[A]) {
-    def toListMap[T, U](implicit ev: A <:< (T, U)): immutable.ListMap[T, U] = {
-      val b = immutable.ListMap.newBuilder[T, U]
-      for (x <- xs)
-        b += x
-
-      b.result()
-    }
   }
 }

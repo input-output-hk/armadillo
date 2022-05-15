@@ -1,10 +1,10 @@
-package io.iohk.armadillo
+package io.iohk.armadillo.openrpc
 
 import cats.effect.{IO, Resource}
 
 import scala.io.Source
 
-package object openrpc {
+object TestUtils {
   private[openrpc] def load(fileName: String): Resource[IO, String] = {
     Resource
       .make(

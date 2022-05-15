@@ -4,6 +4,7 @@ import cats.effect.IO
 import io.circe.Printer
 import io.circe.syntax.EncoderOps
 import io.iohk.armadillo.openrpc.Basic.basic
+import io.iohk.armadillo.openrpc.TestUtils.{load, noIndentation}
 import io.iohk.armadillo.openrpc.circe._
 import io.iohk.armadillo.openrpc.model.{OpenRpcDocument, OpenRpcInfo}
 import weaver.SimpleIOSuite

@@ -1,7 +1,16 @@
 package io.iohk.armadillo.openrpc.model
 import sttp.tapir.apispec.{ReferenceOr, Schema}
 
-case class OpenRpcDocument(openrpc: String = "1.2.1", info: OpenRpcInfo, methods: List[OpenRpcMethod])
+import scala.collection.immutable.ListMap
+
+case class OpenRpcDocument(
+    openrpc: String = "1.2.1",
+    info: OpenRpcInfo,
+    methods: List[OpenRpcMethod],
+    components: Option[OpenRpcComponents]
+)
+
+case class OpenRpcComponents(contentDescriptors: List[Unit], schemas: ListMap[String, ReferenceOr[Schema]])
 
 case class OpenRpcInfo(version: String, title: String)
 
