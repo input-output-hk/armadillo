@@ -3,7 +3,7 @@ package io.iohk.armadillo.openrpc
 import io.iohk.armadillo.json.circe._
 import io.iohk.armadillo._
 import io.circe.generic.auto._
-import sttp.tapir.Schema
+import sttp.tapir.{Schema, SchemaType}
 import sttp.tapir.generic.auto._
 
 object Basic {
@@ -60,5 +60,20 @@ object Basic {
     jsonRpcEndpoint(m"createPet")
       .in(param[Pet]("pet"))
   }
+
+  val external_ref: JsonRpcEndpoint[Problem, Unit, Unit] = jsonRpcEndpoint(m"ext")
+    .in(param[Problem]("problem"))
+
   case class Pet(name: String)
+
+  case class Problem()
+
+  object Problem {
+    implicit val schema: Schema[Problem] =
+      Schema[Problem](
+        SchemaType.SRef(
+          Schema.SName("https://example.com/models/model.yaml#/Problem")
+        )
+      )
+  }
 }

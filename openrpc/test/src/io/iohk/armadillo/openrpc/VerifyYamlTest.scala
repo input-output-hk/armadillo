@@ -2,7 +2,17 @@ package io.iohk.armadillo.openrpc
 
 import cats.effect.IO
 import io.iohk.armadillo._
-import io.iohk.armadillo.openrpc.Basic.{basic, empty, multiple_params, optionalParam, optionalProduct, product, product_with_meta, withInfo}
+import io.iohk.armadillo.openrpc.Basic.{
+  basic,
+  empty,
+  external_ref,
+  multiple_params,
+  optionalParam,
+  optionalProduct,
+  product,
+  product_with_meta,
+  withInfo
+}
 import io.iohk.armadillo.openrpc.TestUtils.{load, noIndentation}
 import io.iohk.armadillo.openrpc.circe.yaml._
 import io.iohk.armadillo.openrpc.model.{OpenRpcDocument, OpenRpcInfo}
@@ -25,6 +35,7 @@ object VerifyYamlTest extends SimpleIOSuite {
   compare("product.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(product)))
   compare("optional_product.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(optionalProduct)))
   compare("product_with_meta.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(product_with_meta)))
+  compare("external_ref.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(external_ref)))
 
   private def compare(file: String, document: OpenRpcDocument, debug: Boolean = false): Unit = {
     test(file) {
