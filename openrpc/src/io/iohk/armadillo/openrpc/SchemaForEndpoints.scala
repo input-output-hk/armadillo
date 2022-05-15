@@ -1,10 +1,9 @@
 package io.iohk.armadillo.openrpc
 
 import io.iohk.armadillo.openrpc.OpenRpcDocsInterpreter.NamedSchema
-import io.iohk.armadillo.{AnyEndpoint, JsonRpcErrorOutput, JsonRpcIO, JsonRpcInput, JsonRpcOutput}
+import io.iohk.armadillo.{AnyEndpoint, JsonRpcIO, JsonRpcInput, JsonRpcOutput}
 import sttp.tapir.Schema.SName
-import sttp.tapir.apispec.ReferenceOr
-import sttp.tapir.apispec.{Schema => ASchema, _}
+import sttp.tapir.apispec.{ReferenceOr, Schema => ASchema, SchemaType => _}
 
 import scala.collection.immutable.ListMap
 
@@ -19,7 +18,7 @@ class SchemaForEndpoints(es: List[AnyEndpoint], toNamedSchemas: ToNamedSchemas, 
     val sObjects = ToNamedSchemas.unique(es.flatMap(e => forInput(e.input) ++ forOutput(e.output)))
     val infoToKey = calculateUniqueKeys(sObjects.map(_._1), defaultSchemaName)
     val objectToSchemaReference = new NameToSchemaReference(infoToKey)
-    val schemaConverter = new SchemaToOpenRpcSchema(objectToSchemaReference, markOptionsAsNullable)
+    val schemaConverter = new SchemaToOpenRpcSchema(objectToSchemaReference, markOptionsAsNullable, infoToKey)
     val schemas = new Schemas(schemaConverter, objectToSchemaReference, markOptionsAsNullable)
     val infosToSchema = sObjects.map(td => (td._1, schemaConverter(td._2))).toListMap
     val schemaKeys = infosToSchema.map { case (k, v) => k -> ((infoToKey(k), v)) }
@@ -28,21 +27,21 @@ class SchemaForEndpoints(es: List[AnyEndpoint], toNamedSchemas: ToNamedSchemas, 
 
   private def forInput(input: JsonRpcInput[_]): List[NamedSchema] = {
     input match {
-      case io: JsonRpcIO[_]                     => forIO(io)
+      case io: JsonRpcIO[_]                     => forIO(io, replaceOptionWithCoproduct = false)
       case JsonRpcInput.Pair(left, right, _, _) => forInput(left) ++ forInput(right)
     }
   }
 
-  private def forIO(io: JsonRpcIO[_]): List[NamedSchema] = {
+  private def forIO(io: JsonRpcIO[_], replaceOptionWithCoproduct: Boolean): List[NamedSchema] = {
     io match {
       case JsonRpcIO.Empty()             => List.empty
-      case JsonRpcIO.Single(codec, _, _) => toNamedSchemas(codec)
+      case JsonRpcIO.Single(codec, _, _) => toNamedSchemas(codec, replaceOptionWithCoproduct)
     }
   }
 
   private def forOutput(output: JsonRpcOutput[_]): List[NamedSchema] = {
     output match {
-      case io: JsonRpcIO[_] => forIO(io)
+      case io: JsonRpcIO[_] => forIO(io, replaceOptionWithCoproduct = true)
     }
   }
 

@@ -15,6 +15,7 @@ methods:
 components:
   schemas:
     CustomPetName:
+      title: CustomPetName
       required:
       - name
       type: object

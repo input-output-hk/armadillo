@@ -15,6 +15,7 @@ methods:
 components:
   schemas:
     F1:
+      title: F1
       type: object
       properties:
         data:

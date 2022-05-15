@@ -31,6 +31,10 @@ object VerifyYamlTest extends SimpleIOSuite {
   compare("product_duplicated_names.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(productDuplicatedNames)))
   compare("recursive_product.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(recursiveProduct)))
   compare("generic_product.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(genericProduct)))
+  compare("optional_result_product.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(optionalResultProduct)))
+  compare("result_product.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(resultProduct)))
+  compare("optional_recursive_result.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(optionalRecursiveResult)))
+  compare("array_of_recursive_optional_result.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(arrayOfRecursiveOptionalResult)))
 
   private def compare(file: String, document: OpenRpcDocument, debug: Boolean = false): Unit = {
     test(file) {

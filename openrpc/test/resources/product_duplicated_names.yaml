@@ -19,6 +19,7 @@ methods:
 components:
   schemas:
     Pet:
+      title: Pet
       required:
       - name
       type: object
@@ -26,6 +27,7 @@ components:
         name:
           type: string
     Pet1:
+      title: Pet1
       required:
       - age
       type: object

@@ -3,15 +3,11 @@ info:
   version: 1.0.0
   title: Demo Pet Store
 methods:
-- name: createPet
-  params:
-  - name: pet
-    required: true
+- name: getPet
+  result:
+    name: pet
     schema:
       $ref: '#/components/schemas/Pet'
-  result:
-    name: empty result
-    schema: {}
 components:
   schemas:
     Pet:

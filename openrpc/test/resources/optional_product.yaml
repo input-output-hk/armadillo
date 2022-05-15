@@ -15,6 +15,7 @@ methods:
 components:
   schemas:
     Pet:
+      title: Pet
       required:
       - name
       type: object

@@ -10,7 +10,7 @@ case class OpenRpcDocsInterpreter(markOptionsAsNullable: Boolean = true) {
     val (keyToSchema, schemas) =
       new SchemaForEndpoints(endpoints, toNamedSchemas, markOptionsAsNullable).calculate()
 
-    val methodCreator = new EndpointToOpenRpcMethods(schemas, keyToSchema)
+    val methodCreator = new EndpointToOpenRpcMethods(schemas)
 
     OpenRpcDocument(
       info = info,

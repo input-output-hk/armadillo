@@ -1,0 +1,29 @@
+openrpc: 1.2.1
+info:
+  version: 1.0.0
+  title: Demo Pet Store
+methods:
+- name: getPet
+  result:
+    name: pet
+    schema:
+      $ref: '#/components/schemas/PetOrNull'
+components:
+  schemas:
+    'Null':
+      title: 'Null'
+      type: object
+      description: 'null'
+    Pet:
+      title: Pet
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+    PetOrNull:
+      title: PetOrNull
+      oneOf:
+      - $ref: '#/components/schemas/Null'
+      - $ref: '#/components/schemas/Pet'

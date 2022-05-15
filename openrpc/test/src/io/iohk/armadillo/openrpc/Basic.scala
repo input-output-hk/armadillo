@@ -100,4 +100,20 @@ object Basic {
 
   val genericProduct: JsonRpcEndpoint[(G[String], G[Int]), Unit, Unit] = jsonRpcEndpoint(m"createPet")
     .in(param[G[String]]("param1") and param[G[Int]]("param2"))
+
+  val optionalResultProduct: JsonRpcEndpoint[Unit, Unit, Option[Pet]] = jsonRpcEndpoint(m"getPet")
+    .out(result[Option[Pet]]("pet"))
+
+  val resultProduct: JsonRpcEndpoint[Unit, Unit, Pet] = jsonRpcEndpoint(m"getPet")
+    .out(result[Pet]("pet"))
+
+  case class F2(data: List[F2])
+
+  val optionalRecursiveResult: JsonRpcEndpoint[Unit, Unit, Option[F2]] = jsonRpcEndpoint(m"createPet")
+    .out(result[Option[F2]]("p1"))
+
+  case class F3(data: Option[F3])
+
+  val arrayOfRecursiveOptionalResult: JsonRpcEndpoint[Unit, Unit, List[F3]] = jsonRpcEndpoint(m"createPet")
+    .out(result[List[F3]]("p1"))
 }

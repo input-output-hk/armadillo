@@ -19,6 +19,7 @@ methods:
 components:
   schemas:
     G_Int:
+      title: G_Int
       required:
       - data
       type: object
@@ -26,6 +27,7 @@ components:
         data:
           type: integer
     G_String:
+      title: G_String
       required:
       - data
       type: object

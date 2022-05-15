@@ -1,14 +1,12 @@
 package io.iohk.armadillo.openrpc
 
 import io.iohk.armadillo.openrpc.EndpointToOpenRpcMethods.EmptyResult
+import io.iohk.armadillo.openrpc.model._
 import io.iohk.armadillo.{AnyEndpoint, JsonRpcEndpoint, JsonRpcIO, JsonRpcInput}
-import io.iohk.armadillo.openrpc.model.{OpenRpcExternalDocs, OpenRpcMethod, OpenRpcMethodTag, OpenRpcParam, OpenRpcResult}
 import sttp.tapir.SchemaType
-import sttp.tapir.apispec.{ReferenceOr, Schema}
+import sttp.tapir.apispec.Schema
 
-import scala.collection.immutable.ListMap
-
-class EndpointToOpenRpcMethods(schemas: Schemas, keyToSchema: ListMap[String, ReferenceOr[Schema]]) {
+class EndpointToOpenRpcMethods(schemas: Schemas) {
 
   def methods(es: List[AnyEndpoint]): List[OpenRpcMethod] = {
     es.map(convertEndpoint)
@@ -45,7 +43,7 @@ class EndpointToOpenRpcMethods(schemas: Schemas, keyToSchema: ListMap[String, Re
   }
 
   private def convertParam(jsonRpcInput: JsonRpcIO.Single[_]) = {
-    val schema = schemas(jsonRpcInput.codec.schema)
+    val schema = schemas(jsonRpcInput.codec, replaceOptionWithCoproduct = false)
     OpenRpcParam(
       name = jsonRpcInput.name,
       schema = schema,
@@ -63,7 +61,7 @@ class EndpointToOpenRpcMethods(schemas: Schemas, keyToSchema: ListMap[String, Re
     endpoint.output match {
       case _: JsonRpcIO.Empty[_] => EmptyResult
       case single: JsonRpcIO.Single[_] =>
-        val schema = schemas(single.codec.schema)
+        val schema = schemas(single.codec, replaceOptionWithCoproduct = true)
         OpenRpcResult(name = single.name, schema = schema, summary = single.info.summary, description = single.info.description)
     }
   }

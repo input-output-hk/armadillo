@@ -15,6 +15,7 @@ methods:
 components:
   schemas:
     Author:
+      title: Author
       required:
       - name
       - country
@@ -25,6 +26,7 @@ components:
         country:
           $ref: '#/components/schemas/Country'
     Book:
+      title: Book
       required:
       - title
       - genre
@@ -41,6 +43,7 @@ components:
         author:
           $ref: '#/components/schemas/Author'
     Country:
+      title: Country
       required:
       - name
       type: object
@@ -48,6 +51,7 @@ components:
         name:
           type: string
     Genre:
+      title: Genre
       required:
       - name
       - description

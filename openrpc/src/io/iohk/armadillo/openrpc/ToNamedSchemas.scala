@@ -7,9 +7,30 @@ import sttp.tapir.{Schema => TSchema, SchemaType => TSchemaType}
 import scala.collection.mutable.ListBuffer
 
 class ToNamedSchemas {
-  def apply[T](codec: JsonRpcCodec[T]): List[NamedSchema] = apply(codec.schema)
+  def apply[T](codec: JsonRpcCodec[T], replaceOptionWithCoproduct: Boolean): List[NamedSchema] = {
+    if (replaceOptionWithCoproduct) {
+      val synthesized = codec.schema match {
+        case t @ TSchema(o @ TSchemaType.SOption(element), _, _, _, _, _, _, _, _, _) =>
+          val element1 = propagateMetadataForOption(t, o).element
+          TSchema( // TODO deduplicate (Schemas)
+            TSchemaType.SCoproduct[Any](
+              subtypes = List(
+                element1,
+                TSchema(schemaType = TSchemaType.SProduct(List.empty), name = Some(TSchema.SName("Null")), description = Some("null"))
+              ),
+              discriminator = None
+            )(_ => None),
+            name = element.name.map(sn => sn.copy(fullName = s"${sn.fullName}OrNull"))
+          )
+        case other => other
+      }
+      apply(synthesized)
+    } else {
+      apply(codec.schema)
+    }
+  }
 
-  def apply(schema: TSchema[_]): List[NamedSchema] = {
+  private def apply(schema: TSchema[_]): List[NamedSchema] = {
     val thisSchema = schema.name match {
       case Some(name) => List(name -> schema)
       case None       => Nil

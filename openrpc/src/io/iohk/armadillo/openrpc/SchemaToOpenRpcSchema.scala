@@ -3,7 +3,11 @@ package io.iohk.armadillo.openrpc
 import sttp.tapir.apispec.{Discriminator, Reference, ReferenceOr, SchemaFormat, SchemaType, Schema => ASchema}
 import sttp.tapir.{Schema => TSchema, SchemaType => TSchemaType}
 
-class SchemaToOpenRpcSchema(nameToSchemaReference: NameToSchemaReference, markOptionsAsNullable: Boolean) {
+class SchemaToOpenRpcSchema(
+    nameToSchemaReference: NameToSchemaReference,
+    markOptionsAsNullable: Boolean,
+    infoToKey: Map[TSchema.SName, String]
+) {
   def apply[T](schema: TSchema[T], isOptionElement: Boolean = false): ReferenceOr[ASchema] = {
     val nullable = markOptionsAsNullable && isOptionElement
     val result = schema.schemaType match {
@@ -66,6 +70,7 @@ class SchemaToOpenRpcSchema(nameToSchemaReference: NameToSchemaReference, markOp
 
   private def addMetadata(oschema: ASchema, tschema: TSchema[_]): ASchema = {
     oschema.copy(
+      title = tschema.name.flatMap(infoToKey.get),
       description = tschema.description.orElse(oschema.description),
       default = tschema.default.flatMap { case (_, raw) => raw.flatMap(r => exampleValue(tschema, r)) }.orElse(oschema.default),
       example = tschema.encodedExample.flatMap(exampleValue(tschema, _)).orElse(oschema.example),
