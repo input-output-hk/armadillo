@@ -47,6 +47,6 @@ curl --location --request POST 'localhost:8545/' \
 This library is **heavily** inspired by [tapir](https://github.com/softwaremill/tapir). In fact it is just a copy-pasted
 version of tapir adapted to the json-rpc standard.
 
-Also, big thanks to [Adam Warski](https://github.com/adamw) for reviewing my initial design and patiently answering all
+Also, big thanks to [Adam Warski](https://github.com/adamw) for reviewing my initial design and patiently answering all of
 my questions about design choices he took in tapir.
  
