@@ -1,0 +1,34 @@
+openrpc: 1.2.1
+info:
+  version: 1.0.0
+  title: Demo Pet Store
+methods:
+- name: createPet
+  params:
+  - name: param1
+    required: true
+    schema:
+      $ref: '#/components/schemas/Pet'
+  - name: param2
+    required: true
+    schema:
+      $ref: '#/components/schemas/Pet1'
+  result:
+    name: empty result
+    schema: {}
+components:
+  schemas:
+    Pet:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+    Pet1:
+      required:
+      - age
+      type: object
+      properties:
+        age:
+          type: integer

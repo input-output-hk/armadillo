@@ -64,7 +64,21 @@ object Basic {
   val external_ref: JsonRpcEndpoint[Problem, Unit, Unit] = jsonRpcEndpoint(m"ext")
     .in(param[Problem]("problem"))
 
+  val productArray: JsonRpcEndpoint[List[Pet], Unit, Unit] = jsonRpcEndpoint(m"createPet")
+    .in(param[List[Pet]]("pet"))
+
+  val nestedProducts: JsonRpcEndpoint[Book, Unit, Unit] = jsonRpcEndpoint(m"createPet")
+    .in(param[Book]("book"))
+
   case class Pet(name: String)
+
+  val productDuplicatedNames: JsonRpcEndpoint[(Pet, openrpc.Pet), Unit, Unit] = jsonRpcEndpoint(m"createPet")
+    .in(param[Pet]("param1") and param[io.iohk.armadillo.openrpc.Pet]("param2"))
+
+  case class F1(data: List[F1])
+
+  val recursiveProduct: JsonRpcEndpoint[F1, Unit, Unit] = jsonRpcEndpoint(m"createPet")
+    .in(param[F1]("p1"))
 
   case class Problem()
 
@@ -76,4 +90,9 @@ object Basic {
         )
       )
   }
+
+  case class Country(name: String)
+  case class Author(name: String, country: Country)
+  case class Genre(name: String, description: String)
+  case class Book(title: String, genre: Genre, year: Int, author: Author)
 }
