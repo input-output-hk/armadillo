@@ -59,7 +59,7 @@ object openrpc extends CommonModule with ArmadilloPublishModule {
 
   object test extends Tests with CommonTestModule {
     override def moduleDeps = Seq(openrpc, json.circe)
-    def ivyDeps = Agg(
+    override def ivyDeps = Agg(
       WeaverDep,
       ivy"org.typelevel::cats-effect::3.2.9"
     )
@@ -80,7 +80,7 @@ object server extends CommonModule with ArmadilloPublishModule {
 
     object test extends Tests with CommonTestModule {
       override def moduleDeps = Seq(core, json.circe, tapir, server.test)
-      def ivyDeps = Agg(
+      override def ivyDeps = Agg(
         WeaverDep,
         ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::${Version.Tapir}",
         ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
@@ -103,7 +103,7 @@ object server extends CommonModule with ArmadilloPublishModule {
 
   object test extends Tests with CommonTestModule { // TODO can it be simplified to `test extends CommonTestModule` ?
     override def moduleDeps = Seq(core, json.circe)
-    def ivyDeps = Agg(
+    override def ivyDeps = Agg(
       WeaverDep,
       ivy"io.circe::circe-literal::0.14.1",
       ivy"org.typelevel::cats-effect::3.2.9"
@@ -214,7 +214,14 @@ trait CommonModule extends BaseModule {
 }
 
 trait ArmadilloPublishModule extends PublishModule {
-  def publishVersion = VcsVersion.vcsState().format()
+  def publishVersion = T {
+    val vcsState = VcsVersion.vcsState()
+    if(vcsState.commitsSinceLastTag > 0) {
+      s"${vcsState.format()}-SNAPSHOT"
+    }else {
+      vcsState.format()
+    }
+  }
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "io.iohk.armadillo",
