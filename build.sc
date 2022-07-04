@@ -1,6 +1,6 @@
-import $ivy.`com.goyeau::mill-scalafix_mill0.9:0.2.8`
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.9:0.1.4`
-import $ivy.`io.github.davidgregory084::mill-tpolecat:0.2.0`
+import $ivy.`com.goyeau::mill-scalafix_mill0.10:0.2.8`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.10:0.1.4`
+import $ivy.`io.github.davidgregory084::mill-tpolecat_mill0.10:0.3.0`
 import com.goyeau.mill.scalafix.ScalafixModule
 import de.tobiasroeser.mill.vcs.version.VcsVersion
 import io.github.davidgregory084.TpolecatModule
