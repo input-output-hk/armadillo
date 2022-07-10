@@ -225,4 +225,8 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
   )
 
+  test(optional_output, "should return optional response")(_ => IO.pure(Right(Option.empty[String])))(
+    request = JsonRpcRequest.v2("optional_output", json"""{}""", 1),
+    expectedResponse = JsonRpcResponse.v2(Json.Null, 1)
+  )
 }
