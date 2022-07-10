@@ -29,4 +29,10 @@ object Endpoints {
   val e1_int_string_out_int: JsonRpcEndpoint[String, Unit, Int] = jsonRpcEndpoint(m"e1")
     .in(param[String]("param1"))
     .out[Int]("response")
+
+  val optional_input: JsonRpcEndpoint[(Option[String], Int), Unit, String] = jsonRpcEndpoint(m"optional_input")
+    .in(
+      param[Option[String]]("p1").and(param[Int]("p2"))
+    )
+    .out[String]("response")
 }

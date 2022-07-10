@@ -174,4 +174,55 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     request = invalidBody,
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32700, "message": "Parse error"}""")
   )
+
+  test(optional_input, "all inputs provided using positional style") { case (s, i) =>
+    IO.pure(Right(s"$i${s.getOrElse("")}"))
+  }(
+    request = JsonRpcRequest.v2("optional_input", json"""["alice", 1]""", 1),
+    expectedResponse = JsonRpcResponse.v2(Json.fromString("1alice"), 1)
+  )
+
+  test(optional_input, "all inputs provided using by-name style") { case (s, i) =>
+    IO.pure(Right(s"$i${s.getOrElse("")}"))
+  }(
+    request = JsonRpcRequest.v2("optional_input", json"""{"p2": 1, "p1": "alice"}""", 1),
+    expectedResponse = JsonRpcResponse.v2(Json.fromString("1alice"), 1)
+  )
+
+  test(optional_input, "optional input omitted when using positional style") { case (s, i) =>
+    IO.pure(Right(s"$i${s.getOrElse("")}"))
+  }(request = JsonRpcRequest.v2("optional_input", json"""[1]""", 1), expectedResponse = JsonRpcResponse.v2(Json.fromString("1"), 1))
+
+  test(optional_input, "optional input omitted when using by-name style") { case (s, i) =>
+    IO.pure(Right(s"$i${s.getOrElse("")}"))
+  }(request = JsonRpcRequest.v2("optional_input", json"""{"p2": 1}""", 1), expectedResponse = JsonRpcResponse.v2(Json.fromString("1"), 1))
+
+  test(optional_input, "should fail when mandatory input omitted when using by-name style") { case (s, i) =>
+    IO.pure(Right(s"$i${s.getOrElse("")}"))
+  }(
+    request = JsonRpcRequest.v2("optional_input", json"""{"p1": "alice"}""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
+  )
+
+  test(optional_input, "should fail when mandatory input omitted when using by-pos style") { case (s, i) =>
+    IO.pure(Right(s"$i${s.getOrElse("")}"))
+  }(
+    request = JsonRpcRequest.v2("optional_input", json"""["alice"]""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
+  )
+
+  test(optional_input, "should fail when given more parameters than expected - positional style") { case (s, i) =>
+    IO.pure(Right(s"$i${s.getOrElse("")}"))
+  }(
+    request = JsonRpcRequest.v2("optional_input", json"""["alice", 1, 2]""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
+  )
+
+  test(optional_input, "should fail when given more parameters than expected - by-name style") { case (s, i) =>
+    IO.pure(Right(s"$i${s.getOrElse("")}"))
+  }(
+    request = JsonRpcRequest.v2("optional_input", json"""{"p1": "alice", "p2": 1, "p3": 2}""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
+  )
+
 }

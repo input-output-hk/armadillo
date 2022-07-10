@@ -7,6 +7,31 @@ import io.iohk.armadillo._
 import sttp.tapir.{DecodeResult, Schema}
 
 trait ArmadilloCirceJson {
+
+  /** Create a codec which decodes/encodes an optional value. The given base codec `c` is used for decoding/encoding.
+    *
+    * The schema is copied from the base codec.
+    */
+  implicit def option[T](implicit c: JsonRpcCodec[T]): JsonRpcCodec[Option[T]] = new JsonRpcCodec[Option[T]] {
+    override type L = Json
+
+    override def decode(l: Json): DecodeResult[Option[T]] = {
+      l match {
+        case Json.Null => DecodeResult.Value(None)
+        case other     => c.decode(other.asInstanceOf[c.L]).map(Some(_))
+      }
+    }
+
+    override def encode(h: Option[T]): Json = {
+      h match {
+        case Some(value) => c.encode(value).asInstanceOf[L]
+        case None        => Json.Null
+      }
+    }
+
+    override def schema: Schema[Option[T]] = c.schema.asOption
+  }
+
   implicit def jsonRpcCodec[H: Encoder: Decoder: Schema]: JsonRpcCodec[H] = new JsonRpcCodec[H] {
     override type L = Json
 

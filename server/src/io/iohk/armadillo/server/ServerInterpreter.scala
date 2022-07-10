@@ -51,6 +51,8 @@ class ServerInterpreter[F[_], Raw] private (
         )
       case (ei: MethodInterceptor[F, Raw]) :: tail   => callRequestInterceptors(tail, ei :: eisAcc, responder)
       case (ei: EndpointInterceptor[F, Raw]) :: tail => callRequestInterceptors(tail, ei :: eisAcc, responder)
+      case other =>
+        throw new IllegalArgumentException(s"Unsupported interceptor! $other")
     }
   }
 
@@ -118,6 +120,8 @@ class ServerInterpreter[F[_], Raw] private (
           }
         )
       case (ei: EndpointInterceptor[F, Raw]) :: tail => callMethodOrEndpointInterceptors(tail, ei :: eisAcc, responder)
+      case other =>
+        throw new IllegalArgumentException(s"Unsupported interceptor! $other")
     }
   }
 
@@ -179,29 +183,45 @@ class ServerInterpreter[F[_], Raw] private (
   }
 
   private def combineDecodeAsVector(in: Vector[JsonRpcIO.Single[_]]): Json.JsonArray[Raw] => DecodeResult[Vector[_]] = { json =>
-    if (json.values.size == in.size) {
-      val ss = in.zipWithIndex.toList.map { case (JsonRpcIO.Single(codec, _, _), index) =>
-        val rawElement = json.values(index)
-        codec.decode(rawElement.asInstanceOf[codec.L])
+    case class State(results: List[DecodeResult[_]], paramsToProcess: List[Raw])
+    val ss = in.foldLeft(State(List.empty, json.values.toList)) { (acc, input) =>
+      acc.paramsToProcess match {
+        case currentParam :: restOfParams =>
+          val codec = input.codec
+          codec.decode(currentParam.asInstanceOf[codec.L]) match {
+            case _: DecodeResult.Failure if codec.schema.isOptional =>
+              acc.copy(results = acc.results :+ DecodeResult.Value(None))
+            case other => State(acc.results :+ other, restOfParams)
+          }
+        case Nil => acc.copy(results = acc.results :+ DecodeResult.Missing)
       }
-      DecodeResult.sequence(ss).map(_.toVector)
+    }
+    if (ss.paramsToProcess.isEmpty) {
+      DecodeResult.sequence(ss.results).map(_.toVector)
     } else {
-      DecodeResult.Mismatch(s"expected ${in.size} parameters", s"got ${json.values.size}")
+      val msg = "Too many inputs provided"
+      DecodeResult.Error(msg, new RuntimeException(msg))
     }
   }
 
   private def combineDecodeAsObject(in: Vector[JsonRpcIO.Single[_]]): Json.JsonObject[Raw] => DecodeResult[Vector[_]] = { json =>
-    if (json.fields.size == in.size) {
+    val jsonAsMap = json.fields.toMap
+    if (jsonAsMap.size >= in.count(_.codec.schema.isOptional) && jsonAsMap.size <= in.size) {
       val ss = in.toList.map { case JsonRpcIO.Single(codec, _, name) =>
-        val rawElement = json.fields.toMap.get(name) match {
-          case Some(value) => DecodeResult.Value(value)
-          case None        => DecodeResult.Missing
+        jsonAsMap.get(name) match {
+          case Some(r) => codec.decode(r.asInstanceOf[codec.L])
+          case None =>
+            if (codec.schema.isOptional) {
+              DecodeResult.Value(None)
+            } else {
+              DecodeResult.Missing
+            }
         }
-        rawElement.flatMap(r => codec.decode(r.asInstanceOf[codec.L]))
       }
       DecodeResult.sequence(ss).map(_.toVector)
     } else {
-      DecodeResult.Mismatch(s"expected ${in.size} parameters", s"got ${json.fields.size}")
+      val msg = "Too many inputs provided"
+      DecodeResult.Error(msg, new RuntimeException(msg))
     }
   }
 }
@@ -247,7 +267,7 @@ object ServerInterpreter {
                 ctx.request.id.map(id => JsonRpcErrorResponse("2.0", encodedError, Some(id)))
               case Right(value) =>
                 val encodedOutput = ctx.endpoint.endpoint.output match {
-                  case o: JsonRpcIO.Empty[ctx.endpoint.OUTPUT]  => jsonSupport.jsNull
+                  case _: JsonRpcIO.Empty[ctx.endpoint.OUTPUT]  => jsonSupport.jsNull
                   case o: JsonRpcIO.Single[ctx.endpoint.OUTPUT] => o.codec.encode(value).asInstanceOf[Raw]
                 }
                 ctx.request.id.map(JsonRpcSuccessResponse("2.0", encodedOutput, _))
