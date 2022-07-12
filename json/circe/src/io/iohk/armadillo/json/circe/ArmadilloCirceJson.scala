@@ -7,6 +7,7 @@ import io.iohk.armadillo._
 import sttp.tapir.{DecodeResult, Schema}
 
 trait ArmadilloCirceJson {
+
   implicit def jsonRpcCodec[H: Encoder: Decoder: Schema]: JsonRpcCodec[H] = new JsonRpcCodec[H] {
     override type L = Json
 
