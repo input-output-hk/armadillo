@@ -216,10 +216,15 @@ trait CommonModule extends BaseModule {
 trait ArmadilloPublishModule extends PublishModule {
   def publishVersion = T {
     val vcsState = VcsVersion.vcsState()
-    if(vcsState.commitsSinceLastTag > 0) {
-      s"${vcsState.format()}-SNAPSHOT"
+    val formattedTag = vcsState.format(tagModifier = t => if(t.startsWith("v")){
+      t.drop(1)
     }else {
-      vcsState.format()
+      t
+    })
+    if(vcsState.commitsSinceLastTag > 0) {
+      s"$formattedTag-SNAPSHOT"
+    }else {
+      formattedTag
     }
   }
   def pomSettings = PomSettings(
