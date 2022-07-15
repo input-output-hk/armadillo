@@ -160,26 +160,30 @@ class ServerInterpreter[F[_], Raw] private (
 
   private def decodeJsonRpcParamsForEndpoint(
       jsonRpcEndpoint: JsonRpcEndpoint[_, _, _],
-      jsonParams: Json[Raw]
+      maybeJsonParams: Option[Json[Raw]]
   ): DecodeResult[ParamsAsVector] = {
-    val vectorCombinator = combineDecodeAsVector(jsonRpcEndpoint.input.asVectorOfBasicInputs)
-    val objectCombinator = combineDecodeAsObject(jsonRpcEndpoint.input.asVectorOfBasicInputs)
-    val result = jsonParams match {
-      case obj: Json.JsonObject[Raw] =>
-        jsonRpcEndpoint.paramStructure match {
-          case ParamStructure.Either     => objectCombinator(obj)
-          case ParamStructure.ByName     => objectCombinator(obj)
-          case ParamStructure.ByPosition => DecodeResult.Mismatch("json object", jsonSupport.stringify(jsonSupport.demateralize(obj)))
+    maybeJsonParams match {
+      case Some(jsonParams) =>
+        val result = jsonParams match {
+          case obj: Json.JsonObject[Raw] =>
+            val objectCombinator = combineDecodeAsObject(jsonRpcEndpoint.input.asVectorOfBasicInputs)
+            jsonRpcEndpoint.paramStructure match {
+              case ParamStructure.Either     => objectCombinator(obj)
+              case ParamStructure.ByName     => objectCombinator(obj)
+              case ParamStructure.ByPosition => DecodeResult.Mismatch("json object", jsonSupport.stringify(jsonSupport.demateralize(obj)))
+            }
+          case arr: Json.JsonArray[Raw] =>
+            val vectorCombinator = combineDecodeAsVector(jsonRpcEndpoint.input.asVectorOfBasicInputs)
+            jsonRpcEndpoint.paramStructure match {
+              case ParamStructure.Either     => vectorCombinator(arr)
+              case ParamStructure.ByPosition => vectorCombinator(arr)
+              case ParamStructure.ByName     => DecodeResult.Mismatch("json object", jsonSupport.stringify(jsonSupport.demateralize(arr)))
+            }
+          case Json.Other(raw) => DecodeResult.Mismatch("json array or json object", jsonSupport.stringify(raw))
         }
-      case arr: Json.JsonArray[Raw] =>
-        jsonRpcEndpoint.paramStructure match {
-          case ParamStructure.Either     => vectorCombinator(arr)
-          case ParamStructure.ByPosition => vectorCombinator(arr)
-          case ParamStructure.ByName     => DecodeResult.Mismatch("json object", jsonSupport.stringify(jsonSupport.demateralize(arr)))
-        }
-      case Json.Other(raw) => DecodeResult.Mismatch("json array or json object", jsonSupport.stringify(raw))
+        result.map(ParamsAsVector)
+      case None => DecodeResult.Value(ParamsAsVector(Vector.empty))
     }
-    result.map(ParamsAsVector)
   }
 
   private def combineDecodeAsVector(in: Vector[JsonRpcIO.Single[_]]): Json.JsonArray[Raw] => DecodeResult[Vector[_]] = { json =>

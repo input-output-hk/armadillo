@@ -44,7 +44,7 @@ class Json4sSupport private (parseAsJValue: String => JValue, render: JValue => 
     val raw = demateralize(obj)
     Try(raw.extract[JsonRpcRequest[JValue]]) match {
       case Failure(exception) => DecodeResult.Error(raw.toString, exception)
-      case Success(value)     => DecodeResult.Value(value.copy(params = materialize(value.params)))
+      case Success(value)     => DecodeResult.Value(value.copy(params = value.params.map(materialize)))
     }
   }
 

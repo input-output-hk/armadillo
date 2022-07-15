@@ -53,7 +53,7 @@ class CirceJsonSupport extends JsonSupport[Json] {
     val raw = demateralize(obj)
     Decoder[JsonRpcRequest[Json]].decodeJson(raw) match {
       case Left(value)  => DecodeResult.Error(raw.noSpaces, value)
-      case Right(value) => DecodeResult.Value(value.copy(params = materialize(value.params)))
+      case Right(value) => DecodeResult.Value(value.copy(params = value.params.map(materialize)))
     }
   }
 }

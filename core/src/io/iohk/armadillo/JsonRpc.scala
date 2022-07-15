@@ -3,17 +3,17 @@ package io.iohk.armadillo
 import sttp.tapir.SchemaType.SchemaWithValue
 import sttp.tapir.{Schema, SchemaType}
 
-case class JsonRpcRequest[Raw](jsonrpc: String, method: String, params: Raw, id: Option[JsonRpcId]) {
+case class JsonRpcRequest[Raw](jsonrpc: String, method: String, params: Option[Raw], id: Option[JsonRpcId]) {
   def isNotification: Boolean = id.isEmpty
 }
 object JsonRpcRequest {
   implicit def schema[Raw: Schema]: Schema[JsonRpcRequest[Raw]] = Schema.derived[JsonRpcRequest[Raw]]
 
-  def v2[Raw](method: String, params: Raw, id: JsonRpcId): JsonRpcRequest[Raw] =
+  def v2[Raw](method: String, params: Option[Raw], id: JsonRpcId): JsonRpcRequest[Raw] =
     JsonRpcRequest(JsonRpcVersion_2_0, method, params, Some(id))
 }
 object Notification {
-  def v2[Raw](method: String, params: Raw): JsonRpcRequest[Raw] =
+  def v2[Raw](method: String, params: Option[Raw]): JsonRpcRequest[Raw] =
     JsonRpcRequest(JsonRpcVersion_2_0, method, params, None)
 }
 

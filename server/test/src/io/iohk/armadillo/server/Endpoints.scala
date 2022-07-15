@@ -38,4 +38,7 @@ object Endpoints {
 
   val optional_output: JsonRpcEndpoint[Unit, Unit, Option[String]] = jsonRpcEndpoint(m"optional_output")
     .out[Option[String]]("response")
+
+  val output_without_params: JsonRpcEndpoint[Unit, Unit, String] = jsonRpcEndpoint(m"output_without_params")
+    .out[String]("response")
 }
