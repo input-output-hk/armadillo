@@ -57,17 +57,17 @@ object JsonRpcResponse {
     JsonRpcErrorResponse[Raw](JsonRpcVersion_2_0, error, id)
 }
 
-case class JsonRpcSuccessResponse[Raw](jsonrpc: String, result: Raw, id: JsonRpcId) extends JsonRpcResponse[Raw]
+final case class JsonRpcSuccessResponse[Raw](jsonrpc: String, result: Raw, id: JsonRpcId) extends JsonRpcResponse[Raw]
 object JsonRpcSuccessResponse {
   implicit def schema[Raw: Schema]: Schema[JsonRpcSuccessResponse[Raw]] = Schema.derived[JsonRpcSuccessResponse[Raw]]
 }
 
-case class JsonRpcErrorResponse[Raw](jsonrpc: String, error: Raw, id: Option[JsonRpcId]) extends JsonRpcResponse[Raw]
+final case class JsonRpcErrorResponse[Raw](jsonrpc: String, error: Raw, id: Option[JsonRpcId]) extends JsonRpcResponse[Raw]
 object JsonRpcErrorResponse {
   implicit def schema[Raw: Schema]: Schema[JsonRpcErrorResponse[Raw]] = Schema.derived[JsonRpcErrorResponse[Raw]]
 }
 
-case class JsonRpcError[Data](code: Int, message: String, data: Data)
+final case class JsonRpcError[Data](code: Int, message: String, data: Data)
 object JsonRpcError {
   implicit def schema[Data: Schema]: Schema[JsonRpcError[Data]] = Schema.derived[JsonRpcError[Data]]
   def noData(code: Int, msg: String): JsonRpcError[Unit] = JsonRpcError(code, msg, ())

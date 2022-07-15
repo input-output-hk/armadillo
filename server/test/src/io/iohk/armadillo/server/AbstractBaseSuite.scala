@@ -24,6 +24,8 @@ trait AbstractBaseSuite[Body, Interpreter] extends SimpleIOSuite {
   implicit val jsonRpcRequestEncoder: Encoder[JsonRpcRequest[Json]] = deriveEncoder[JsonRpcRequest[Json]]
   implicit val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
 
+  val jsonSupport = new CirceJsonSupport
+
   def invalidBody: Body
 
   def testNotification[I, E, O, B: Encoder](

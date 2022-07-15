@@ -1,6 +1,7 @@
 package io.iohk.armadillo.server
 
 import io.iohk.armadillo.server.JsonSupport.Json
+import io.iohk.armadillo.server.ServerInterpreter.DecodeAction
 import io.iohk.armadillo.server.Utils._
 import sttp.monad.MonadError
 import sttp.tapir.DecodeResult
@@ -13,7 +14,7 @@ class BatchRequestInterceptor[F[_], Raw](handler: BatchRequestHandler[F, Raw]) e
   ): RequestHandler[F, Raw] = {
     val next = requestHandler(MethodInterceptor.noop[F, Raw]())
     new RequestHandler[F, Raw] {
-      override def onDecodeSuccess(request: JsonSupport.Json[Raw])(implicit monad: MonadError[F]): F[Option[Raw]] = {
+      override def onDecodeSuccess(request: JsonSupport.Json[Raw])(implicit monad: MonadError[F]): F[DecodeAction[Raw]] = {
         request match {
           case Json.JsonArray(values) =>
             val results = values.map(jsonSupport.materialize).map {
@@ -34,7 +35,7 @@ class BatchRequestInterceptor[F[_], Raw](handler: BatchRequestHandler[F, Raw]) e
         }
       }
 
-      override def onDecodeFailure(ctx: RequestHandler.DecodeFailureContext)(implicit monad: MonadError[F]): F[Option[Raw]] = {
+      override def onDecodeFailure(ctx: RequestHandler.DecodeFailureContext)(implicit monad: MonadError[F]): F[DecodeAction[Raw]] = {
         next.onDecodeFailure(ctx)
       }
     }

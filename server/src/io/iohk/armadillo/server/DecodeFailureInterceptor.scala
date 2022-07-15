@@ -1,7 +1,8 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.JsonRpcResponse
+import io.iohk.armadillo.{JsonRpcErrorResponse, JsonRpcResponse, JsonRpcSuccessResponse}
 import io.iohk.armadillo.server.RequestHandler.DecodeFailureContext
+import io.iohk.armadillo.server.ServerInterpreter.{DecodeAction, ServerInterpreterResponse}
 import sttp.monad.MonadError
 import sttp.monad.syntax._
 
@@ -13,14 +14,24 @@ class DecodeFailureInterceptor[F[_], Raw](handler: DecodeFailureHandler[Raw]) ex
   ): RequestHandler[F, Raw] = {
     val next = requestHandler(MethodInterceptor.noop[F, Raw]())
     new RequestHandler[F, Raw] {
-      override def onDecodeSuccess(request: JsonSupport.Json[Raw])(implicit monad: MonadError[F]): F[Option[Raw]] = {
+      override def onDecodeSuccess(request: JsonSupport.Json[Raw])(implicit monad: MonadError[F]): F[DecodeAction[Raw]] = {
         next.onDecodeSuccess(request)
       }
 
-      override def onDecodeFailure(ctx: DecodeFailureContext)(implicit monad: MonadError[F]): F[Option[Raw]] = {
-        next.onDecodeFailure(ctx).flatMap {
-          case Some(value) => Option(value).unit
-          case None        => monad.unit(handler(ctx, jsonSupport).map(jsonSupport.encodeResponse))
+      override def onDecodeFailure(ctx: DecodeFailureContext)(implicit monad: MonadError[F]): F[DecodeAction[Raw]] = {
+        next.onDecodeFailure(ctx).map {
+          case DecodeAction.None() =>
+            handler(ctx, jsonSupport) match {
+              case Some(response) =>
+                response match {
+                  case JsonRpcSuccessResponse(_, _, _) =>
+                    DecodeAction.ActionTaken(ServerInterpreterResponse.Result(jsonSupport.encodeResponse(response)))
+                  case JsonRpcErrorResponse(_, _, _) =>
+                    DecodeAction.ActionTaken(ServerInterpreterResponse.Error(jsonSupport.encodeResponse(response)))
+                }
+              case None => DecodeAction.None()
+            }
+          case actionTaken => actionTaken
         }
       }
     }

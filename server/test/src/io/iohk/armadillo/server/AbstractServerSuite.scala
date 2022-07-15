@@ -143,17 +143,6 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     )
   )
 
-  test("should return error when trying to pass non-unique methods to tapir interpreter") {
-    val se = hello_in_int_out_string.serverLogic[IO](int => IO.pure(Right(int.toString)))
-    val result = toInterpreter(List(se, se))
-    IO.delay(expect.same(result, Left(InterpretationError.NonUniqueMethod(List(hello_in_int_out_string.methodName)))))
-  }
-
-  test(hello_in_int_out_string, "invalid request")(int => IO.pure(Right(int.toString)))(
-    request = json"""{"jsonrpc": "2.0", "method": 1, "params": "bar"}""",
-    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32600, "message": "Invalid Request"}""")
-  )
-
   testMultiple("batch_request invalid request")(List.empty)(
     request = List(
       json"""{"jsonrpc": "2.0", "method": 1, "params": "bar"}""",
@@ -163,6 +152,30 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
       JsonRpcResponse.error_v2(json"""{"code": -32600, "message": "Invalid Request"}"""),
       JsonRpcResponse.error_v2(json"""{"code": -32600, "message": "Invalid Request"}""")
     )
+  )
+
+  testMultiple("batch_request only notifications")(
+    List(
+      hello_in_int_out_string.serverLogic[IO](int => IO.pure(Right(int.toString))),
+      e1_int_string_out_int.serverLogic[IO](str => IO.delay(Right(parseInt(str))))
+    )
+  )(
+    request = List(
+      Notification.v2("hello", json"[11]"),
+      Notification.v2("e1", json"""{"param1": "22"}""")
+    ),
+    expectedResponse = List.empty
+  )
+
+  test("should return error when trying to pass non-unique methods to tapir interpreter") {
+    val se = hello_in_int_out_string.serverLogic[IO](int => IO.pure(Right(int.toString)))
+    val result = toInterpreter(List(se, se))
+    IO.delay(expect.same(result, Left(InterpretationError.NonUniqueMethod(List(hello_in_int_out_string.methodName)))))
+  }
+
+  test(hello_in_int_out_string, "invalid request")(int => IO.pure(Right(int.toString)))(
+    request = json"""{"jsonrpc": "2.0", "method": 1, "params": "bar"}""",
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32600, "message": "Invalid Request"}""")
   )
 
   test(hello_in_int_out_string, "invalid request structure")(int => IO.pure(Right(int.toString)))(

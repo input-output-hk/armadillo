@@ -49,13 +49,14 @@ object ExampleTraced extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = {
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+    implicit val catsMonadError: CatsMonadError[IO] = new CatsMonadError
     val endpoints = new Endpoints[IO, Kleisli[IO, Span[IO], *]]
     val routesR = for {
       completer <- Resource.eval(LogSpanCompleter.create[IO](TraceProcess("example")))
       ep = EntryPoint(SpanSampler.always[IO], completer)
       tapirInterpreter = new TapirInterpreter[IO, JValue](
         Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
-      )(new CatsMonadError)
+      )
       tapirEndpoints = tapirInterpreter.toTapirEndpoint(endpoints.tracedEndpoints(ep)).getOrElse(???)
       routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
     } yield routes

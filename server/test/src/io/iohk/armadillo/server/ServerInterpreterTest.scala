@@ -5,6 +5,7 @@ import io.circe.{Encoder, Json}
 import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
+import io.iohk.armadillo.server.ServerInterpreter.ServerInterpreterResponse
 import sttp.tapir.integ.cats.CatsMonadError
 
 object ServerInterpreterTest
@@ -19,7 +20,7 @@ object ServerInterpreterTest
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
       val strRequest = Encoder[B].apply(request).noSpaces
       interpreter.dispatchRequest(strRequest).map { response =>
-        expect.same(None, response.map(_.as[JsonRpcResponse[Json]]))
+        expect.same(ServerInterpreterResponse.None(), response)
       }
     }
   }
@@ -28,7 +29,13 @@ object ServerInterpreterTest
     test(name) {
       val interpreter = createInterpreter(List(hello_in_int_out_string.serverLogic[IO](int => IO.pure(Right(int.toString)))))
       interpreter.dispatchRequest(request).map { response =>
-        expect.same(Some(Right(expectedResponse)), response.map(_.as[JsonRpcResponse[Json]]))
+        expect.same(
+          expectedResponse match {
+            case success @ JsonRpcSuccessResponse(_, _, _) => ServerInterpreterResponse.Result(jsonSupport.encodeResponse(success))
+            case error @ JsonRpcErrorResponse(_, _, _)     => ServerInterpreterResponse.Error(jsonSupport.encodeResponse(error))
+          },
+          response
+        )
       }
     }
   }
@@ -40,22 +47,31 @@ object ServerInterpreterTest
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
       val strRequest = Encoder[B].apply(request).noSpaces
       interpreter.dispatchRequest(strRequest).map { response =>
-        expect.same(Some(Right(expectedResponse)), response.map(_.as[JsonRpcResponse[Json]]))
+        expect.same(
+          expectedResponse match {
+            case success @ JsonRpcSuccessResponse(_, _, _) => ServerInterpreterResponse.Result(jsonSupport.encodeResponse(success))
+            case error @ JsonRpcErrorResponse(_, _, _)     => ServerInterpreterResponse.Error(jsonSupport.encodeResponse(error))
+          },
+          response
+        )
       }
     }
   }
 
   override def testMultiple[B: Encoder](name: String)(
       se: List[JsonRpcServerEndpoint[IO]]
-  )(request: List[B], expectedResponse: List[JsonRpcResponse[Json]]): Unit = {
+  )(request: List[B], expectedResponses: List[JsonRpcResponse[Json]]): Unit = {
     test(name) {
       val interpreter = createInterpreter(se)
       val strRequest = Json.arr(request.map(b => Encoder[B].apply(b)): _*).noSpaces
       interpreter.dispatchRequest(strRequest).map { response =>
-        expect.same(
-          Some(Right(expectedResponse)),
-          response.map(_.as[List[JsonRpcResponse[Json]]])
-        )
+        val expectedServerInterpreterResponse = if (expectedResponses.isEmpty) {
+          ServerInterpreterResponse.None()
+        } else {
+          val json = Json.fromValues(expectedResponses.map(jsonSupport.encodeResponse))
+          ServerInterpreterResponse.Result(json)
+        }
+        expect.same(expectedServerInterpreterResponse, response)
       }
     }
   }

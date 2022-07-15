@@ -1,5 +1,6 @@
 package io.iohk.armadillo.server
 
+import io.iohk.armadillo.server.ServerInterpreter.DecodeAction
 import io.iohk.armadillo.{AnyEndpoint, AnyRequest, JsonRpcResponse}
 import sttp.monad.MonadError
 
@@ -14,13 +15,15 @@ class ExceptionInterceptor[F[_], Raw](handler: ExceptionHandler[Raw]) extends En
     new EndpointHandler[F, Raw] {
       override def onDecodeSuccess[I](ctx: EndpointHandler.DecodeSuccessContext[F, I, Raw])(implicit
           monad: MonadError[F]
-      ): F[Option[Raw]] = {
+      ): F[DecodeAction[Raw]] = {
         monad.handleError(endpointHandler.onDecodeSuccess(ctx)) { case NonFatal(e) =>
           onException(e, ctx.endpoint.endpoint, ctx.request)
         }
       }
 
-      override def onDecodeFailure(ctx: EndpointHandler.DecodeFailureContext[F, Raw])(implicit monad: MonadError[F]): F[Option[Raw]] = {
+      override def onDecodeFailure(
+          ctx: EndpointHandler.DecodeFailureContext[F, Raw]
+      )(implicit monad: MonadError[F]): F[DecodeAction[Raw]] = {
         monad.handleError(endpointHandler.onDecodeFailure(ctx)) { case NonFatal(e) =>
           onException(e, ctx.endpoint.endpoint, ctx.request)
         }
@@ -28,7 +31,7 @@ class ExceptionInterceptor[F[_], Raw](handler: ExceptionHandler[Raw]) extends En
 
       private def onException(e: Throwable, endpoint: AnyEndpoint, request: AnyRequest)(implicit
           monad: MonadError[F]
-      ): F[Option[Raw]] = {
+      ): F[DecodeAction[Raw]] = {
         handler(ExceptionContext(e, endpoint, request), jsonSupport) match {
           case Right(response) => responder(response)
           case Left(_)         => monad.error(e)
