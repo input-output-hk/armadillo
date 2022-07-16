@@ -3,12 +3,12 @@ package io.iohk.armadillo.tapir.http4s
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import io.circe.{Encoder, Json, parser}
+import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.server.AbstractBaseSuite
 import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
 import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerInterpreterResponse}
 import io.iohk.armadillo.tapir.TapirInterpreter
-import io.iohk.armadillo._
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
@@ -131,7 +131,7 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
               .send(backend)
               .map { response =>
                 expect.same(StatusCode.Ok, response.code)
-                expect.same(Right(""), response.body)
+                expect.same(Right("null"), response.body)
               }
           } else {
             basicRequest
