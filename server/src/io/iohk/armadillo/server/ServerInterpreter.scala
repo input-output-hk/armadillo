@@ -299,24 +299,22 @@ object ServerInterpreter {
       )(implicit monad: MonadError[F]): F[DecodeAction[Raw]] = {
         ctx.endpoint
           .logic(monad)(ctx.input)
-          .flatMap { x =>
-            val response = x match {
-              case Left(value) =>
-                val encodedError = ctx.endpoint.endpoint.error match {
-                  case single @ JsonRpcErrorOutput.Single(_) =>
-                    val error = single.error // TODO should JsonRpcErrorResponse contain JsonRpcError[T] instead of Json?
-                    error.codec.encode(value.asInstanceOf[error.DATA]).asInstanceOf[Raw]
-                }
-                ctx.request.id.map(id => JsonRpcErrorResponse("2.0", encodedError, Some(id)))
-              case Right(value) =>
-                val encodedOutput = ctx.endpoint.endpoint.output match {
-                  case _: JsonRpcIO.Empty[ctx.endpoint.OUTPUT]  => jsonSupport.jsNull
-                  case o: JsonRpcIO.Single[ctx.endpoint.OUTPUT] => o.codec.encode(value).asInstanceOf[Raw]
-                }
-                ctx.request.id.map(JsonRpcSuccessResponse("2.0", encodedOutput, _))
-            }
-            responder.apply(response)
+          .map {
+            case Left(value) =>
+              val encodedError = ctx.endpoint.endpoint.error match {
+                case single @ JsonRpcErrorOutput.Single(_) =>
+                  val error = single.error // TODO should JsonRpcErrorResponse contain JsonRpcError[T] instead of Json?
+                  error.codec.encode(value.asInstanceOf[error.DATA]).asInstanceOf[Raw]
+              }
+              ctx.request.id.map(id => JsonRpcErrorResponse("2.0", encodedError, Some(id)))
+            case Right(value) =>
+              val encodedOutput = ctx.endpoint.endpoint.output match {
+                case _: JsonRpcIO.Empty[ctx.endpoint.OUTPUT]  => jsonSupport.jsNull
+                case o: JsonRpcIO.Single[ctx.endpoint.OUTPUT] => o.codec.encode(value).asInstanceOf[Raw]
+              }
+              ctx.request.id.map(JsonRpcSuccessResponse("2.0", encodedOutput, _))
           }
+          .flatMap(responder.apply)
       }
 
       override def onDecodeFailure(ctx: DecodeFailureContext[F, Raw])(implicit monad: MonadError[F]): F[DecodeAction[Raw]] = {
