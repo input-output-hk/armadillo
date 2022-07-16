@@ -8,7 +8,7 @@ abstract class JsonRpcServerEndpoint[F[_]] {
   type OUTPUT
 
   def endpoint: JsonRpcEndpoint[INPUT, ERROR_OUTPUT, OUTPUT]
-  def logic: MonadError[F] => INPUT => F[Either[JsonRpcError[ERROR_OUTPUT], OUTPUT]]
+  def logic: MonadError[F] => INPUT => F[Either[ERROR_OUTPUT, OUTPUT]]
 }
 
 object JsonRpcServerEndpoint {
@@ -24,7 +24,7 @@ object JsonRpcServerEndpoint {
 
   def apply[INPUT, ERROR_OUTPUT, OUTPUT, F[_]](
       endpoint: JsonRpcEndpoint[INPUT, ERROR_OUTPUT, OUTPUT],
-      logic: MonadError[F] => INPUT => F[Either[JsonRpcError[ERROR_OUTPUT], OUTPUT]]
+      logic: MonadError[F] => INPUT => F[Either[ERROR_OUTPUT, OUTPUT]]
   ): JsonRpcServerEndpoint.Full[INPUT, ERROR_OUTPUT, OUTPUT, F] = {
     type _INPUT = INPUT
     type _ERROR_OUTPUT = ERROR_OUTPUT
@@ -38,7 +38,7 @@ object JsonRpcServerEndpoint {
 
       override def endpoint: JsonRpcEndpoint[INPUT, ERROR_OUTPUT, OUTPUT] = e
 
-      override def logic: MonadError[F] => INPUT => F[Either[JsonRpcError[ERROR_OUTPUT], OUTPUT]] = f
+      override def logic: MonadError[F] => INPUT => F[Either[ERROR_OUTPUT, OUTPUT]] = f
     }
   }
 }

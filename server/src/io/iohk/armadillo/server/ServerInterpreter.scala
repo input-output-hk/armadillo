@@ -257,11 +257,11 @@ class ServerInterpreter[F[_], Raw] private (
 }
 
 object ServerInterpreter {
-  val ParseError: JsonRpcError[Unit] = JsonRpcError[Unit](-32700, "Parse error", ())
-  val InvalidRequest: JsonRpcError[Unit] = JsonRpcError[Unit](-32600, "Invalid Request", ())
-  val MethodNotFound: JsonRpcError[Unit] = JsonRpcError[Unit](-32601, "Method not found", ())
-  val InvalidParams: JsonRpcError[Unit] = JsonRpcError[Unit](-32602, "Invalid params", ())
-  val InternalError: JsonRpcError[Unit] = JsonRpcError[Unit](-32603, "Internal error", ())
+  val ParseError: JsonRpcError.NoData = JsonRpcError.noData(-32700, "Parse error")
+  val InvalidRequest: JsonRpcError.NoData = JsonRpcError.noData(-32600, "Invalid Request")
+  val MethodNotFound: JsonRpcError.NoData = JsonRpcError.noData(-32601, "Method not found")
+  val InvalidParams: JsonRpcError.NoData = JsonRpcError.noData(-32602, "Invalid params")
+  val InternalError: JsonRpcError.NoData = JsonRpcError.noData(-32603, "Internal error")
 
   def apply[F[_]: MonadError, Raw](
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
@@ -306,9 +306,11 @@ object ServerInterpreter {
           .map {
             case Left(value) =>
               val encodedError = ctx.endpoint.endpoint.error match {
-                case single @ JsonRpcErrorOutput.Single(_) =>
-                  val error = single.error // TODO should JsonRpcErrorResponse contain JsonRpcError[T] instead of Json?
-                  error.codec.encode(value.asInstanceOf[error.DATA]).asInstanceOf[Raw]
+                case single: JsonRpcErrorOutput.SingleNoData => single.codec.encode(value.asInstanceOf[single.DATA]).asInstanceOf[Raw]
+                case single: JsonRpcErrorOutput.SingleWithData[_] =>
+                  single.codec.encode(value.asInstanceOf[single.DATA]).asInstanceOf[Raw]
+                case JsonRpcErrorOutput.Fixed(code, message) => jsonSupport.encodeErrorNoData(JsonRpcError.noData(code, message))
+                case _: JsonRpcErrorOutput.Empty             => jsonSupport.jsNull
               }
               ctx.request.id.map(id => JsonRpcErrorResponse("2.0", encodedError, Some(id)))
             case Right(value) =>
@@ -331,7 +333,7 @@ object ServerInterpreter {
         monad.unit(result)
       }
 
-      private def createErrorResponse(error: JsonRpcError[Unit], id: Option[JsonRpcId]): Raw = {
+      private def createErrorResponse(error: JsonRpcError.NoData, id: Option[JsonRpcId]): Raw = {
         jsonSupport.encodeResponse(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(error), id))
       }
     }

@@ -40,7 +40,7 @@ trait ArmadilloCirceJson {
     for {
       code <- i.downField("code").as[Int]
       msg <- i.downField("message").as[String]
-    } yield JsonRpcError(code, msg, ())
+    } yield JsonRpcError.noData(code, msg)
   }
   implicit def jsonRpcErrorEncoder[T: Encoder]: Encoder[JsonRpcError[T]] = deriveEncoder[JsonRpcError[T]]
   implicit def jsonRpcErrorDecoder[T: Decoder]: Decoder[JsonRpcError[T]] = deriveDecoder[JsonRpcError[T]]

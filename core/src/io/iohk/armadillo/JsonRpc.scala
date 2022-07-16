@@ -69,6 +69,10 @@ object JsonRpcErrorResponse {
 
 final case class JsonRpcError[Data](code: Int, message: String, data: Data)
 object JsonRpcError {
-  implicit def schema[Data: Schema]: Schema[JsonRpcError[Data]] = Schema.derived[JsonRpcError[Data]]
+  type NoData = JsonRpcError[Unit]
+
+  implicit def schema[T: Schema]: Schema[JsonRpcError[T]] = Schema.derived[JsonRpcError[T]]
+
   def noData(code: Int, msg: String): JsonRpcError[Unit] = JsonRpcError(code, msg, ())
+  def withData[T](code: Int, msg: String, data: T): JsonRpcError[T] = JsonRpcError(code, msg, data)
 }

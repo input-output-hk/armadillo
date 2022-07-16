@@ -8,7 +8,6 @@ import io.iohk.armadillo.json.circe._
 import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
 import io.iohk.armadillo.{
   JsonRpcEndpoint,
-  JsonRpcError,
   JsonRpcErrorResponse,
   JsonRpcRequest,
   JsonRpcResponse,
@@ -33,7 +32,7 @@ trait AbstractBaseSuite[Body, Interpreter] extends SimpleIOSuite {
       endpoint: JsonRpcEndpoint[I, E, O],
       suffix: String = ""
   )(
-      f: I => IO[Either[JsonRpcError[E], O]]
+      f: I => IO[Either[E, O]]
   )(request: B): Unit
 
   def testInvalidRequest[I, E, O](
@@ -44,7 +43,7 @@ trait AbstractBaseSuite[Body, Interpreter] extends SimpleIOSuite {
       endpoint: JsonRpcEndpoint[I, E, O],
       suffix: String = ""
   )(
-      f: I => IO[Either[JsonRpcError[E], O]]
+      f: I => IO[Either[E, O]]
   )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit
 
   def testMultiple[B: Encoder](name: String)(

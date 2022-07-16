@@ -40,7 +40,7 @@ class CirceJsonSupport extends JsonSupport[Json] {
 
   override def stringify(raw: Json): String = raw.noSpaces
 
-  override def encodeErrorNoData(error: JsonRpcError[Unit]): Json = Encoder[JsonRpcError[Unit]].apply(error)
+  override def encodeErrorNoData(error: JsonRpcError.NoData): Json = Encoder[JsonRpcError.NoData].apply(error)
 
   override def encodeResponse(response: JsonRpcResponse[Json]): Json = {
     response match {

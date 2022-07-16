@@ -1,6 +1,5 @@
 package io.iohk.armadillo
 
-import sttp.tapir.EndpointIO.Info
 import sttp.tapir.internal.{CombineParams, SplitParams, mkCombine, mkSplit}
 import sttp.tapir.typelevel.ParamConcat
 
@@ -15,7 +14,7 @@ case class JsonRpcEndpoint[I, E, O](
   def in[J](i: JsonRpcInput[J]): JsonRpcEndpoint[J, E, O] =
     copy(input = i)
 
-  def serverLogic[F[_]](f: I => F[Either[JsonRpcError[E], O]]): JsonRpcServerEndpoint.Full[I, E, O, F] = {
+  def serverLogic[F[_]](f: I => F[Either[E, O]]): JsonRpcServerEndpoint.Full[I, E, O, F] = {
     import sttp.monad.syntax._
     JsonRpcServerEndpoint[I, E, O, F](this, implicit m => i => f(i).map(x => x))
   }
@@ -25,8 +24,8 @@ case class JsonRpcEndpoint[I, E, O](
 
   def out[P](o: JsonRpcOutput[P]): JsonRpcEndpoint[I, E, P] = copy(output = o)
 
-  def errorOut[F](error: JsonRpcErrorPart[F]): JsonRpcEndpoint[I, F, O] =
-    copy(error = JsonRpcErrorOutput.Single(error))
+  def errorOut[F](error: JsonRpcErrorOutput[F]): JsonRpcEndpoint[I, F, O] =
+    copy(error = error)
 
   def showDetail: String =
     s"JsonRpcEndpoint(method: $methodName, in: ${input.show}, errout: ${error.show}, out: ${output.show})"
@@ -123,18 +122,33 @@ object JsonRpcInput {
   }
 }
 
-trait JsonRpcErrorPart[T] extends JsonRpcEndpointTransput[T] {
-  type DATA
-  def codec: JsonRpcCodec[DATA]
-  def info: Info[T]
-  override def show: String = s"single"
+sealed trait JsonRpcErrorOutput[T] extends JsonRpcEndpointTransput[T] {
+  type DATA = T
 }
 
-sealed trait JsonRpcErrorOutput[T] extends JsonRpcEndpointTransput[T]
-
 object JsonRpcErrorOutput {
-  case class Single[T](error: JsonRpcErrorPart[T]) extends JsonRpcErrorOutput[T] {
-    override def show: String = s"single(${error.show})"
+  def emptyOutput: JsonRpcErrorOutput[Unit] = JsonRpcErrorOutput.Empty()
+  def fixed(code: Int, message: String): JsonRpcErrorOutput[Unit] = JsonRpcErrorOutput.Fixed(code, message)
+
+  case class SingleNoData(codec: JsonRpcCodec[JsonRpcError.NoData]) extends JsonRpcErrorOutput[JsonRpcError.NoData] {
+    override type DATA = JsonRpcError[Unit]
+    override def show: String = s"singleNoData"
+  }
+
+  case class SingleWithData[T](codec: JsonRpcCodec[JsonRpcError[T]]) extends JsonRpcErrorOutput[JsonRpcError[T]] {
+    override type DATA = JsonRpcError[T]
+    override def show: String = s"singleWithData"
+  }
+
+  case class Fixed[T](
+      code: Int,
+      message: String
+  ) extends JsonRpcErrorOutput[T] {
+    override def show: String = s"FixedJsonRpcError(message: $message, code: $code)"
+  }
+
+  case class Empty() extends JsonRpcErrorOutput[Unit] {
+    override def show: String = "-"
   }
 }
 

@@ -64,14 +64,19 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32601, "message": "Method not found"}""", Some(1))
   )
 
-  test(empty, "no_data_error")(_ => IO.pure(Left(JsonRpcError.noData(123, "error"))))(
-    request = JsonRpcRequest.v2("empty", json"[]", 1),
+  test(error_no_data, "no_data_error")(_ => IO.pure(Left(JsonRpcError.noData(123, "error"))))(
+    request = JsonRpcRequest.v2("error_no_data", json"[]", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": 123, "message": "error"}""", Some(1))
   )
 
-  test(error_with_data)(_ => IO.pure(Left(JsonRpcError(123, "error", 42))))(
+  test(error_with_data)(_ => IO.pure(Left(JsonRpcError.withData(123, "error", 42))))(
     request = JsonRpcRequest.v2("error_with_data", json"[]", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": 123, "message": "error", "data": 42}""", Some(1))
+  )
+
+  test(fixed_error, "fixed_error")(_ => IO.pure(Left(())))(
+    request = JsonRpcRequest.v2("fixed_error", json"[]", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": 200, "message": "something went wrong"}""", Some(1))
   )
 
   test(empty, "internal server error")(_ => IO.raiseError(new RuntimeException("something went wrong")))(
@@ -99,7 +104,7 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     List(
       hello_in_int_out_string.serverLogic[IO](int => IO.pure(Right(int.toString))),
       e1_int_string_out_int.serverLogic[IO](str => IO.delay(Right(parseInt(str)))),
-      error_with_data.serverLogic[IO](_ => IO.pure(Left(JsonRpcError(123, "error", 123))))
+      error_with_data.serverLogic[IO](_ => IO.pure(Left(JsonRpcError.withData(123, "error", 123))))
     )
   )(
     request = List(

@@ -5,7 +5,7 @@ import io.iohk.armadillo.server.JsonSupport.Json
 import sttp.tapir.DecodeResult
 
 trait JsonSupport[Raw] {
-  def encodeErrorNoData(error: JsonRpcError[Unit]): Raw
+  def encodeErrorNoData(error: JsonRpcError.NoData): Raw
   def encodeResponse(e: JsonRpcResponse[Raw]): Raw
 
   def parse(string: String): DecodeResult[Json[Raw]]

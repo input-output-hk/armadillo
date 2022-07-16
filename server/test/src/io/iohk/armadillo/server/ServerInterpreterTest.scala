@@ -16,7 +16,7 @@ object ServerInterpreterTest
   override def jsonNotAnObject: String = """["asd"]"""
 
   override def testNotification[I, E, O, B: Encoder](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
-      f: I => IO[Either[JsonRpcError[E], O]]
+      f: I => IO[Either[E, O]]
   )(request: B): Unit = {
     test(endpoint.showDetail + " as notification " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
@@ -41,7 +41,7 @@ object ServerInterpreterTest
   }
 
   override def test[I, E, O, B: Encoder](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
-      f: I => IO[Either[JsonRpcError[E], O]]
+      f: I => IO[Either[E, O]]
   )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit = {
     test(endpoint.showDetail + " " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))

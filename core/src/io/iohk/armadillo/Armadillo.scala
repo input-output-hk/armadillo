@@ -1,19 +1,17 @@
 package io.iohk.armadillo
 
-import sttp.tapir.EndpointIO.Info
-
 trait Armadillo {
 
   def jsonRpcEndpoint(
       methodName: MethodName,
       paramStructure: ParamStructure = ParamStructure.Either
-  )(implicit _codec: JsonRpcCodec[JsonRpcError[Unit]]): JsonRpcEndpoint[Unit, Unit, Unit] =
+  ): JsonRpcEndpoint[Unit, Unit, Unit] =
     JsonRpcEndpoint(
       methodName = methodName,
       paramStructure = paramStructure,
       input = JsonRpcInput.emptyInput,
       output = JsonRpcOutput.emptyOutput,
-      error = JsonRpcErrorOutput.Single(noDataError),
+      error = JsonRpcErrorOutput.emptyOutput,
       info = JsonRpcEndpointInfo.Empty
     )
 
@@ -23,22 +21,12 @@ trait Armadillo {
   def result[T: JsonRpcCodec](name: String): JsonRpcOutput.Basic[T] =
     JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], JsonRpcIoInfo.Empty, name)
 
-  def error[T](implicit _codec: JsonRpcCodec[JsonRpcError[T]]): JsonRpcErrorPart[T] =
-    new JsonRpcErrorPart[T] {
-      override type DATA = JsonRpcError[T]
+  def fixedError(code: Int, message: String): JsonRpcErrorOutput[Unit] =
+    JsonRpcErrorOutput.Fixed[Unit](code, message)
 
-      override def codec: JsonRpcCodec[JsonRpcError[T]] = _codec
+  def errorNoData(implicit codec: JsonRpcCodec[JsonRpcError[Unit]]): JsonRpcErrorOutput[JsonRpcError.NoData] =
+    JsonRpcErrorOutput.SingleNoData(codec)
 
-      override def info: Info[T] = Info.empty[T]
-    }
-
-  def noDataError(implicit _codec: JsonRpcCodec[JsonRpcError[Unit]]): JsonRpcErrorPart[Unit] = {
-    new JsonRpcErrorPart[Unit] {
-      override type DATA = JsonRpcError[Unit]
-
-      override def codec: JsonRpcCodec[JsonRpcError[Unit]] = _codec
-
-      override def info: Info[Unit] = Info.empty
-    }
-  }
+  def customError[T](implicit codec: JsonRpcCodec[JsonRpcError[T]]): JsonRpcErrorOutput[JsonRpcError[T]] =
+    JsonRpcErrorOutput.SingleWithData(codec)
 }
