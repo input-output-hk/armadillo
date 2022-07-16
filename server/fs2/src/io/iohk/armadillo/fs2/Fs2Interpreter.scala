@@ -2,7 +2,7 @@ package io.iohk.armadillo.fs2
 
 import cats.effect.kernel.Async
 import io.iohk.armadillo.JsonRpcServerEndpoint
-import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerInterpreterResponse}
+import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerResponse}
 import io.iohk.armadillo.server.{CustomInterceptors, Interceptor, JsonSupport, ServerInterpreter}
 import sttp.tapir.integ.cats.CatsMonadError
 
@@ -23,8 +23,8 @@ class Fs2Interpreter[F[_]: Async, Raw](
         fs2.Stream
           .eval(serverInterpreter.dispatchRequest(request))
           .collect {
-            case ServerInterpreterResponse.Result(response) => response
-            case ServerInterpreterResponse.Error(response)  => response
+            case Some(ServerResponse.Success(response)) => response
+            case Some(ServerResponse.Failure(response)) => response
           }
           .map(jsonSupport.stringify)
       }

@@ -50,7 +50,7 @@ object JsonRpcId {
 sealed trait JsonRpcResponse[Raw] {
   def jsonrpc: String
 }
-object JsonRpcResponse {
+object JsonRpcResponse { // TODO change to success and error sub types
   def v2[Raw](result: Raw, id: JsonRpcId): JsonRpcSuccessResponse[Raw] =
     JsonRpcSuccessResponse[Raw](JsonRpcVersion_2_0, result, id)
   def error_v2[Raw](error: Raw, id: Option[JsonRpcId] = None): JsonRpcErrorResponse[Raw] =

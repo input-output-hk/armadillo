@@ -7,7 +7,7 @@ import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.server.AbstractBaseSuite
 import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
-import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerInterpreterResponse}
+import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerResponse}
 import io.iohk.armadillo.tapir.TapirInterpreter
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
@@ -24,8 +24,10 @@ import scala.concurrent.ExecutionContext
 
 trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
 
-  override def invalidBody: StringBody =
+  override def invalidJson: StringBody =
     StringBody("""{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]""", "utf-8", MediaType.ApplicationJson)
+
+  override def jsonNotAnObject: StringBody = StringBody("""["asd"]""", "utf-8", MediaType.ApplicationJson)
 
   def testNotification[I, E, O, B: Encoder](
       endpoint: JsonRpcEndpoint[I, E, O],
@@ -59,19 +61,19 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
             .map { response =>
               expect.same(
                 expectedResponse match {
-                  case success @ JsonRpcSuccessResponse(_, _, _) => ServerInterpreterResponse.Result(jsonSupport.encodeResponse(success))
-                  case error @ JsonRpcErrorResponse(_, _, _)     => ServerInterpreterResponse.Error(jsonSupport.encodeResponse(error))
+                  case success @ JsonRpcSuccessResponse(_, _, _) => ServerResponse.Success(jsonSupport.encodeResponse(success))
+                  case error @ JsonRpcErrorResponse(_, _, _)     => ServerResponse.Failure(jsonSupport.encodeResponse(error))
                 },
                 response.body match {
                   case Left(error) =>
                     error match {
-                      case HttpError(body, _)             => ServerInterpreterResponse.Error(parser.parse(body).toOption.get)
+                      case HttpError(body, _)             => ServerResponse.Failure(parser.parse(body).toOption.get)
                       case DeserializationException(_, _) => throw new RuntimeException("DeserializationException was not expected")
                     }
                   case Right(body) =>
                     body match {
-                      case result @ JsonRpcSuccessResponse(_, _, _) => ServerInterpreterResponse.Result(jsonSupport.encodeResponse(result))
-                      case error @ JsonRpcErrorResponse(_, _, _)    => ServerInterpreterResponse.Error(jsonSupport.encodeResponse(error))
+                      case result @ JsonRpcSuccessResponse(_, _, _) => ServerResponse.Success(jsonSupport.encodeResponse(result))
+                      case error @ JsonRpcErrorResponse(_, _, _)    => ServerResponse.Failure(jsonSupport.encodeResponse(error))
                     }
                 }
               )
@@ -97,19 +99,19 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
             .map { response =>
               expect.same(
                 expectedResponse match {
-                  case success @ JsonRpcSuccessResponse(_, _, _) => ServerInterpreterResponse.Result(jsonSupport.encodeResponse(success))
-                  case error @ JsonRpcErrorResponse(_, _, _)     => ServerInterpreterResponse.Error(jsonSupport.encodeResponse(error))
+                  case success @ JsonRpcSuccessResponse(_, _, _) => ServerResponse.Success(jsonSupport.encodeResponse(success))
+                  case error @ JsonRpcErrorResponse(_, _, _)     => ServerResponse.Failure(jsonSupport.encodeResponse(error))
                 },
                 response.body match {
                   case Left(error) =>
                     error match {
-                      case HttpError(body, _)             => ServerInterpreterResponse.Error(parser.parse(body).toOption.get)
+                      case HttpError(body, _)             => ServerResponse.Failure(parser.parse(body).toOption.get)
                       case DeserializationException(_, _) => throw new RuntimeException("DeserializationException was not expected")
                     }
                   case Right(body) =>
                     body match {
-                      case result @ JsonRpcSuccessResponse(_, _, _) => ServerInterpreterResponse.Result(jsonSupport.encodeResponse(result))
-                      case error @ JsonRpcErrorResponse(_, _, _)    => ServerInterpreterResponse.Error(jsonSupport.encodeResponse(error))
+                      case result @ JsonRpcSuccessResponse(_, _, _) => ServerResponse.Success(jsonSupport.encodeResponse(result))
+                      case error @ JsonRpcErrorResponse(_, _, _)    => ServerResponse.Failure(jsonSupport.encodeResponse(error))
                     }
                 }
               )

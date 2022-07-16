@@ -183,8 +183,13 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32600, "message": "Invalid Request"}""")
   )
 
-  testInvalidRequest("parse error")(
-    request = invalidBody,
+  testInvalidRequest("parse error - invalid json")(
+    request = invalidJson,
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32700, "message": "Parse error"}""")
+  )
+
+  testInvalidRequest("parse error - root is not an object")(
+    request = jsonNotAnObject,
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32700, "message": "Parse error"}""")
   )
 

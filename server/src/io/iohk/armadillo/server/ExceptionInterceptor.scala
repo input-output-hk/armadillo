@@ -1,6 +1,7 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.server.ServerInterpreter.DecodeAction
+import cats.syntax.all._
+import io.iohk.armadillo.server.ServerInterpreter.{ResponseHandlingStatus, ServerResponse}
 import io.iohk.armadillo.{AnyEndpoint, AnyRequest, JsonRpcResponse}
 import sttp.monad.MonadError
 
@@ -15,7 +16,7 @@ class ExceptionInterceptor[F[_], Raw](handler: ExceptionHandler[Raw]) extends En
     new EndpointHandler[F, Raw] {
       override def onDecodeSuccess[I](ctx: EndpointHandler.DecodeSuccessContext[F, I, Raw])(implicit
           monad: MonadError[F]
-      ): F[DecodeAction[Raw]] = {
+      ): F[ResponseHandlingStatus[Raw]] = {
         monad.handleError(endpointHandler.onDecodeSuccess(ctx)) { case NonFatal(e) =>
           onException(e, ctx.endpoint.endpoint, ctx.request)
         }
@@ -23,7 +24,7 @@ class ExceptionInterceptor[F[_], Raw](handler: ExceptionHandler[Raw]) extends En
 
       override def onDecodeFailure(
           ctx: EndpointHandler.DecodeFailureContext[F, Raw]
-      )(implicit monad: MonadError[F]): F[DecodeAction[Raw]] = {
+      )(implicit monad: MonadError[F]): F[ResponseHandlingStatus[Raw]] = {
         monad.handleError(endpointHandler.onDecodeFailure(ctx)) { case NonFatal(e) =>
           onException(e, ctx.endpoint.endpoint, ctx.request)
         }
@@ -31,11 +32,8 @@ class ExceptionInterceptor[F[_], Raw](handler: ExceptionHandler[Raw]) extends En
 
       private def onException(e: Throwable, endpoint: AnyEndpoint, request: AnyRequest)(implicit
           monad: MonadError[F]
-      ): F[DecodeAction[Raw]] = {
-        handler(ExceptionContext(e, endpoint, request), jsonSupport) match {
-          case Right(response) => responder(response)
-          case Left(_)         => monad.error(e)
-        }
+      ): F[ResponseHandlingStatus[Raw]] = {
+        monad.suspend(monad.unit(handler(ExceptionContext(e, endpoint, request), jsonSupport)))
       }
     }
   }
@@ -45,15 +43,21 @@ case class ExceptionContext(e: Throwable, endpoint: AnyEndpoint, request: AnyReq
 
 trait ExceptionHandler[Raw] {
   // Left means unhandled
-  def apply(ctx: ExceptionContext, jsonSupport: JsonSupport[Raw]): Either[Unit, Option[JsonRpcResponse[Raw]]]
+  def apply(ctx: ExceptionContext, jsonSupport: JsonSupport[Raw]): ResponseHandlingStatus[Raw]
 }
 
 object ExceptionHandler {
   def default[Raw]: ExceptionHandler[Raw] = (ctx: ExceptionContext, jsonSupport: JsonSupport[Raw]) => {
     ctx.request.id match {
-      case Some(value) =>
-        Right(Some(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(ServerInterpreter.InternalError), Some(value))))
-      case None => Right(Option.empty)
+      case Some(id) =>
+        ResponseHandlingStatus.Handled(
+          ServerResponse
+            .Failure(
+              jsonSupport.encodeResponse(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(ServerInterpreter.InternalError), Some(id)))
+            )
+            .some
+        )
+      case None => ResponseHandlingStatus.Handled(none)
     }
   }
 }

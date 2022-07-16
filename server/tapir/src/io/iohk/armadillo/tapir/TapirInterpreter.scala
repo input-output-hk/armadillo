@@ -1,7 +1,7 @@
 package io.iohk.armadillo.tapir
 
 import io.iohk.armadillo._
-import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerInterpreterResponse}
+import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerResponse}
 import io.iohk.armadillo.server.{CustomInterceptors, Interceptor, JsonSupport, ServerInterpreter}
 import sttp.model.StatusCode
 import sttp.monad.MonadError
@@ -45,9 +45,9 @@ class TapirInterpreter[F[_], Raw](
         serverInterpreter
           .dispatchRequest(input)
           .map {
-            case ServerInterpreterResponse.Result(value) => Right((value, StatusCode.Ok))
-            case ServerInterpreterResponse.Error(value)  => Left((value, StatusCode.BadRequest))
-            case ServerInterpreterResponse.None()        => Right((jsonSupport.jsNull, StatusCode.Ok))
+            case Some(ServerResponse.Success(value)) => Right((value, StatusCode.Ok))
+            case Some(ServerResponse.Failure(value)) => Left((value, StatusCode.BadRequest))
+            case None                                => Right((jsonSupport.jsNull, StatusCode.Ok))
           }
       }
   }

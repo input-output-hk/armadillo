@@ -1,7 +1,6 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.{JsonRpcErrorResponse, JsonRpcSuccessResponse}
-import io.iohk.armadillo.server.ServerInterpreter.{DecodeAction, ServerInterpreterResponse}
+import io.iohk.armadillo.server.ServerInterpreter.ResponseHandlingStatus
 import sttp.monad.MonadError
 import sttp.monad.syntax._
 
@@ -15,23 +14,16 @@ class InvalidRequestMethodInterceptor[F[_], Raw](invalidRequestHandler: InvalidR
     new MethodHandler[F, Raw] {
       override def onDecodeSuccess[I](
           ctx: MethodHandler.DecodeSuccessContext[F, Raw]
-      )(implicit monad: MonadError[F]): F[DecodeAction[Raw]] = {
+      )(implicit monad: MonadError[F]): F[ResponseHandlingStatus[Raw]] = {
         next.onDecodeSuccess(ctx)
       }
 
-      override def onDecodeFailure(ctx: MethodHandler.DecodeFailureContext[F, Raw])(implicit monad: MonadError[F]): F[DecodeAction[Raw]] = {
+      override def onDecodeFailure(
+          ctx: MethodHandler.DecodeFailureContext[F, Raw]
+      )(implicit monad: MonadError[F]): F[ResponseHandlingStatus[Raw]] = {
         next.onDecodeFailure(ctx).map {
-          case DecodeAction.None() =>
-            invalidRequestHandler(ctx.request, ctx.f, jsonSupport) match {
-              case Some(response) =>
-                response match {
-                  case JsonRpcSuccessResponse(_, _, _) =>
-                    DecodeAction.ActionTaken(ServerInterpreterResponse.Result(jsonSupport.encodeResponse(response)))
-                  case JsonRpcErrorResponse(_, _, _) =>
-                    DecodeAction.ActionTaken(ServerInterpreterResponse.Error(jsonSupport.encodeResponse(response)))
-                }
-              case None => DecodeAction.None()
-            }
+          case ResponseHandlingStatus.Unhandled =>
+            invalidRequestHandler(ctx.request, ctx.f, jsonSupport)
           case actionTaken => actionTaken
         }
       }

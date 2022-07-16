@@ -1,8 +1,8 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.{JsonRpcRequest, JsonRpcServerEndpoint}
 import io.iohk.armadillo.server.JsonSupport.Json
-import io.iohk.armadillo.server.ServerInterpreter.DecodeAction
+import io.iohk.armadillo.server.ServerInterpreter.ResponseHandlingStatus
+import io.iohk.armadillo.{JsonRpcRequest, JsonRpcServerEndpoint}
 import sttp.monad.MonadError
 import sttp.monad.syntax._
 
@@ -15,7 +15,7 @@ class LoggingEndpointInterceptor[F[_], Raw](serverLog: ServerLog[F, Raw]) extend
     new EndpointHandler[F, Raw] {
       override def onDecodeSuccess[I](
           ctx: EndpointHandler.DecodeSuccessContext[F, I, Raw]
-      )(implicit monad: MonadError[F]): F[DecodeAction[Raw]] = {
+      )(implicit monad: MonadError[F]): F[ResponseHandlingStatus[Raw]] = {
         endpointHandler
           .onDecodeSuccess(ctx)
           .flatTap(response => serverLog.requestHandled(ctx, response))
@@ -26,7 +26,7 @@ class LoggingEndpointInterceptor[F[_], Raw](serverLog: ServerLog[F, Raw]) extend
 
       override def onDecodeFailure(
           ctx: EndpointHandler.DecodeFailureContext[F, Raw]
-      )(implicit monad: MonadError[F]): F[DecodeAction[Raw]] = {
+      )(implicit monad: MonadError[F]): F[ResponseHandlingStatus[Raw]] = {
         endpointHandler
           .onDecodeFailure(ctx)
           .flatTap(response => serverLog.decodeFailure(ctx, response))
@@ -39,7 +39,7 @@ class LoggingEndpointInterceptor[F[_], Raw](serverLog: ServerLog[F, Raw]) extend
 }
 
 trait ServerLog[F[_], Raw] {
-  def requestHandled(ctx: EndpointHandler.DecodeSuccessContext[F, _, Raw], response: DecodeAction[Raw]): F[Unit]
+  def requestHandled(ctx: EndpointHandler.DecodeSuccessContext[F, _, Raw], response: ResponseHandlingStatus[Raw]): F[Unit]
   def exception(endpoint: JsonRpcServerEndpoint[F], request: JsonRpcRequest[Json[Raw]], e: Throwable): F[Unit]
-  def decodeFailure(ctx: EndpointHandler.DecodeFailureContext[F, Raw], response: DecodeAction[Raw]): F[Unit]
+  def decodeFailure(ctx: EndpointHandler.DecodeFailureContext[F, Raw], response: ResponseHandlingStatus[Raw]): F[Unit]
 }
