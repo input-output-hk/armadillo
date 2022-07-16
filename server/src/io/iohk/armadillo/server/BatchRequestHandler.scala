@@ -24,24 +24,14 @@ object BatchRequestHandler {
         }
         .map { decodeActions =>
           val responsesWithoutNotification = decodeActions.collect {
-            case result @ DecodeAction.ActionTaken(ServerInterpreterResponse.Result(_)) => result.response
-            case error @ DecodeAction.ActionTaken(ServerInterpreterResponse.Error(_))   => error.response
+            case result @ DecodeAction.ActionTaken(ServerInterpreterResponse.Result(raw)) => raw
+            case error @ DecodeAction.ActionTaken(ServerInterpreterResponse.Error(raw))   => raw
           }
 
           if (responsesWithoutNotification.isEmpty) {
             DecodeAction.ActionTaken(ServerInterpreterResponse.None())
           } else {
-            DecodeAction.ActionTaken(
-              ServerInterpreterResponse.Result(
-                jsonSupport.asArray(
-                  responsesWithoutNotification.toVector.map {
-                    case ServerInterpreterResponse.Result(value) => value
-                    case ServerInterpreterResponse.Error(value)  => value
-                    case ServerInterpreterResponse.None()        => throw new RuntimeException("Notification should not have a response")
-                  }
-                )
-              )
-            )
+            DecodeAction.ActionTaken(ServerInterpreterResponse.Result(jsonSupport.asArray(responsesWithoutNotification.toVector)))
           }
         }
     }
