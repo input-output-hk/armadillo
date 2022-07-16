@@ -9,12 +9,18 @@ case class JsonRpcRequest[Raw](jsonrpc: String, method: String, params: Option[R
 object JsonRpcRequest {
   implicit def schema[Raw: Schema]: Schema[JsonRpcRequest[Raw]] = Schema.derived[JsonRpcRequest[Raw]]
 
-  def v2[Raw](method: String, params: Option[Raw], id: JsonRpcId): JsonRpcRequest[Raw] =
-    JsonRpcRequest(JsonRpcVersion_2_0, method, params, Some(id))
+  def v2[Raw](method: String, params: Raw, id: JsonRpcId): JsonRpcRequest[Raw] =
+    JsonRpcRequest(JsonRpcVersion_2_0, method, Some(params), Some(id))
+
+  def v2[Raw](method: String, id: JsonRpcId): JsonRpcRequest[Raw] =
+    JsonRpcRequest(JsonRpcVersion_2_0, method, None, Some(id))
 }
 object Notification {
-  def v2[Raw](method: String, params: Option[Raw]): JsonRpcRequest[Raw] =
-    JsonRpcRequest(JsonRpcVersion_2_0, method, params, None)
+  def v2[Raw](method: String, params: Raw): JsonRpcRequest[Raw] =
+    JsonRpcRequest(JsonRpcVersion_2_0, method, Some(params), None)
+
+  def v2[Raw](method: String): JsonRpcRequest[Raw] =
+    JsonRpcRequest(JsonRpcVersion_2_0, method, None, None)
 }
 
 sealed trait JsonRpcId

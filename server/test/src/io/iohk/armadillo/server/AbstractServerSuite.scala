@@ -11,71 +11,71 @@ import java.lang.Integer.parseInt
 
 trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Interpreter] {
   test(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
-    request = JsonRpcRequest.v2("hello", Some(json"[42]"), 1),
+    request = JsonRpcRequest.v2("hello", json"[42]", 1),
     expectedResponse = JsonRpcResponse.v2(json"${"42"}", 1)
   )
 
   test(hello_in_int_out_string, "invalid params")(int => IO.pure(Right(int.toString)))(
-    request = JsonRpcRequest.v2("hello", Some(json"[true]"), 1),
+    request = JsonRpcRequest.v2("hello", json"[true]", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
   )
 
   test(hello_in_int_out_string, "too many params")(int => IO.pure(Right(int.toString)))(
-    request = JsonRpcRequest.v2("hello", Some(json"[42, 43]"), 1),
+    request = JsonRpcRequest.v2("hello", json"[42, 43]", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
   )
 
   test(hello_in_int_out_string_by_name, "expected params by name")(int => IO.pure(Right(int.toString)))(
-    request = JsonRpcRequest.v2("hello", Some(json"[42]"), 1),
+    request = JsonRpcRequest.v2("hello", json"[42]", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
   )
 
   test(hello_in_int_out_string_by_position, "expected params by pos")(int => IO.pure(Right(int.toString)))(
-    request = JsonRpcRequest.v2("hello", Some(json"""{"param1": 42}"""), 1),
+    request = JsonRpcRequest.v2("hello", json"""{"param1": 42}""", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
   )
 
   testNotification(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
-    request = Notification.v2("hello", Some(json"[42]"))
+    request = Notification.v2("hello", json"[42]")
   )
 
   test(hello_in_int_out_string, "by_name")(int => IO.pure(Right(int.toString)))(
-    request = JsonRpcRequest.v2("hello", Some(json"""{"param1": 42}"""), 1),
+    request = JsonRpcRequest.v2("hello", json"""{"param1": 42}""", 1),
     expectedResponse = JsonRpcResponse.v2(json"${"42"}", 1)
   )
 
   test(hello_in_multiple_int_out_string) { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
-    request = JsonRpcRequest.v2("hello", Some(json"[42, 43]"), 1),
+    request = JsonRpcRequest.v2("hello", json"[42, 43]", 1),
     expectedResponse = JsonRpcResponse.v2(json"${"85"}", 1)
   )
 
   test(hello_in_multiple_int_out_string, "by_name") { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
-    request = JsonRpcRequest.v2("hello", Some(json"""{"param1": 42, "param2": 43}"""), 1),
+    request = JsonRpcRequest.v2("hello", json"""{"param1": 42, "param2": 43}""", 1),
     expectedResponse = JsonRpcResponse.v2(json"${"85"}", 1)
   )
 
   test(empty)(_ => IO.delay(Right(println("hello from server"))))(
-    request = JsonRpcRequest.v2("empty", Some(json"""[]"""), 1),
+    request = JsonRpcRequest.v2("empty", json"""[]""", 1),
     expectedResponse = JsonRpcResponse.v2(Json.Null, 1)
   )
 
   test(empty, "method not found")(_ => IO.delay(Right(println("hello from server"))))(
-    request = JsonRpcRequest.v2("non_existing_method", Some(json"""[]"""), 1),
+    request = JsonRpcRequest.v2("non_existing_method", json"""[]""", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32601, "message": "Method not found"}""", Some(1))
   )
 
   test(empty, "no_data_error")(_ => IO.pure(Left(JsonRpcError.noData(123, "error"))))(
-    request = JsonRpcRequest.v2("empty", Some(json"[]"), 1),
+    request = JsonRpcRequest.v2("empty", json"[]", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": 123, "message": "error"}""", Some(1))
   )
 
   test(error_with_data)(_ => IO.pure(Left(JsonRpcError(123, "error", 42))))(
-    request = JsonRpcRequest.v2("error_with_data", Some(json"[]"), 1),
+    request = JsonRpcRequest.v2("error_with_data", json"[]", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": 123, "message": "error", "data": 42}""", Some(1))
   )
 
   test(empty, "internal server error")(_ => IO.raiseError(new RuntimeException("something went wrong")))(
-    request = JsonRpcRequest.v2("empty", Some(json"[]"), 1),
+    request = JsonRpcRequest.v2("empty", json"[]", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32603, "message": "Internal error"}""", Some(1))
   )
 
@@ -86,8 +86,8 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     )
   )(
     request = List(
-      JsonRpcRequest.v2("hello", Some(json"[11]"), "1"),
-      JsonRpcRequest.v2("e1", Some(json"""{"param1": "22"}"""), 2)
+      JsonRpcRequest.v2("hello", json"[11]", "1"),
+      JsonRpcRequest.v2("e1", json"""{"param1": "22"}""", 2)
     ),
     expectedResponse = List(
       JsonRpcResponse.v2(Json.fromString("11"), 1),
@@ -103,9 +103,9 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     )
   )(
     request = List(
-      JsonRpcRequest.v2("hello", Some(json"[11]"), "1"),
-      Notification.v2("e1", Some(json"""{"param1": "22"}""")),
-      JsonRpcRequest.v2("error_with_data", Some(json"[]"), "3")
+      JsonRpcRequest.v2("hello", json"[11]", "1"),
+      Notification.v2("e1", json"""{"param1": "22"}"""),
+      JsonRpcRequest.v2("error_with_data", json"[]", "3")
     ),
     expectedResponse = List(
       JsonRpcResponse.v2(Json.fromString("11"), 1),
@@ -121,9 +121,9 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     )
   )(
     request = List(
-      JsonRpcRequest.v2("hello", Some(json"[11]"), "1"),
-      Notification.v2("e1", Some(json"""{"param1": "22"}""")),
-      JsonRpcRequest.v2("error_with_data", Some(json"[]"), "3")
+      JsonRpcRequest.v2("hello", json"[11]", "1"),
+      Notification.v2("e1", json"""{"param1": "22"}"""),
+      JsonRpcRequest.v2("error_with_data", json"[]", "3")
     ),
     expectedResponse = List(
       JsonRpcResponse.error_v2(json"""{"code": -32603, "message": "Internal error"}""", Some(1)),
@@ -133,9 +133,9 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
 
   testMultiple("batch_request method_not_found")(List.empty)(
     request = List(
-      JsonRpcRequest.v2("non_existing_method_1", Some(json"[11]"), "1"),
-      Notification.v2("non_existing_method_2", Some(json"""{"param1": "22"}""")),
-      JsonRpcRequest.v2("non_existing_method_3", Some(json"[11]"), "3")
+      JsonRpcRequest.v2("non_existing_method_1", json"[11]", "1"),
+      Notification.v2("non_existing_method_2", json"""{"param1": "22"}"""),
+      JsonRpcRequest.v2("non_existing_method_3", json"[11]", "3")
     ),
     expectedResponse = List(
       JsonRpcResponse.error_v2(json"""{"code": -32601, "message": "Method not found"}""", Some(1)),
@@ -178,63 +178,63 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
   test(optional_input, "all inputs provided using positional style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
   }(
-    request = JsonRpcRequest.v2("optional_input", Some(json"""["alice", 1]"""), 1),
+    request = JsonRpcRequest.v2("optional_input", json"""["alice", 1]""", 1),
     expectedResponse = JsonRpcResponse.v2(Json.fromString("1alice"), 1)
   )
 
   test(optional_input, "all inputs provided using by-name style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
   }(
-    request = JsonRpcRequest.v2("optional_input", Some(json"""{"p2": 1, "p1": "alice"}"""), 1),
+    request = JsonRpcRequest.v2("optional_input", json"""{"p2": 1, "p1": "alice"}""", 1),
     expectedResponse = JsonRpcResponse.v2(Json.fromString("1alice"), 1)
   )
 
   test(optional_input, "optional input omitted when using positional style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
-  }(request = JsonRpcRequest.v2("optional_input", Some(json"""[1]"""), 1), expectedResponse = JsonRpcResponse.v2(Json.fromString("1"), 1))
+  }(request = JsonRpcRequest.v2("optional_input", json"""[1]""", 1), expectedResponse = JsonRpcResponse.v2(Json.fromString("1"), 1))
 
   test(optional_input, "optional input omitted when using by-name style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
   }(
-    request = JsonRpcRequest.v2("optional_input", Some(json"""{"p2": 1}"""), 1),
+    request = JsonRpcRequest.v2("optional_input", json"""{"p2": 1}""", 1),
     expectedResponse = JsonRpcResponse.v2(Json.fromString("1"), 1)
   )
 
   test(optional_input, "should fail when mandatory input omitted when using by-name style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
   }(
-    request = JsonRpcRequest.v2("optional_input", Some(json"""{"p1": "alice"}"""), 1),
+    request = JsonRpcRequest.v2("optional_input", json"""{"p1": "alice"}""", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
   )
 
   test(optional_input, "should fail when mandatory input omitted when using by-pos style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
   }(
-    request = JsonRpcRequest.v2("optional_input", Some(json"""["alice"]"""), 1),
+    request = JsonRpcRequest.v2("optional_input", json"""["alice"]""", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
   )
 
   test(optional_input, "should fail when given more parameters than expected - positional style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
   }(
-    request = JsonRpcRequest.v2("optional_input", Some(json"""["alice", 1, 2]"""), 1),
+    request = JsonRpcRequest.v2("optional_input", json"""["alice", 1, 2]""", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
   )
 
   test(optional_input, "should fail when given more parameters than expected - by-name style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
   }(
-    request = JsonRpcRequest.v2("optional_input", Some(json"""{"p1": "alice", "p2": 1, "p3": 2}"""), 1),
+    request = JsonRpcRequest.v2("optional_input", json"""{"p1": "alice", "p2": 1, "p3": 2}""", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", Some(1))
   )
 
   test(optional_output, "should return optional response")(_ => IO.pure(Right(Option.empty[String])))(
-    request = JsonRpcRequest.v2("optional_output", Some(json"""{}"""), 1),
+    request = JsonRpcRequest.v2("optional_output", json"""{}""", 1),
     expectedResponse = JsonRpcResponse.v2(Json.Null, 1)
   )
 
   test(output_without_params, "should return response when no params attribute is missing")(_ => IO.pure(Right("params is not required")))(
-    request = JsonRpcRequest.v2("output_without_params", Option.empty[Json], 1),
+    request = JsonRpcRequest.v2[Json]("output_without_params", 1),
     expectedResponse = JsonRpcResponse.v2(Json.fromString("params is not required"), 1)
   )
 }
