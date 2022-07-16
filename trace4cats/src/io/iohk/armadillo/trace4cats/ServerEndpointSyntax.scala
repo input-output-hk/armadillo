@@ -3,7 +3,7 @@ package io.iohk.armadillo.trace4cats
 import cats.Monad
 import cats.effect.kernel.MonadCancelThrow
 import cats.syntax.either._
-import io.iohk.armadillo.{JsonRpcError, JsonRpcServerEndpoint}
+import io.iohk.armadillo.JsonRpcServerEndpoint
 import io.janstenpickle.trace4cats.Span
 import io.janstenpickle.trace4cats.base.context.Provide
 import io.janstenpickle.trace4cats.inject.{EntryPoint, ResourceKleisli, Trace}
@@ -25,7 +25,7 @@ trait ServerEndpointSyntax {
       val inputSpanNamer = spanNamer(serverEndpoint.endpoint, _)
       val context = ArmadilloResourceKleislis
         .fromInput[F, I](inputSpanNamer)(entryPoint.toKleisli)
-        .map(_.asRight[JsonRpcError[E]])
+        .map(_.asRight[E])
       ServerEndpointTracer.inject(
         serverEndpoint,
         context,
@@ -44,13 +44,13 @@ trait ServerEndpointSyntax {
     ): JsonRpcServerEndpoint.Full[I, E, O, F] =
       ServerEndpointTracer.inject(
         serverEndpoint,
-        k.map(_.asRight[JsonRpcError[E]]),
+        k.map(_.asRight[E]),
         errorToSpanStatus
       )
 
     def injectContext[Ctx](
         entryPoint: EntryPoint[F],
-        makeContext: (I, Span[F]) => F[Either[JsonRpcError[E], Ctx]],
+        makeContext: (I, Span[F]) => F[Either[E, Ctx]],
         spanNamer: ArmadilloSpanNamer[I] = ArmadilloSpanNamer.methodName,
         errorToSpanStatus: ArmadilloStatusMapping[E] = ArmadilloStatusMapping.errorStringToInternal
     )(implicit
@@ -73,7 +73,7 @@ trait ServerEndpointSyntax {
     }
 
     def tracedContext[Ctx](
-        k: ResourceKleisli[F, I, Either[JsonRpcError[E], Ctx]],
+        k: ResourceKleisli[F, I, Either[E, Ctx]],
         errorToSpanStatus: ArmadilloStatusMapping[E] = ArmadilloStatusMapping.errorStringToInternal
     )(implicit
         P: Provide[F, G, Ctx],

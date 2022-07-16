@@ -33,7 +33,7 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
       endpoint: JsonRpcEndpoint[I, E, O],
       suffix: String = ""
   )(
-      f: I => IO[Either[JsonRpcError[E], O]]
+      f: I => IO[Either[E, O]]
   )(request: B): Unit = {
     test(endpoint.showDetail + " as notification " + suffix) {
       testSingleEndpoint(endpoint)(f)
@@ -86,7 +86,7 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
       endpoint: JsonRpcEndpoint[I, E, O],
       suffix: String = ""
   )(
-      f: I => IO[Either[JsonRpcError[E], O]]
+      f: I => IO[Either[E, O]]
   )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit = {
     test(endpoint.showDetail + " " + suffix) {
       testSingleEndpoint(endpoint)(f)
@@ -152,7 +152,7 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
 
   def testSingleEndpoint[I, E, O](
       endpoint: JsonRpcEndpoint[I, E, O]
-  )(logic: I => IO[Either[JsonRpcError[E], O]]): Resource[IO, (SttpBackend[IO, Any], Uri)] = {
+  )(logic: I => IO[Either[E, O]]): Resource[IO, (SttpBackend[IO, Any], Uri)] = {
     testMultipleEndpoints(List(endpoint.serverLogic(logic)))
   }
 
