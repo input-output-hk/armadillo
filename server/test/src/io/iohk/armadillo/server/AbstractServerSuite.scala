@@ -195,7 +195,10 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
 
   test(optional_input, "optional input omitted when using by-name style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
-  }(request = JsonRpcRequest.v2("optional_input", json"""{"p2": 1}""", 1), expectedResponse = JsonRpcResponse.v2(Json.fromString("1"), 1))
+  }(
+    request = JsonRpcRequest.v2("optional_input", json"""{"p2": 1}""", 1),
+    expectedResponse = JsonRpcResponse.v2(Json.fromString("1"), 1)
+  )
 
   test(optional_input, "should fail when mandatory input omitted when using by-name style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
@@ -228,5 +231,10 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
   test(optional_output, "should return optional response")(_ => IO.pure(Right(Option.empty[String])))(
     request = JsonRpcRequest.v2("optional_output", json"""{}""", 1),
     expectedResponse = JsonRpcResponse.v2(Json.Null, 1)
+  )
+
+  test(output_without_params, "should return response when no params attribute is missing")(_ => IO.pure(Right("params is not required")))(
+    request = JsonRpcRequest.v2[Json]("output_without_params", 1),
+    expectedResponse = JsonRpcResponse.v2(Json.fromString("params is not required"), 1)
   )
 }
