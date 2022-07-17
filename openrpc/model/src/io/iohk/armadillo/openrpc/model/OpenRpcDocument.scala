@@ -20,6 +20,7 @@ case class OpenRpcMethod(
     summary: Option[String] = None,
     description: Option[String] = None,
     params: List[OpenRpcParam] = List.empty,
+    errors: List[OpenRpcError] = List.empty,
     result: OpenRpcResult
 )
 
@@ -42,3 +43,5 @@ case class OpenRpcParam(
 )
 
 case class OpenRpcResult(name: String, summary: Option[String] = None, description: Option[String] = None, schema: ReferenceOr[Schema])
+
+case class OpenRpcError(code: Int, message: String, data: Option[ReferenceOr[Schema]])

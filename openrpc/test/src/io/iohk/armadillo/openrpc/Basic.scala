@@ -1,10 +1,10 @@
 package io.iohk.armadillo.openrpc
 
-import io.iohk.armadillo.json.circe._
-import io.iohk.armadillo._
 import io.circe.generic.auto._
-import sttp.tapir.{Schema, SchemaType}
+import io.iohk.armadillo._
+import io.iohk.armadillo.json.circe._
 import sttp.tapir.generic.auto._
+import sttp.tapir.{Schema, SchemaType}
 
 object Basic {
   val basic: JsonRpcEndpoint[Int, Unit, String] = jsonRpcEndpoint(m"hello")
@@ -116,4 +116,24 @@ object Basic {
 
   val arrayOfRecursiveOptionalResult: JsonRpcEndpoint[Unit, Unit, List[F3]] = jsonRpcEndpoint(m"createPet")
     .out(result[List[F3]]("p1"))
+
+  val singleFixedError: JsonRpcEndpoint[Int, Unit, String] = jsonRpcEndpoint(m"hello")
+    .in(param[Int]("param1"))
+    .errorOut(fixedError(100, "My fixed error"))
+    .out[String]("response")
+
+  val singleFixedErrorWithData: JsonRpcEndpoint[Int, String, String] = jsonRpcEndpoint(m"hello")
+    .in(param[Int]("param1"))
+    .errorOut(fixedErrorWithData[String](100, "My fixed error"))
+    .out[String]("response")
+
+  val oneOfFixedErrors: JsonRpcEndpoint[Unit, Unit, Int] = jsonRpcEndpoint(m"oneOf")
+    .errorOut(oneOf(oneOfVariant(fixedError(201, "error1")), oneOfVariant(fixedError(202, "error2"))))
+    .out(result[Int]("p1"))
+
+  val oneOfFixedErrorsWithData: JsonRpcEndpoint[Unit, ErrorInfo, Int] = jsonRpcEndpoint(m"oneOf")
+    .errorOut(oneOf(oneOfVariant(fixedErrorWithData[ErrorInfo](201, "error1")), oneOfVariant(fixedErrorWithData[ErrorInfo](202, "error2"))))
+    .out(result[Int]("p1"))
+
+  case class ErrorInfo(bugId: Int)
 }

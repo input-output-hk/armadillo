@@ -42,6 +42,8 @@ class CirceJsonSupport extends JsonSupport[Json] {
 
   override def encodeErrorNoData(error: JsonRpcError.NoData): Json = Encoder[JsonRpcError.NoData].apply(error)
 
+  override def encodeErrorWithData(error: JsonRpcError[Json]): Json = Encoder[JsonRpcError[Json]].apply(error)
+
   override def encodeResponse(response: JsonRpcResponse[Json]): Json = {
     response match {
       case success: JsonRpcSuccessResponse[Json] => Encoder[JsonRpcSuccessResponse[Json]].apply(success)

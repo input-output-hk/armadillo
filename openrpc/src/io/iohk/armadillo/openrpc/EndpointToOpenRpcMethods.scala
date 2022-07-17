@@ -2,7 +2,7 @@ package io.iohk.armadillo.openrpc
 
 import io.iohk.armadillo.openrpc.EndpointToOpenRpcMethods.EmptyResult
 import io.iohk.armadillo.openrpc.model._
-import io.iohk.armadillo.{AnyEndpoint, JsonRpcEndpoint, JsonRpcIO, JsonRpcInput}
+import io.iohk.armadillo.{AnyEndpoint, JsonRpcEndpoint, JsonRpcErrorOutput, JsonRpcIO, JsonRpcInput}
 import sttp.tapir.SchemaType
 import sttp.tapir.apispec.Schema
 
@@ -29,7 +29,8 @@ class EndpointToOpenRpcMethods(schemas: Schemas) {
             externalDocs = t.externalDocs.map(ed => OpenRpcExternalDocs(url = ed.url, description = ed.description))
           )
         )
-        .toList
+        .toList,
+      errors = convertError(endpoint.error)
     )
   }
 
@@ -63,6 +64,19 @@ class EndpointToOpenRpcMethods(schemas: Schemas) {
       case single: JsonRpcIO.Single[_] =>
         val schema = schemas(single.codec, replaceOptionWithCoproduct = true)
         OpenRpcResult(name = single.name, schema = schema, summary = single.info.summary, description = single.info.description)
+    }
+  }
+
+  private def convertError(errorOutput: JsonRpcErrorOutput[_]): List[OpenRpcError] = {
+    errorOutput match {
+      case single: JsonRpcErrorOutput.Fixed[_] =>
+        List(OpenRpcError(single.code, single.message, None))
+      case single: JsonRpcErrorOutput.FixedWithData[_] =>
+        val schema = schemas(single.codec, replaceOptionWithCoproduct = true)
+        List(OpenRpcError(single.code, single.message, Some(schema)))
+      case JsonRpcErrorOutput.OneOf(variants, _) =>
+        variants.flatMap(v => convertError(v.output))
+      case _ => List.empty
     }
   }
 }

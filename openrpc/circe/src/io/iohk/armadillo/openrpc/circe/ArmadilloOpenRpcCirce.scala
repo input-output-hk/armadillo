@@ -41,6 +41,7 @@ trait ArmadilloOpenRpcCirce {
 
   implicit val paramEncoder: Encoder[OpenRpcParam] = deriveEncoder[OpenRpcParam]
   implicit val resultEncoder: Encoder[OpenRpcResult] = deriveEncoder[OpenRpcResult]
+  implicit val errorEncoder: Encoder[OpenRpcError] = deriveEncoder[OpenRpcError]
 
   implicit val extDescriptionEncoder: Encoder[OpenRpcExternalDocs] = deriveEncoder[OpenRpcExternalDocs]
   implicit val tagsEncoder: Encoder[OpenRpcMethodTag] = deriveEncoder[OpenRpcMethodTag]

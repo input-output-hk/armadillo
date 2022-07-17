@@ -1,0 +1,15 @@
+openrpc: 1.2.1
+info:
+  version: 1.0.0
+  title: Demo Pet Store
+methods:
+- name: oneOf
+  errors:
+  - code: 201
+    message: error1
+  - code: 202
+    message: error2
+  result:
+    name: p1
+    schema:
+      type: integer

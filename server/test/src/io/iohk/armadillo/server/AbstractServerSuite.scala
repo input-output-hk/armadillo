@@ -79,6 +79,12 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": 200, "message": "something went wrong"}""", Some(1))
   )
 
+  test(fixed_error_with_data, "fixed_error_with_data")(_ => IO.pure(Left("custom error message")))(
+    request = JsonRpcRequest.v2("fixed_error_with_data", json"[]", 1),
+    expectedResponse =
+      JsonRpcResponse.error_v2(json"""{"code": 200, "message": "something went wrong", "data": "custom error message"}""", Some(1))
+  )
+
   test(empty, "internal server error")(_ => IO.raiseError(new RuntimeException("something went wrong")))(
     request = JsonRpcRequest.v2("empty", json"[]", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32603, "message": "Internal error"}""", Some(1))

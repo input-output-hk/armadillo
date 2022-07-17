@@ -1,7 +1,7 @@
 package io.iohk.armadillo.openrpc
 
 import io.iohk.armadillo.openrpc.OpenRpcDocsInterpreter.NamedSchema
-import io.iohk.armadillo.{AnyEndpoint, JsonRpcIO, JsonRpcInput, JsonRpcOutput}
+import io.iohk.armadillo.{AnyEndpoint, JsonRpcErrorOutput, JsonRpcIO, JsonRpcInput, JsonRpcOutput}
 import sttp.tapir.Schema.SName
 import sttp.tapir.apispec.{ReferenceOr, Schema => ASchema, SchemaType => _}
 
@@ -9,13 +9,13 @@ import scala.collection.immutable.ListMap
 
 class SchemaForEndpoints(es: List[AnyEndpoint], toNamedSchemas: ToNamedSchemas, markOptionsAsNullable: Boolean) {
 
-  val defaultSchemaName: SName => String = info => {
+  private val defaultSchemaName: SName => String = info => {
     val shortName = info.fullName.split('.').last
     (shortName +: info.typeParameterShortNames).mkString("_")
   }
 
   def calculate(): (ListMap[String, ReferenceOr[ASchema]], Schemas) = {
-    val sObjects = ToNamedSchemas.unique(es.flatMap(e => forInput(e.input) ++ forOutput(e.output)))
+    val sObjects = ToNamedSchemas.unique(es.flatMap(e => forInput(e.input) ++ forOutput(e.output) ++ forErrorOutput(e.error)))
     val infoToKey = calculateUniqueKeys(sObjects.map(_._1), defaultSchemaName)
     val objectToSchemaReference = new NameToSchemaReference(infoToKey)
     val schemaConverter = new SchemaToOpenRpcSchema(objectToSchemaReference, markOptionsAsNullable, infoToKey)
@@ -42,6 +42,14 @@ class SchemaForEndpoints(es: List[AnyEndpoint], toNamedSchemas: ToNamedSchemas, 
   private def forOutput(output: JsonRpcOutput[_]): List[NamedSchema] = {
     output match {
       case io: JsonRpcIO[_] => forIO(io, replaceOptionWithCoproduct = true)
+    }
+  }
+
+  private def forErrorOutput(output: JsonRpcErrorOutput[_]): List[NamedSchema] = {
+    output match {
+      case JsonRpcErrorOutput.FixedWithData(_, _, codec) => toNamedSchemas(codec, replaceOptionWithCoproduct = true)
+      case JsonRpcErrorOutput.OneOf(variants, _)         => variants.flatMap(v => forErrorOutput(v.output))
+      case _                                             => List.empty
     }
   }
 

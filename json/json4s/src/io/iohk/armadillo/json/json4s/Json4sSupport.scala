@@ -23,6 +23,11 @@ class Json4sSupport private (parseAsJValue: String => JValue, render: JValue => 
     Extraction.decompose(map)
   }
 
+  override def encodeErrorWithData(error: JsonRpcError[JValue]): JValue = { // TODO check
+    val map = Map("code" -> error.code, "message" -> error.message, "data" -> error.data)
+    Extraction.decompose(map)
+  }
+
   override def encodeResponse(response: JsonRpcResponse[JValue]): JValue = {
     response match {
       case success: JsonRpcSuccessResponse[JValue] => Extraction.decompose(success)

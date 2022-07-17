@@ -6,6 +6,8 @@ import sttp.tapir.DecodeResult
 
 trait JsonSupport[Raw] {
   def encodeErrorNoData(error: JsonRpcError.NoData): Raw
+  def encodeErrorWithData(error: JsonRpcError[Raw]): Raw
+
   def encodeResponse(e: JsonRpcResponse[Raw]): Raw
 
   def parse(string: String): DecodeResult[Json[Raw]]

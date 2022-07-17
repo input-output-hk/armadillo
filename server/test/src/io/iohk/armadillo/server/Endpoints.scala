@@ -24,13 +24,16 @@ object Endpoints {
   val empty: JsonRpcEndpoint[Unit, Unit, Unit] = jsonRpcEndpoint(m"empty")
 
   val error_no_data: JsonRpcEndpoint[Unit, JsonRpcError.NoData, Unit] = jsonRpcEndpoint(m"error_no_data")
-    .errorOut(errorNoData)
+    .errorOut(error)
 
   val error_with_data: JsonRpcEndpoint[Unit, JsonRpcError[Int], Unit] = jsonRpcEndpoint(m"error_with_data")
-    .errorOut(customError[Int])
+    .errorOut(errorWithData[Int])
 
   val fixed_error: JsonRpcEndpoint[Unit, Unit, Unit] = jsonRpcEndpoint(m"fixed_error")
     .errorOut(fixedError(200, "something went wrong"))
+
+  val fixed_error_with_data: JsonRpcEndpoint[Unit, String, Unit] = jsonRpcEndpoint(m"fixed_error_with_data")
+    .errorOut(fixedErrorWithData[String](200, "something went wrong"))
 
   val e1_int_string_out_int: JsonRpcEndpoint[String, Unit, Int] = jsonRpcEndpoint(m"e1")
     .in(param[String]("param1"))

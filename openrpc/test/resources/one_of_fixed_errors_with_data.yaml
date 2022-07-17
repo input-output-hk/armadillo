@@ -1,0 +1,29 @@
+openrpc: 1.2.1
+info:
+  version: 1.0.0
+  title: Demo Pet Store
+methods:
+- name: oneOf
+  errors:
+  - code: 201
+    message: error1
+    data:
+      $ref: '#/components/schemas/ErrorInfo'
+  - code: 202
+    message: error2
+    data:
+      $ref: '#/components/schemas/ErrorInfo'
+  result:
+    name: p1
+    schema:
+      type: integer
+components:
+  schemas:
+    ErrorInfo:
+      title: ErrorInfo
+      required:
+      - bugId
+      type: object
+      properties:
+        bugId:
+          type: integer

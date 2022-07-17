@@ -1,5 +1,6 @@
 package io.iohk.armadillo
 
+import sttp.tapir.Mapping
 import sttp.tapir.internal.{CombineParams, SplitParams, mkCombine, mkSplit}
 import sttp.tapir.typelevel.ParamConcat
 
@@ -122,33 +123,47 @@ object JsonRpcInput {
   }
 }
 
-sealed trait JsonRpcErrorOutput[T] extends JsonRpcEndpointTransput[T] {
-  type DATA = T
-}
+sealed trait JsonRpcErrorOutput[T] extends JsonRpcEndpointTransput[T]
 
 object JsonRpcErrorOutput {
   def emptyOutput: JsonRpcErrorOutput[Unit] = JsonRpcErrorOutput.Empty()
   def fixed(code: Int, message: String): JsonRpcErrorOutput[Unit] = JsonRpcErrorOutput.Fixed(code, message)
 
-  case class SingleNoData(codec: JsonRpcCodec[JsonRpcError.NoData]) extends JsonRpcErrorOutput[JsonRpcError.NoData] {
-    override type DATA = JsonRpcError[Unit]
+  sealed trait Atom[T] extends JsonRpcErrorOutput[T] {
+    type DATA = T
+  }
+
+  case class SingleNoData() extends Atom[JsonRpcError.NoData] {
     override def show: String = s"singleNoData"
   }
 
-  case class SingleWithData[T](codec: JsonRpcCodec[JsonRpcError[T]]) extends JsonRpcErrorOutput[JsonRpcError[T]] {
-    override type DATA = JsonRpcError[T]
+  case class SingleWithData[T](codec: JsonRpcCodec[JsonRpcError[T]]) extends Atom[JsonRpcError[T]] {
     override def show: String = s"singleWithData"
   }
 
   case class Fixed[T](
       code: Int,
       message: String
-  ) extends JsonRpcErrorOutput[T] {
+  ) extends Atom[T] {
     override def show: String = s"FixedJsonRpcError(message: $message, code: $code)"
   }
 
-  case class Empty() extends JsonRpcErrorOutput[Unit] {
+  case class FixedWithData[T](
+      code: Int,
+      message: String,
+      codec: JsonRpcCodec[T]
+  ) extends Atom[T] {
+    override def show: String = s"FixedJsonRpcErrorWithData(message: $message, code: $code)"
+  }
+
+  case class Empty() extends Atom[Unit] {
     override def show: String = "-"
+  }
+
+  case class OneOfVariant[O] private[armadillo] (output: JsonRpcErrorOutput[O], appliesTo: Any => Boolean)
+
+  case class OneOf[O, T](variants: List[OneOfVariant[_ <: O]], mapping: Mapping[O, T]) extends JsonRpcErrorOutput[T] {
+    override def show: String = s"OneOfError(${variants.map(_.output.show).mkString(",")})"
   }
 }
 

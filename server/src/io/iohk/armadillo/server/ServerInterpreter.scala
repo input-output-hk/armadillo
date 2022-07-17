@@ -306,11 +306,17 @@ object ServerInterpreter {
           .map {
             case Left(value) =>
               val encodedError = ctx.endpoint.endpoint.error match {
-                case single: JsonRpcErrorOutput.SingleNoData => single.codec.encode(value.asInstanceOf[single.DATA]).asInstanceOf[Raw]
-                case single: JsonRpcErrorOutput.SingleWithData[_] =>
+                case _: JsonRpcErrorOutput.SingleNoData =>
+                  jsonSupport.encodeErrorNoData(value.asInstanceOf[JsonRpcError.NoData])
+                case single: JsonRpcErrorOutput.SingleWithData[ctx.endpoint.ERROR_OUTPUT] =>
                   single.codec.encode(value.asInstanceOf[single.DATA]).asInstanceOf[Raw]
-                case JsonRpcErrorOutput.Fixed(code, message) => jsonSupport.encodeErrorNoData(JsonRpcError.noData(code, message))
-                case _: JsonRpcErrorOutput.Empty             => jsonSupport.jsNull
+                case JsonRpcErrorOutput.Fixed(code, message) =>
+                  jsonSupport.encodeErrorNoData(JsonRpcError.noData(code, message))
+                case _: JsonRpcErrorOutput.Empty =>
+                  jsonSupport.jsNull
+                case f @ JsonRpcErrorOutput.FixedWithData(code, message, codec) =>
+                  val encodedData = codec.encode(value.asInstanceOf[f.DATA]).asInstanceOf[Raw]
+                  jsonSupport.encodeErrorWithData(JsonRpcError.withData(code, message, encodedData))
               }
               ctx.request.id.map(id => JsonRpcErrorResponse("2.0", encodedError, Some(id)))
             case Right(value) =>
