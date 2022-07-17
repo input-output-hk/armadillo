@@ -19,6 +19,8 @@ jobs:
       - uses: coursier/setup-action@v1.1.2
         with:
           jvm: adopt:11
+      - name: Check format
+        run: ./millw __.checkFormat
       - name: Compile all
         run: ./millw __.compile
       - name: Run tests
