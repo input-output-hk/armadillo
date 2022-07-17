@@ -1,15 +1,18 @@
 package io.iohk.armadillo.server
 
 import cats.syntax.all._
-import io.iohk.armadillo._
+import io.iohk.armadillo.JsonRpcError.NoData
 import io.iohk.armadillo.server.EndpointHandler.{DecodeFailureContext, DecodeSuccessContext}
 import io.iohk.armadillo.server.JsonSupport.Json
 import io.iohk.armadillo.server.ServerInterpreter._
 import io.iohk.armadillo.server.Utils.RichEndpointInput
+import io.iohk.armadillo.{JsonRpcErrorOutput, _}
 import sttp.monad.MonadError
 import sttp.monad.syntax._
 import sttp.tapir.DecodeResult
 import sttp.tapir.internal.ParamsAsVector
+
+import scala.annotation.tailrec
 
 class ServerInterpreter[F[_], Raw] private (
     jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
@@ -305,19 +308,7 @@ object ServerInterpreter {
           .logic(monad)(ctx.input)
           .map {
             case Left(value) =>
-              val encodedError = ctx.endpoint.endpoint.error match {
-                case _: JsonRpcErrorOutput.SingleNoData =>
-                  jsonSupport.encodeErrorNoData(value.asInstanceOf[JsonRpcError.NoData])
-                case single: JsonRpcErrorOutput.SingleWithData[ctx.endpoint.ERROR_OUTPUT] =>
-                  single.codec.encode(value.asInstanceOf[single.DATA]).asInstanceOf[Raw]
-                case JsonRpcErrorOutput.Fixed(code, message) =>
-                  jsonSupport.encodeErrorNoData(JsonRpcError.noData(code, message))
-                case _: JsonRpcErrorOutput.Empty =>
-                  jsonSupport.jsNull
-                case f @ JsonRpcErrorOutput.FixedWithData(code, message, codec) =>
-                  val encodedData = codec.encode(value.asInstanceOf[f.DATA]).asInstanceOf[Raw]
-                  jsonSupport.encodeErrorWithData(JsonRpcError.withData(code, message, encodedData))
-              }
+              val encodedError = handleErrorReturnType(jsonSupport, ctx)(value, ctx.endpoint.endpoint.error)
               ctx.request.id.map(id => JsonRpcErrorResponse("2.0", encodedError, Some(id)))
             case Right(value) =>
               val encodedOutput = ctx.endpoint.endpoint.output match {
@@ -342,6 +333,35 @@ object ServerInterpreter {
       private def createErrorResponse(error: JsonRpcError.NoData, id: Option[JsonRpcId]): Raw = {
         jsonSupport.encodeResponse(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(error), id))
       }
+    }
+  }
+
+  @tailrec
+  private def handleErrorReturnType[Raw, F[_], I](jsonSupport: JsonSupport[Raw], ctx: DecodeSuccessContext[F, I, Raw])(
+      value: ctx.endpoint.ERROR_OUTPUT,
+      errorOutput: JsonRpcErrorOutput[ctx.endpoint.ERROR_OUTPUT]
+  ): Raw = {
+    errorOutput match {
+      case _: JsonRpcErrorOutput.SingleNoData =>
+        jsonSupport.encodeErrorNoData(value.asInstanceOf[NoData])
+      case single: JsonRpcErrorOutput.SingleWithData[ctx.endpoint.ERROR_OUTPUT] =>
+        single.codec.encode(value.asInstanceOf[single.DATA]).asInstanceOf[Raw]
+      case JsonRpcErrorOutput.Fixed(code, message) =>
+        jsonSupport.encodeErrorNoData(JsonRpcError.noData(code, message))
+      case _: JsonRpcErrorOutput.Empty =>
+        jsonSupport.jsNull
+      case JsonRpcErrorOutput.FixedWithData(code, message, codec) =>
+        val encodedData = codec.encode(value).asInstanceOf[Raw]
+        jsonSupport.encodeErrorWithData(JsonRpcError.withData(code, message, encodedData))
+      case JsonRpcErrorOutput.OneOf(variants, _) =>
+        variants.find(v => v.appliesTo(value)) match {
+          case Some(matchedVariant) =>
+            handleErrorReturnType(jsonSupport, ctx)(
+              value,
+              matchedVariant.output.asInstanceOf[JsonRpcErrorOutput[ctx.endpoint.ERROR_OUTPUT]]
+            )
+          case None => throw new IllegalArgumentException(s"OneOf variant not matched. Variants: $variants, value: $value")
+        }
     }
   }
 }

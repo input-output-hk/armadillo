@@ -85,6 +85,28 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
       JsonRpcResponse.error_v2(json"""{"code": 200, "message": "something went wrong", "data": "custom error message"}""", Some(1))
   )
 
+  test(oneOf_fixed_errors_with_data, "oneOf_fixed_errors - small")(_ => IO.pure(Left(ErrorInfoSmall("aaa"))))(
+    request = JsonRpcRequest.v2("fixed_error", json"[]", 1),
+    expectedResponse =
+      JsonRpcResponse.error_v2(json"""{"code": 201, "message": "something went really wrong", "data":{"msg":"aaa"}}""", Some(1))
+  )
+
+  test(oneOf_fixed_errors_with_data, "oneOf_fixed_errors - big")(_ => IO.pure(Left(ErrorInfoBig("aaa", 123))))(
+    request = JsonRpcRequest.v2("fixed_error", json"[]", 1),
+    expectedResponse =
+      JsonRpcResponse.error_v2(json"""{"code": 200, "message": "something went wrong", "data":{"msg":"aaa", "code": 123}}""", Some(1))
+  )
+
+  test(oneOf_fixed_errors_value_matcher, "oneOf_fixed_errors_value_matcher - left")(_ => IO.pure(Left(Left(()))))(
+    request = JsonRpcRequest.v2("fixed_error", json"[]", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": 201, "message": "something went really wrong"}""", Some(1))
+  )
+
+  test(oneOf_fixed_errors_value_matcher, "oneOf_fixed_errors_value_matcher - right")(_ => IO.pure(Left(Right(()))))(
+    request = JsonRpcRequest.v2("fixed_error", json"[]", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": 200, "message": "something went wrong"}""", Some(1))
+  )
+
   test(empty, "internal server error")(_ => IO.raiseError(new RuntimeException("something went wrong")))(
     request = JsonRpcRequest.v2("empty", json"[]", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32603, "message": "Internal error"}""", Some(1))

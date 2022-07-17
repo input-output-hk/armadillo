@@ -119,7 +119,7 @@ object Basic {
 
   val singleFixedError: JsonRpcEndpoint[Int, Unit, String] = jsonRpcEndpoint(m"hello")
     .in(param[Int]("param1"))
-    .errorOut(fixedError(100, "My fixed error"))
+    .errorOut(fixedError[Unit](100, "My fixed error"))
     .out[String]("response")
 
   val singleFixedErrorWithData: JsonRpcEndpoint[Int, String, String] = jsonRpcEndpoint(m"hello")
@@ -127,8 +127,13 @@ object Basic {
     .errorOut(fixedErrorWithData[String](100, "My fixed error"))
     .out[String]("response")
 
-  val oneOfFixedErrors: JsonRpcEndpoint[Unit, Unit, Int] = jsonRpcEndpoint(m"oneOf")
-    .errorOut(oneOf(oneOfVariant(fixedError(201, "error1")), oneOfVariant(fixedError(202, "error2"))))
+  val oneOfFixedErrors: JsonRpcEndpoint[Unit, Either[Unit, Unit], Int] = jsonRpcEndpoint(m"oneOf")
+    .errorOut(
+      oneOf[Either[Unit, Unit]](
+        oneOfVariantValueMatcher(fixedError(201, "error1")) { case Left(_) => true },
+        oneOfVariantValueMatcher(fixedError(202, "error2")) { case Right(_) => true }
+      )
+    )
     .out(result[Int]("p1"))
 
   val oneOfFixedErrorsWithData: JsonRpcEndpoint[Unit, ErrorInfo, Int] = jsonRpcEndpoint(m"oneOf")

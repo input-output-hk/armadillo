@@ -1,7 +1,9 @@
 package io.iohk.armadillo.server
 
+import io.circe.generic.auto._
 import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe._
+import sttp.tapir.generic.auto._
 
 object Endpoints {
   val hello_in_int_out_string: JsonRpcEndpoint[Int, Unit, String] = jsonRpcEndpoint(m"hello")
@@ -34,6 +36,26 @@ object Endpoints {
 
   val fixed_error_with_data: JsonRpcEndpoint[Unit, String, Unit] = jsonRpcEndpoint(m"fixed_error_with_data")
     .errorOut(fixedErrorWithData[String](200, "something went wrong"))
+
+  val oneOf_fixed_errors_with_data: JsonRpcEndpoint[Unit, ErrorInfo, Unit] = jsonRpcEndpoint(m"fixed_error")
+    .errorOut(
+      oneOf[ErrorInfo](
+        oneOfVariant(fixedErrorWithData[ErrorInfoSmall](201, "something went really wrong")),
+        oneOfVariant(fixedErrorWithData[ErrorInfoBig](200, "something went wrong"))
+      )
+    )
+
+  sealed trait ErrorInfo
+  case class ErrorInfoSmall(msg: String) extends ErrorInfo
+  case class ErrorInfoBig(msg: String, code: Int) extends ErrorInfo
+
+  val oneOf_fixed_errors_value_matcher: JsonRpcEndpoint[Unit, Either[Unit, Unit], Unit] = jsonRpcEndpoint(m"fixed_error")
+    .errorOut(
+      oneOf(
+        oneOfVariantValueMatcher[Either[Unit, Unit]](fixedError(201, "something went really wrong")) { case Left(_) => true },
+        oneOfVariantValueMatcher[Either[Unit, Unit]](fixedError(200, "something went wrong")) { case Right(_) => true }
+      )
+    )
 
   val e1_int_string_out_int: JsonRpcEndpoint[String, Unit, Int] = jsonRpcEndpoint(m"e1")
     .in(param[String]("param1"))
