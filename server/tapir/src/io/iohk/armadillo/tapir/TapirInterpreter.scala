@@ -24,13 +24,13 @@ class TapirInterpreter[F[_], Raw](
 
   def toTapirEndpoint(
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]
-  ): Either[InterpretationError, ServerEndpoint.Full[Unit, Unit, String, (Raw, StatusCode), (Raw, StatusCode), Any, F]] = {
+  ): Either[InterpretationError, ServerEndpoint.Full[Unit, Unit, String, (Raw, StatusCode), Any, Any, F]] = {
     ServerInterpreter[F, Raw](jsonRpcEndpoints, jsonSupport, interceptors).map(toTapirEndpointUnsafe)
   }
 
   private def toTapirEndpointUnsafe(
       serverInterpreter: ServerInterpreter[F, Raw]
-  ): Full[Unit, Unit, String, (Raw, StatusCode), (Raw, StatusCode), Any, F] = {
+  ): Full[Unit, Unit, String, (Raw, StatusCode), Any, Any, F] = {
     sttp.tapir.endpoint.post
       .in(
         EndpointIO.Body(
@@ -40,14 +40,21 @@ class TapirInterpreter[F[_], Raw](
         )
       )
       .errorOut(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), outRawCodec, Info.empty).and(statusCode))
-      .out(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), outRawCodec, Info.empty).and(statusCode))
+      .out(
+        sttp.tapir.oneOf(
+          sttp.tapir.oneOfVariantValueMatcher(
+            EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), outRawCodec, Info.empty).and(statusCode)
+          ) { case _: (Raw, StatusCode) => true },
+          sttp.tapir.oneOfVariant(sttp.tapir.statusCode(sttp.model.StatusCode.NoContent))
+        )
+      )
       .serverLogic[F] { input =>
         serverInterpreter
           .dispatchRequest(input)
           .map {
             case Some(ServerResponse.Success(value)) => Right((value, StatusCode.Ok))
             case Some(ServerResponse.Failure(value)) => Left((value, StatusCode.BadRequest))
-            case None                                => Right((jsonSupport.jsNull, StatusCode.Ok))
+            case None                                => Right(())
           }
       }
   }

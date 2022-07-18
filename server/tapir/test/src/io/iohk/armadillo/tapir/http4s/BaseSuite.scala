@@ -43,7 +43,7 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
             .body(request)
             .send(backend)
             .map { response =>
-              expect.same(StatusCode.Ok, response.code)
+              expect.same(StatusCode.NoContent, response.code)
             }
         }
     }
@@ -132,8 +132,8 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
               .body(request)
               .send(backend)
               .map { response =>
-                expect.same(StatusCode.Ok, response.code)
-                expect.same(Right("null"), response.body)
+                expect.same(StatusCode.NoContent, response.code)
+                expect.same(Right(0), response.body.map(_.length))
               }
           } else {
             basicRequest
