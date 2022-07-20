@@ -67,6 +67,7 @@ class SchemaForEndpoints(es: List[AnyEndpoint], toNamedSchemas: ToNamedSchemas, 
       .tToKey
   }
 
+  // scalafix:off DisableSyntax.var
   private[openrpc] def uniqueName(base: String, isUnique: String => Boolean): String = {
     var i = 0
     var result = base
@@ -76,4 +77,5 @@ class SchemaForEndpoints(es: List[AnyEndpoint], toNamedSchemas: ToNamedSchemas, 
     }
     result
   }
+  // scalafix:on
 }

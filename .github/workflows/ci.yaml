@@ -23,6 +23,8 @@ jobs:
         run: ./millw __.checkFormat
       - name: Compile all
         run: ./millw __.compile
+      - name: Scalafix check
+        run: ./millw __.fix --check
       - name: Run tests
         run: ./millw __.test
 

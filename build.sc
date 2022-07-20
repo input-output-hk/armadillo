@@ -1,4 +1,4 @@
-import $ivy.`com.goyeau::mill-scalafix_mill0.10:0.2.8`
+import $ivy.`com.goyeau::mill-scalafix_mill0.10:0.2.9`
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.10:0.1.4`
 import $ivy.`io.github.davidgregory084::mill-tpolecat_mill0.10:0.3.0`
 import com.goyeau.mill.scalafix.ScalafixModule
@@ -6,6 +6,7 @@ import de.tobiasroeser.mill.vcs.version.VcsVersion
 import io.github.davidgregory084.TpolecatModule
 import mill._
 import mill.scalalib._
+import mill.scalalib.bsp.ScalaMetalsSupport
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import mill.scalalib.scalafmt.ScalafmtModule
 
@@ -188,14 +189,15 @@ object trace4cats extends CommonModule with ArmadilloPublishModule {
   )
 }
 
-trait BaseModule extends ScalaModule with ScalafmtModule with TpolecatModule with ScalafixModule {
+trait BaseModule extends ScalaModule with ScalafmtModule with TpolecatModule with ScalafixModule with ScalaMetalsSupport {
   override def scalacOptions = T {
     super.scalacOptions().filterNot(Set("-Xfatal-warnings", "-Xsource:3")) ++ Seq(
       "-Ymacro-annotations",
       "-Ywarn-value-discard"
     )
   }
-
+  override def scalafixIvyDeps =
+    Agg(ivy"com.github.liancheng::organize-imports:0.6.0", ivy"com.github.jatcwang::scalafix-named-params:0.2.1")
 }
 
 trait CommonTestModule extends BaseModule with TestModule {
@@ -214,7 +216,40 @@ trait CommonModule extends BaseModule {
 }
 
 trait ArmadilloPublishModule extends PublishModule {
+<<<<<<< HEAD
   def publishVersion = VcsVersion.vcsState().format()
+||||||| parent of 2c3bf2a ([KAIZEN] Enable some scalafix rules)
+  def publishVersion = T {
+    val vcsState = VcsVersion.vcsState()
+    val formattedTag = vcsState.format(tagModifier = t => if(t.startsWith("v")){
+      t.drop(1)
+    }else {
+      t
+    })
+    if(vcsState.commitsSinceLastTag > 0) {
+      s"$formattedTag-SNAPSHOT"
+    }else {
+      formattedTag
+    }
+  }
+=======
+  def publishVersion = T {
+    val vcsState = VcsVersion.vcsState()
+    val formattedTag = vcsState.format(tagModifier =
+      t =>
+        if (t.startsWith("v")) {
+          t.drop(1)
+        } else {
+          t
+        }
+    )
+    if (vcsState.commitsSinceLastTag > 0) {
+      s"$formattedTag-SNAPSHOT"
+    } else {
+      formattedTag
+    }
+  }
+>>>>>>> 2c3bf2a ([KAIZEN] Enable some scalafix rules)
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "io.iohk.armadillo",
