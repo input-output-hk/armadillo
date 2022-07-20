@@ -1,0 +1,17 @@
+name: github-dependency-graph
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  submit-dependency-graph:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: coursier/cache-action@v6
+      - uses: coursier/setup-action@v1.1.2
+        with:
+          jvm: adopt:11
+      - uses: ckipp01/mill-dependency-submission@v1
