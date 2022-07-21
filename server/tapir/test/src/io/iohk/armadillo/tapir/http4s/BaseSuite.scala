@@ -2,19 +2,19 @@ package io.iohk.armadillo.tapir.http4s
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import io.circe.{Encoder, Json}
+import io.circe.{Encoder, Json, parser}
+import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.server.AbstractBaseSuite
 import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
-import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
+import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerResponse}
 import io.iohk.armadillo.tapir.TapirInterpreter
-import io.iohk.armadillo._
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import sttp.client3.circe._
-import sttp.client3.{StringBody, SttpBackend, basicRequest}
+import sttp.client3.{DeserializationException, HttpError, StringBody, SttpBackend, basicRequest}
 import sttp.model.{MediaType, StatusCode, Uri}
 import sttp.tapir.integ.cats.CatsMonadError
 import sttp.tapir.server.ServerEndpoint
@@ -24,8 +24,10 @@ import scala.concurrent.ExecutionContext
 
 trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
 
-  override def invalidBody: StringBody =
+  override def invalidJson: StringBody =
     StringBody("""{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]""", "utf-8", MediaType.ApplicationJson)
+
+  override def jsonNotAnObject: StringBody = StringBody("""["asd"]""", "utf-8", MediaType.ApplicationJson)
 
   def testNotification[I, E, O, B: Encoder](
       endpoint: JsonRpcEndpoint[I, E, O],
@@ -41,7 +43,7 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
             .body(request)
             .send(backend)
             .map { response =>
-              expect.same(StatusCode.Ok, response.code)
+              expect.same(StatusCode.NoContent, response.code)
             }
         }
     }
@@ -57,7 +59,24 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
             .response(asJson[JsonRpcResponse[Json]])
             .send(backend)
             .map { response =>
-              expect.same(Right(expectedResponse), response.body)
+              expect.same(
+                expectedResponse match {
+                  case success @ JsonRpcSuccessResponse(_, _, _) => ServerResponse.Success(jsonSupport.encodeResponse(success))
+                  case error @ JsonRpcErrorResponse(_, _, _)     => ServerResponse.Failure(jsonSupport.encodeResponse(error))
+                },
+                response.body match {
+                  case Left(error) =>
+                    error match {
+                      case HttpError(body, _)             => ServerResponse.Failure(parser.parse(body).toOption.get)
+                      case DeserializationException(_, _) => throw new RuntimeException("DeserializationException was not expected")
+                    }
+                  case Right(body) =>
+                    body match {
+                      case result @ JsonRpcSuccessResponse(_, _, _) => ServerResponse.Success(jsonSupport.encodeResponse(result))
+                      case error @ JsonRpcErrorResponse(_, _, _)    => ServerResponse.Failure(jsonSupport.encodeResponse(error))
+                    }
+                }
+              )
             }
         }
     }
@@ -78,7 +97,24 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
             .response(asJson[JsonRpcResponse[Json]])
             .send(backend)
             .map { response =>
-              expect.same(Right(expectedResponse), response.body)
+              expect.same(
+                expectedResponse match {
+                  case success @ JsonRpcSuccessResponse(_, _, _) => ServerResponse.Success(jsonSupport.encodeResponse(success))
+                  case error @ JsonRpcErrorResponse(_, _, _)     => ServerResponse.Failure(jsonSupport.encodeResponse(error))
+                },
+                response.body match {
+                  case Left(error) =>
+                    error match {
+                      case HttpError(body, _)             => ServerResponse.Failure(parser.parse(body).toOption.get)
+                      case DeserializationException(_, _) => throw new RuntimeException("DeserializationException was not expected")
+                    }
+                  case Right(body) =>
+                    body match {
+                      case result @ JsonRpcSuccessResponse(_, _, _) => ServerResponse.Success(jsonSupport.encodeResponse(result))
+                      case error @ JsonRpcErrorResponse(_, _, _)    => ServerResponse.Failure(jsonSupport.encodeResponse(error))
+                    }
+                }
+              )
             }
         }
     }
@@ -90,14 +126,26 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
     test(name) {
       testMultipleEndpoints(se)
         .use { case (backend, baseUri) =>
-          basicRequest
-            .post(baseUri)
-            .body(request)
-            .response(asJson[List[JsonRpcResponse[Json]]])
-            .send(backend)
-            .map { response =>
-              expect.same(Right(expectedResponse), response.body)
-            }
+          if (expectedResponse.isEmpty) {
+            basicRequest
+              .post(baseUri)
+              .body(request)
+              .send(backend)
+              .map { response =>
+                expect.same(StatusCode.NoContent, response.code)
+                expect.same(Right(0), response.body.map(_.length))
+              }
+          } else {
+            basicRequest
+              .post(baseUri)
+              .body(request)
+              .response(asJson[List[JsonRpcResponse[Json]]])
+              .send(backend)
+              .map { response =>
+                expect.same(StatusCode.Ok, response.code)
+                expect.same(Right(expectedResponse), response.body)
+              }
+          }
         }
     }
   }
@@ -115,8 +163,8 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
   }
 
   override def toInterpreter(se: List[JsonRpcServerEndpoint[IO]]): Either[InterpretationError, ServerEndpoint[Any, IO]] = {
-    val tapirInterpreter =
-      new TapirInterpreter[IO, Json](new CirceJsonSupport)(new CatsMonadError)
+    implicit val catsMonadError: CatsMonadError[IO] = new CatsMonadError
+    val tapirInterpreter = new TapirInterpreter[IO, Json](new CirceJsonSupport)
     tapirInterpreter.toTapirEndpoint(se)
   }
 

@@ -2,6 +2,7 @@ package io.iohk.armadillo.server
 
 import io.iohk.armadillo.JsonRpcResponse
 import io.iohk.armadillo.server.RequestHandler.DecodeFailureContext
+import io.iohk.armadillo.server.ServerInterpreter.{ResponseHandlingStatus, ServerResponse}
 import sttp.monad.MonadError
 import sttp.monad.syntax._
 
@@ -13,14 +14,15 @@ class DecodeFailureInterceptor[F[_], Raw](handler: DecodeFailureHandler[Raw]) ex
   ): RequestHandler[F, Raw] = {
     val next = requestHandler(MethodInterceptor.noop[F, Raw]())
     new RequestHandler[F, Raw] {
-      override def onDecodeSuccess(request: JsonSupport.Json[Raw])(implicit monad: MonadError[F]): F[Option[Raw]] = {
+      override def onDecodeSuccess(request: JsonSupport.Json[Raw])(implicit monad: MonadError[F]): F[ResponseHandlingStatus[Raw]] = {
         next.onDecodeSuccess(request)
       }
 
-      override def onDecodeFailure(ctx: DecodeFailureContext)(implicit monad: MonadError[F]): F[Option[Raw]] = {
-        next.onDecodeFailure(ctx).flatMap {
-          case Some(value) => Option(value).unit
-          case None        => monad.unit(handler(ctx, jsonSupport).map(jsonSupport.encodeResponse))
+      override def onDecodeFailure(ctx: DecodeFailureContext)(implicit monad: MonadError[F]): F[ResponseHandlingStatus[Raw]] = {
+        next.onDecodeFailure(ctx).map {
+          case ResponseHandlingStatus.Unhandled =>
+            handler(ctx, jsonSupport)
+          case handled => handled
         }
       }
     }
@@ -32,10 +34,16 @@ object DecodeFailureInterceptor {
 }
 
 trait DecodeFailureHandler[Raw] {
-  def apply(context: DecodeFailureContext, jsonSupport: JsonSupport[Raw]): Option[JsonRpcResponse[Raw]]
+  def apply(context: DecodeFailureContext, jsonSupport: JsonSupport[Raw]): ResponseHandlingStatus[Raw]
 }
 object DecodeFailureHandler {
   def default[Raw]: DecodeFailureHandler[Raw] = (_: DecodeFailureContext, jsonSupport: JsonSupport[Raw]) => {
-    Some(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(ServerInterpreter.ParseError), None))
+    ResponseHandlingStatus.Handled(
+      Some(
+        ServerResponse.Failure(
+          jsonSupport.encodeResponse(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(ServerInterpreter.ParseError), None))
+        )
+      )
+    )
   }
 }

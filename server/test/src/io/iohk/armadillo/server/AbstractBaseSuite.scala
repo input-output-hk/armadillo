@@ -4,6 +4,7 @@ import cats.effect.IO
 import cats.syntax.all._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, Json}
+import io.iohk.armadillo.json.circe._
 import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
 import io.iohk.armadillo.{
   JsonRpcEndpoint,
@@ -14,7 +15,6 @@ import io.iohk.armadillo.{
   JsonRpcServerEndpoint,
   JsonRpcSuccessResponse
 }
-import io.iohk.armadillo.json.circe._
 import weaver.SimpleIOSuite
 
 trait AbstractBaseSuite[Body, Interpreter] extends SimpleIOSuite {
@@ -24,7 +24,10 @@ trait AbstractBaseSuite[Body, Interpreter] extends SimpleIOSuite {
   implicit val jsonRpcRequestEncoder: Encoder[JsonRpcRequest[Json]] = deriveEncoder[JsonRpcRequest[Json]]
   implicit val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
 
-  def invalidBody: Body
+  val jsonSupport = new CirceJsonSupport
+
+  def invalidJson: Body
+  def jsonNotAnObject: Body
 
   def testNotification[I, E, O, B: Encoder](
       endpoint: JsonRpcEndpoint[I, E, O],

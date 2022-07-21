@@ -6,12 +6,13 @@ import io.circe.literal._
 import io.circe.{Decoder, Encoder, Json}
 import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe._
+import io.iohk.armadillo.server.ServerInterpreter.ResponseHandlingStatus
 import io.iohk.armadillo.server._
 import io.iohk.armadillo.tapir.TapirInterpreter
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
-import sttp.model.Uri
+import sttp.model.{StatusCode, Uri}
 import sttp.monad.MonadError
 import sttp.tapir.integ.cats._
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
@@ -40,13 +41,12 @@ object ExampleCirce extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = {
 
-    val tapirInterpreter =
-      new TapirInterpreter[IO, Json](
-        new CirceJsonSupport,
-        List(new LoggingEndpointInterceptor, new LoggingRequestInterceptor, new GenericIOInterceptor[Json])
-      )(
-        new CatsMonadError
-      )
+    implicit val catsMonadError: CatsMonadError[IO] = new CatsMonadError
+
+    val tapirInterpreter = new TapirInterpreter[IO, Json](
+      new CirceJsonSupport,
+      List(new LoggingEndpointInterceptor, new LoggingRequestInterceptor, new GenericIOInterceptor[Json])
+    )
     val tapirEndpoints = tapirInterpreter.toTapirEndpoint(List(endpoint)).getOrElse(???)
     val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
@@ -69,8 +69,10 @@ object ExampleCirce extends IOApp {
             v match {
               case Left(value) =>
                 println(s"error response: $value")
-              case Right(value) =>
-                println(s"response ${value.noSpaces}")
+              case Right((json: Json, code: StatusCode)) =>
+                println(s"response ${json.noSpaces} code: $code")
+              case Right(other: Any) =>
+                println(s"response $other")
             }
         } >> IO.never
       }
@@ -87,12 +89,14 @@ class GenericIOInterceptor[Raw] extends EndpointInterceptor[IO, Raw] {
     new EndpointHandler[IO, Raw] {
       override def onDecodeSuccess[I](
           ctx: EndpointHandler.DecodeSuccessContext[IO, I, Raw]
-      )(implicit monad: MonadError[IO]): IO[Option[Raw]] = {
+      )(implicit monad: MonadError[IO]): IO[ResponseHandlingStatus[Raw]] = {
         println(s"onDecodeSuccess ${ctx.endpoint.endpoint.methodName}")
         endpointHandler.onDecodeSuccess(ctx).flatTap(_ => IO.println(s"after onDecodeSuccess ${ctx.endpoint.endpoint.methodName}"))
       }
 
-      override def onDecodeFailure(ctx: EndpointHandler.DecodeFailureContext[IO, Raw])(implicit monad: MonadError[IO]): IO[Option[Raw]] = {
+      override def onDecodeFailure(
+          ctx: EndpointHandler.DecodeFailureContext[IO, Raw]
+      )(implicit monad: MonadError[IO]): IO[ResponseHandlingStatus[Raw]] = {
         println(s"onDecodeFailure ${ctx.endpoint.endpoint.methodName}")
         endpointHandler.onDecodeFailure(ctx).flatTap(_ => IO.println(s"after onDecodeFailure ${ctx.endpoint.endpoint.methodName}"))
       }
@@ -110,14 +114,14 @@ class LoggingEndpointInterceptor extends EndpointInterceptor[IO, Json] {
     new EndpointHandler[IO, Json] {
       override def onDecodeSuccess[I](
           ctx: EndpointHandler.DecodeSuccessContext[IO, I, Json]
-      )(implicit monad: MonadError[IO]): IO[Option[Json]] = {
+      )(implicit monad: MonadError[IO]): IO[ResponseHandlingStatus[Json]] = {
         println(s"onDecodeSuccess ${ctx.endpoint.endpoint.methodName}")
         endpointHandler.onDecodeSuccess(ctx).flatTap(_ => IO.println(s"after onDecodeSuccess ${ctx.endpoint.endpoint.methodName}"))
       }
 
       override def onDecodeFailure(
           ctx: EndpointHandler.DecodeFailureContext[IO, Json]
-      )(implicit monad: MonadError[IO]): IO[Option[Json]] = {
+      )(implicit monad: MonadError[IO]): IO[ResponseHandlingStatus[Json]] = {
         println(s"onDecodeFailure ${ctx.endpoint.endpoint.methodName}")
         endpointHandler.onDecodeFailure(ctx).flatTap(_ => IO.println(s"after onDecodeFailure ${ctx.endpoint.endpoint.methodName}"))
       }
@@ -132,18 +136,16 @@ class LoggingRequestInterceptor extends RequestInterceptor[IO, Json] {
       requestHandler: MethodInterceptor[IO, Json] => RequestHandler[IO, Json]
   ): RequestHandler[IO, Json] = {
     new RequestHandler[IO, Json] {
-      override def onDecodeSuccess(request: JsonSupport.Json[Json])(implicit monad: MonadError[IO]): IO[Option[Json]] = {
-        println(s"onDecodeSuccess $request")
-        //        responder
-        //          .apply(Some(JsonRpcResponse.error_v2[Raw](jsonSupport.jsNull, None)))
+      override def onDecodeSuccess(request: JsonSupport.Json[Json])(implicit monad: MonadError[IO]): IO[ResponseHandlingStatus[Json]] = {
         requestHandler
           .apply(MethodInterceptor.noop[IO, Json]())
           .onDecodeSuccess(request)
           .flatTap(_ => IO.println("after onDecodeSuccess"))
       }
 
-      override def onDecodeFailure(ctx: RequestHandler.DecodeFailureContext)(implicit monad: MonadError[IO]): IO[Option[Json]] = {
-        println(s"onDecodeFailure $ctx")
+      override def onDecodeFailure(
+          ctx: RequestHandler.DecodeFailureContext
+      )(implicit monad: MonadError[IO]): IO[ResponseHandlingStatus[Json]] = {
         requestHandler.apply(MethodInterceptor.noop[IO, Json]()).onDecodeFailure(ctx).flatTap(_ => IO.println("after onDecodeFailure"))
       }
     }
