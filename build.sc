@@ -214,19 +214,7 @@ trait CommonModule extends BaseModule {
 }
 
 trait ArmadilloPublishModule extends PublishModule {
-  def publishVersion = T {
-    val vcsState = VcsVersion.vcsState()
-    val formattedTag = vcsState.format(tagModifier = t => if(t.startsWith("v")){
-      t.drop(1)
-    }else {
-      t
-    })
-    if(vcsState.commitsSinceLastTag > 0) {
-      s"$formattedTag-SNAPSHOT"
-    }else {
-      formattedTag
-    }
-  }
+  def publishVersion = VcsVersion.vcsState().format()
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "io.iohk.armadillo",
