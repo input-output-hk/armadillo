@@ -21,17 +21,17 @@ class SchemaToOpenRpcSchema(
             required = p.required.map(_.encodedName),
             properties = fields.map { f =>
               f.schema match {
-                case s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _) => f.name.encodedName -> Left(nameToSchemaReference.map(name))
-                case schema                                             => f.name.encodedName -> apply(schema)
+                case TSchema(_, Some(name), _, _, _, _, _, _, _, _) => f.name.encodedName -> Left(nameToSchemaReference.map(name))
+                case schema                                         => f.name.encodedName -> apply(schema)
               }
             }.toListMap
           )
         )
-      case TSchemaType.SArray(s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _)) =>
+      case TSchemaType.SArray(TSchema(_, Some(name), _, _, _, _, _, _, _, _)) =>
         Right(ASchema(SchemaType.Array).copy(items = Some(Left(nameToSchemaReference.map(name)))))
       case TSchemaType.SArray(el) => Right(ASchema(SchemaType.Array).copy(items = Some(apply(el))))
-      case TSchemaType.SOption(s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _)) => Left(nameToSchemaReference.map(name))
-      case TSchemaType.SOption(el)                                                 => apply(el, isOptionElement = true)
+      case TSchemaType.SOption(TSchema(_, Some(name), _, _, _, _, _, _, _, _)) => Left(nameToSchemaReference.map(name))
+      case TSchemaType.SOption(el)                                             => apply(el, isOptionElement = true)
       case TSchemaType.SBinary()      => Right(ASchema(SchemaType.String).copy(format = SchemaFormat.Binary))
       case TSchemaType.SDate()        => Right(ASchema(SchemaType.String).copy(format = SchemaFormat.Date))
       case TSchemaType.SDateTime()    => Right(ASchema(SchemaType.String).copy(format = SchemaFormat.DateTime))
@@ -42,8 +42,8 @@ class SchemaToOpenRpcSchema(
             .apply(
               schemas
                 .map {
-                  case s @ TSchema(_, Some(name), _, _, _, _, _, _, _, _) => Left(nameToSchemaReference.map(name))
-                  case t                                                  => apply(t)
+                  case TSchema(_, Some(name), _, _, _, _, _, _, _, _) => Left(nameToSchemaReference.map(name))
+                  case t                                              => apply(t)
                 }
                 .sortBy {
                   case Left(Reference(ref)) => ref
