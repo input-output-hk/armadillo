@@ -1,7 +1,7 @@
 package io.iohk.armadillo.openrpc
 
 import io.iohk.armadillo.JsonRpcCodec
-import sttp.tapir.apispec.{ReferenceOr, SchemaType, Schema => ASchema}
+import sttp.tapir.apispec.{ReferenceOr, Schema => ASchema, SchemaType}
 import sttp.tapir.{Schema => TSchema, SchemaType => TSchemaType}
 
 import scala.annotation.tailrec

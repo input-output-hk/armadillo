@@ -1,6 +1,6 @@
 package io.iohk.armadillo.openrpc
 
-import sttp.tapir.apispec.{Discriminator, Reference, ReferenceOr, SchemaFormat, SchemaType, Schema => ASchema}
+import sttp.tapir.apispec.{Discriminator, Reference, ReferenceOr, Schema => ASchema, SchemaFormat, SchemaType}
 import sttp.tapir.{Schema => TSchema, SchemaType => TSchemaType}
 
 class SchemaToOpenRpcSchema(
