@@ -195,8 +195,7 @@ trait BaseModule extends ScalaModule with ScalafmtModule with TpolecatModule wit
   override def scalacOptions = T {
     super.scalacOptions().filterNot(Set("-Xfatal-warnings", "-Xsource:3")) ++ Seq(
       "-Ymacro-annotations",
-      "-Ywarn-value-discard",
-      "-P:semanticdb:synthetics:on"
+      "-Ywarn-value-discard"
     )
   }
   override def scalafixIvyDeps =
