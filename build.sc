@@ -191,7 +191,7 @@ object trace4cats extends CommonModule with ArmadilloPublishModule {
 
 trait BaseModule extends ScalaModule with ScalafmtModule with TpolecatModule with ScalafixModule with ScalaMetalsSupport {
   override def semanticDbVersion = "4.4.32"
-  override def scalafixScalaBinaryVersion =  "2.13"
+  override def scalafixScalaBinaryVersion = "2.13"
   override def scalacOptions = T {
     super.scalacOptions().filterNot(Set("-Xfatal-warnings", "-Xsource:3")) ++ Seq(
       "-Ymacro-annotations",
@@ -211,7 +211,7 @@ trait CommonTestModule extends BaseModule with TestModule {
 
 trait CommonModule extends BaseModule {
   def scalaVersion = "2.13.8"
-  override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++Agg(
+  override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++ Agg(
     ivy"org.typelevel:::kind-projector:0.13.2"
   )
 }
