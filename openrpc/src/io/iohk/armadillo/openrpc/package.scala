@@ -1,6 +1,5 @@
 package io.iohk.armadillo
 
-import sttp.tapir.Schema.SName
 import sttp.tapir.apispec.{ExampleMultipleValue, ExampleSingleValue, ExampleValue}
 import sttp.tapir.{Codec, Schema => TSchema, SchemaType => TSchemaType}
 

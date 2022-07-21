@@ -190,14 +190,16 @@ object trace4cats extends CommonModule with ArmadilloPublishModule {
 }
 
 trait BaseModule extends ScalaModule with ScalafmtModule with TpolecatModule with ScalafixModule with ScalaMetalsSupport {
+  override def semanticDbVersion = "4.4.32"
   override def scalacOptions = T {
     super.scalacOptions().filterNot(Set("-Xfatal-warnings", "-Xsource:3")) ++ Seq(
       "-Ymacro-annotations",
-      "-Ywarn-value-discard"
+      "-Ywarn-value-discard",
+      "-P:semanticdb:synthetics:on"
     )
   }
   override def scalafixIvyDeps =
-    Agg(ivy"com.github.liancheng::organize-imports:0.6.0", ivy"com.github.jatcwang::scalafix-named-params:0.2.1")
+    Agg(ivy"com.github.liancheng::organize-imports:0.6.0")
 }
 
 trait CommonTestModule extends BaseModule with TestModule {
@@ -209,47 +211,15 @@ trait CommonTestModule extends BaseModule with TestModule {
 
 trait CommonModule extends BaseModule {
   def scalaVersion = "2.13.8"
-
-  override def scalacPluginIvyDeps = Agg(
+  override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++Agg(
     ivy"org.typelevel:::kind-projector:0.13.2"
   )
 }
 
 trait ArmadilloPublishModule extends PublishModule {
-<<<<<<< HEAD
+
   def publishVersion = VcsVersion.vcsState().format()
-||||||| parent of 2c3bf2a ([KAIZEN] Enable some scalafix rules)
-  def publishVersion = T {
-    val vcsState = VcsVersion.vcsState()
-    val formattedTag = vcsState.format(tagModifier = t => if(t.startsWith("v")){
-      t.drop(1)
-    }else {
-      t
-    })
-    if(vcsState.commitsSinceLastTag > 0) {
-      s"$formattedTag-SNAPSHOT"
-    }else {
-      formattedTag
-    }
-  }
-=======
-  def publishVersion = T {
-    val vcsState = VcsVersion.vcsState()
-    val formattedTag = vcsState.format(tagModifier =
-      t =>
-        if (t.startsWith("v")) {
-          t.drop(1)
-        } else {
-          t
-        }
-    )
-    if (vcsState.commitsSinceLastTag > 0) {
-      s"$formattedTag-SNAPSHOT"
-    } else {
-      formattedTag
-    }
-  }
->>>>>>> 2c3bf2a ([KAIZEN] Enable some scalafix rules)
+
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "io.iohk.armadillo",
