@@ -24,37 +24,24 @@ class TapirInterpreter[F[_], Raw](
 
   def toTapirEndpoint(
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]
-  ): Either[InterpretationError, ServerEndpoint.Full[Unit, Unit, String, (Raw, StatusCode), Any, Any, F]] = {
+  ): Either[InterpretationError, ServerEndpoint.Full[Unit, Unit, String, (Raw, StatusCode), (Option[Raw], StatusCode), Any, F]] = {
     ServerInterpreter[F, Raw](jsonRpcEndpoints, jsonSupport, interceptors).map(toTapirEndpointUnsafe)
   }
 
   private def toTapirEndpointUnsafe(
       serverInterpreter: ServerInterpreter[F, Raw]
-  ): Full[Unit, Unit, String, (Raw, StatusCode), Any, Any, F] = {
+  ): Full[Unit, Unit, String, (Raw, StatusCode), (Option[Raw], StatusCode), Any, F] = {
     sttp.tapir.endpoint.post
-      .in(
-        EndpointIO.Body(
-          RawBodyType.StringBody(StandardCharsets.UTF_8),
-          idJsonCodec,
-          Info.empty
-        )
-      )
+      .in(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), idJsonCodec, Info.empty))
       .errorOut(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), outRawCodec, Info.empty).and(statusCode))
-      .out(
-        sttp.tapir.oneOf(
-          sttp.tapir.oneOfVariantValueMatcher(
-            EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), outRawCodec, Info.empty).and(statusCode)
-          ) { case _: (Raw, StatusCode) => true },
-          sttp.tapir.oneOfVariant(sttp.tapir.statusCode(sttp.model.StatusCode.NoContent))
-        )
-      )
+      .out(EndpointIO.Body(RawBodyType.StringBody(StandardCharsets.UTF_8), outOptionRawCodec, Info.empty).and(statusCode))
       .serverLogic[F] { input =>
         serverInterpreter
           .dispatchRequest(input)
           .map {
-            case Some(ServerResponse.Success(value)) => Right((value, StatusCode.Ok))
+            case Some(ServerResponse.Success(value)) => Right((Some(value), StatusCode.Ok))
             case Some(ServerResponse.Failure(value)) => Left((value, StatusCode.BadRequest))
-            case None                                => Right(())
+            case None                                => Right((None, StatusCode.NoContent))
           }
       }
   }
@@ -65,6 +52,21 @@ class TapirInterpreter[F[_], Raw](
     override def encode(h: Raw): String = jsonSupport.stringify(h)
 
     override def schema: Schema[Raw] = Schema(
+      SCoproduct(Nil, None)(_ => None),
+      None
+    )
+    override def format: CodecFormat.Json = CodecFormat.Json()
+  }
+
+  private val outOptionRawCodec: JsonCodec[Option[Raw]] = new JsonCodec[Option[Raw]] {
+    override def rawDecode(l: String): DecodeResult[Option[Raw]] = jsonSupport.parse(l).map(json => Some(jsonSupport.demateralize(json)))
+
+    override def encode(h: Option[Raw]): String = h match {
+      case Some(value) => jsonSupport.stringify(value)
+      case None        => "" // "204 No Content" required an empty body
+    }
+
+    override def schema: Schema[Option[Raw]] = Schema(
       SCoproduct(Nil, None)(_ => None),
       None
     )
