@@ -26,8 +26,10 @@ trait ArmadilloOpenRpcCirce {
     case ExampleSingleValue(value: Boolean)    => Json.fromBoolean(value)
     case ExampleSingleValue(value: BigDecimal) => Json.fromBigDecimal(value)
     case ExampleSingleValue(value: BigInt)     => Json.fromBigInt(value)
-    case ExampleSingleValue(null)              => Json.Null
-    case ExampleSingleValue(value)             => Json.fromString(value.toString)
+    // scalafix:off DisableSyntax.null
+    case ExampleSingleValue(null) => Json.Null
+    // scalafix:on
+    case ExampleSingleValue(value) => Json.fromString(value.toString)
   }
   implicit val encoderExampleValue: Encoder[ExampleValue] = {
     case e: ExampleSingleValue        => encoderExampleSingleValue(e)
