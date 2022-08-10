@@ -39,6 +39,7 @@ object VerifyYamlTest extends SimpleIOSuite {
   compare("single_fixed_error_with_data.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(singleFixedErrorWithData)))
   compare("one_of_fixed_errors.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(oneOfFixedErrors)))
   compare("one_of_fixed_errors_with_data.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(oneOfFixedErrorsWithData)))
+  compare("sum.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(sum)))
 
   private def compare(file: String, document: OpenRpcDocument, debug: Boolean = false): Unit = {
     test(file) {

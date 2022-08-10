@@ -141,4 +141,7 @@ object Basic {
     .out(result[Int]("p1"))
 
   case class ErrorInfo(bugId: Int)
+
+  val sum: JsonRpcEndpoint[Animal, Unit, Unit] = jsonRpcEndpoint(m"createPet")
+    .in(param[Animal]("animal"))
 }
