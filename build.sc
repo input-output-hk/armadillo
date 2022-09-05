@@ -110,6 +110,15 @@ object server extends CommonModule with ArmadilloPublishModule {
       ivy"org.typelevel::cats-effect::3.2.9"
     )
   }
+
+  object stub extends CommonModule with ArmadilloPublishModule {
+    override def moduleDeps = Seq(core, server, server.tapir)
+    override def ivyDeps = Agg(
+      ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
+      ivy"com.softwaremill.sttp.client3::core::3.7.6", // TODO check if the version is aligned with tapir
+      ivy"com.softwaremill.sttp.tapir::tapir-sttp-stub-server::${Version.Tapir}",
+    )
+  }
 }
 
 object example extends CommonModule {

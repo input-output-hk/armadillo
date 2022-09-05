@@ -75,10 +75,10 @@ object Json4sSupport {
       formats: Formats,
       serialization: Serialization
   ): Json4sSupport = {
-    new Json4sSupport(parseAsJValue, render)(formats + new JsonRpcIdSerializer, serialization)
+    new Json4sSupport(parseAsJValue, render)(formats + JsonRpcIdSerializer, serialization)
   }
 
-  private class JsonRpcIdSerializer
+  object JsonRpcIdSerializer
       extends CustomSerializer[JsonRpcId](_ =>
         (
           {
