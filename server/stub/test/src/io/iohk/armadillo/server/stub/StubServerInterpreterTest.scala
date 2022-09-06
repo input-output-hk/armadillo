@@ -80,4 +80,24 @@ object StubServerInterpreterTest extends SimpleIOSuite {
       expect.same(Left(HttpError(JsonRpcResponse.error_v2(ServerInterpreter.InternalError, 1), StatusCode.InternalServerError)), r.body)
     }
   }
+
+  test("should run original logic of the endpoint") {
+    val serverEndpoint = testEndpoint.serverLogic { name =>
+      IO.pure(Right(Greeting(s"Hello $name")): Either[JsonRpcError.NoData, Greeting])
+    }
+    val backendStub = stubInterpreter
+      .whenServerEndpoint(serverEndpoint)
+      .thenRunLogic()
+      .backend()
+
+    val responseF = backendStub.send(
+      sttp.client3.basicRequest
+        .post(uri"http://localhost:7654")
+        .body(JsonRpcRequest.v2("hello", json"""[ "kasper" ]""", 1))
+        .response(asJson[JsonRpcSuccessResponse[Greeting]])
+    )
+    responseF.map { r =>
+      expect.same(Right(JsonRpcResponse.v2(Greeting("Hello kasper"), 1)), r.body)
+    }
+  }
 }
