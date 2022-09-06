@@ -23,16 +23,4 @@ trait ArmadilloJson4s {
         }
       }
     }
-
-  implicit def json4sjsonRpcCodec(implicit _schema: Schema[JValue]): JsonRpcCodec[JValue] = {
-    new JsonRpcCodec[JValue] {
-      override type L = JValue
-
-      override def decode(l: JValue): DecodeResult[JValue] = DecodeResult.Value(l)
-
-      override def encode(h: JValue): JValue = h
-
-      override def schema: Schema[JValue] = _schema
-    }
-  }
 }
