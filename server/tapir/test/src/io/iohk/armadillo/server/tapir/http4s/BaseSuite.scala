@@ -1,4 +1,4 @@
-package io.iohk.armadillo.tapir.http4s
+package io.iohk.armadillo.server.tapir.http4s
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
@@ -8,7 +8,7 @@ import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.server.AbstractBaseSuite
 import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
 import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerResponse}
-import io.iohk.armadillo.tapir.TapirInterpreter
+import io.iohk.armadillo.server.tapir.TapirInterpreter
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router

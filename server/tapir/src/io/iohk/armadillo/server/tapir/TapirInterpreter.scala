@@ -1,4 +1,4 @@
-package io.iohk.armadillo.tapir
+package io.iohk.armadillo.server.tapir
 
 import io.iohk.armadillo._
 import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerResponse}

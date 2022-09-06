@@ -8,7 +8,7 @@ import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe._
 import io.iohk.armadillo.server.ServerInterpreter.ResponseHandlingStatus
 import io.iohk.armadillo.server._
-import io.iohk.armadillo.tapir.TapirInterpreter
+import io.iohk.armadillo.server.tapir.TapirInterpreter
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend

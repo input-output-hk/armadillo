@@ -1,4 +1,4 @@
-package io.iohk.armadillo.tapir.http4s
+package io.iohk.armadillo.server.tapir.http4s
 
 import cats.effect.IO
 import io.iohk.armadillo.server.AbstractServerSuite

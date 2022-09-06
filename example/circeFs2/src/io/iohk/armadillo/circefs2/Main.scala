@@ -4,8 +4,8 @@ import cats.effect.{ExitCode, IO, IOApp}
 import fs2.io.net.unixsocket.{UnixSocketAddress, UnixSockets}
 import io.circe.Json
 import io.iohk.armadillo._
-import io.iohk.armadillo.fs2.Fs2Interpreter
 import io.iohk.armadillo.json.circe._
+import io.iohk.armadillo.server.fs2.Fs2Interpreter
 
 object Main extends IOApp {
   val hello_in_int_out_string: JsonRpcEndpoint[Int, Unit, String] = jsonRpcEndpoint(m"hello")
