@@ -46,6 +46,13 @@ trait AbstractBaseSuite[Body, Interpreter] extends SimpleIOSuite {
       f: I => IO[Either[E, O]]
   )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit
 
+  def testServerError[I, E, O, B: Encoder](
+      endpoint: JsonRpcEndpoint[I, E, O],
+      suffix: String = ""
+  )(
+      f: I => IO[Either[E, O]]
+  )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit
+
   def testMultiple[B: Encoder](name: String)(
       se: List[JsonRpcServerEndpoint[IO]]
   )(request: List[B], expectedResponse: List[JsonRpcResponse[Json]]): Unit

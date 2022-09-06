@@ -56,6 +56,19 @@ object ServerInterpreterTest
     }
   }
 
+  override def testServerError[I, E, O, B: Encoder](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
+      f: I => IO[Either[E, O]]
+  )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit = {
+    test(endpoint.showDetail + " " + suffix) {
+      val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
+      val strRequest = Encoder[B].apply(request).noSpaces
+      interpreter.dispatchRequest(strRequest).map { response =>
+        val expectedServerResponse = ServerResponse.ServerFailure(jsonSupport.encodeResponse(expectedResponse))
+        expect.same(Some(expectedServerResponse), response)
+      }
+    }
+  }
+
   override def testMultiple[B: Encoder](name: String)(
       se: List[JsonRpcServerEndpoint[IO]]
   )(request: List[B], expectedResponses: List[JsonRpcResponse[Json]]): Unit = {

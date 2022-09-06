@@ -77,7 +77,7 @@ object StubServerInterpreterTest extends SimpleIOSuite {
         .response(asJsonEither[JsonRpcErrorResponse[JsonRpcError.NoData], JsonRpcSuccessResponse[Greeting]])
     )
     responseF.map { r =>
-      expect.same(Left(HttpError(JsonRpcResponse.error_v2(ServerInterpreter.InternalError, 1), StatusCode.BadRequest)), r.body)
+      expect.same(Left(HttpError(JsonRpcResponse.error_v2(ServerInterpreter.InternalError, 1), StatusCode.InternalServerError)), r.body)
     }
   }
 }

@@ -120,6 +120,41 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
     }
   }
 
+  def testServerError[I, E, O, B: Encoder](
+      endpoint: JsonRpcEndpoint[I, E, O],
+      suffix: String = ""
+  )(
+      f: I => IO[Either[E, O]]
+  )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit = {
+    test(endpoint.showDetail + " " + suffix) {
+      testSingleEndpoint(endpoint)(f)
+        .use { case (backend, baseUri) =>
+          basicRequest
+            .post(baseUri)
+            .body(request)
+            .response(asJson[JsonRpcResponse[Json]])
+            .send(backend)
+            .map { response =>
+              expect.same(
+                ServerResponse.ServerFailure(jsonSupport.encodeResponse(expectedResponse)),
+                response.body match {
+                  case Left(error) =>
+                    error match {
+                      case HttpError(body, _)             => ServerResponse.ServerFailure(parser.parse(body).toOption.get)
+                      case DeserializationException(_, _) => throw new RuntimeException("DeserializationException was not expected")
+                    }
+                  case Right(body) =>
+                    body match {
+                      case result @ JsonRpcSuccessResponse(_, _, _) => ServerResponse.Success(jsonSupport.encodeResponse(result))
+                      case error @ JsonRpcErrorResponse(_, _, _)    => ServerResponse.Failure(jsonSupport.encodeResponse(error))
+                    }
+                }
+              )
+            }
+        }
+    }
+  }
+
   def testMultiple[B: Encoder](name: String)(
       se: List[JsonRpcServerEndpoint[IO]]
   )(request: List[B], expectedResponse: List[JsonRpcResponse[Json]]): Unit = {

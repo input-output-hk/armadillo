@@ -52,7 +52,7 @@ object ExceptionHandler {
       case Some(id) =>
         ResponseHandlingStatus.Handled(
           ServerResponse
-            .Failure(
+            .ServerFailure(
               jsonSupport.encodeResponse(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(ServerInterpreter.InternalError), id))
             )
             .some
