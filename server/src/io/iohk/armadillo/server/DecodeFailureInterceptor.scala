@@ -41,7 +41,7 @@ object DecodeFailureHandler {
     ResponseHandlingStatus.Handled(
       Some(
         ServerResponse.Failure(
-          jsonSupport.encodeResponse(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(ServerInterpreter.ParseError), None))
+          jsonSupport.encodeResponse(JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(ServerInterpreter.ParseError)))
         )
       )
     )

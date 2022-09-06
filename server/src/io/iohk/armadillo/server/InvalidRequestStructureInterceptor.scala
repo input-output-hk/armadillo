@@ -19,7 +19,7 @@ class InvalidRequestStructureInterceptor[F[_], Raw] extends RequestInterceptor[F
           case obj: Json.JsonObject[Raw] => next.onDecodeSuccess(obj)
           case arr: Json.JsonArray[Raw]  => next.onDecodeSuccess(arr) // TODO add test
           case Json.Other(_) =>
-            val response = JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(ServerInterpreter.InvalidRequest), None)
+            val response = JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(ServerInterpreter.InvalidRequest))
             monad.unit(ResponseHandlingStatus.Handled(ServerResponse.Failure(jsonSupport.encodeResponse(response)).some))
         }
       }

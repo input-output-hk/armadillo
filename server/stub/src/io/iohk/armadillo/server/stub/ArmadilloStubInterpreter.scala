@@ -1,6 +1,6 @@
 package io.iohk.armadillo.server.stub
 
-import io.iohk.armadillo.server.{Interceptor, JsonSupport}
+import io.iohk.armadillo.server.{CustomInterceptors, Interceptor, JsonSupport}
 import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcServerEndpoint}
 import sttp.client3.testing.SttpBackendStub
 import sttp.client3.{Request, SttpBackend}
@@ -64,5 +64,5 @@ class ArmadilloStubInterpreter[F[_], Raw, R](
 object ArmadilloStubInterpreter {
 
   def apply[F[_], R, Raw](stub: SttpBackendStub[F, R], jsonSupport: JsonSupport[Raw]): ArmadilloStubInterpreter[F, Raw, R] =
-    new ArmadilloStubInterpreter[F, Raw, R](List.empty, List.empty, stub, jsonSupport)
+    new ArmadilloStubInterpreter[F, Raw, R](List.empty, CustomInterceptors().interceptors, stub, jsonSupport)
 }
