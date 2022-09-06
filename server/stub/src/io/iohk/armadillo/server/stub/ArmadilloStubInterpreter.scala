@@ -1,4 +1,4 @@
-package io.iohk.armadillo.testing
+package io.iohk.armadillo.server.stub
 
 import io.iohk.armadillo.server.{Interceptor, JsonSupport}
 import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcServerEndpoint}

@@ -114,10 +114,19 @@ object server extends CommonModule with ArmadilloPublishModule {
   object stub extends CommonModule with ArmadilloPublishModule {
     override def moduleDeps = Seq(core, server, server.tapir)
     override def ivyDeps = Agg(
-      ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
       ivy"com.softwaremill.sttp.client3::core::3.7.6", // TODO check if the version is aligned with tapir
       ivy"com.softwaremill.sttp.tapir::tapir-sttp-stub-server::${Version.Tapir}",
     )
+    object test extends Tests with CommonTestModule {
+      override def moduleDeps = Seq(json.circe, stub)
+      override def ivyDeps = Agg(
+        WeaverDep,
+        ivy"io.circe::circe-literal::0.14.1",
+        ivy"org.typelevel::cats-effect::3.2.9",
+        ivy"com.softwaremill.sttp.client3::cats::3.7.6",
+        ivy"com.softwaremill.sttp.client3::circe::3.7.6",
+      )
+    }
   }
 }
 

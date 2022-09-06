@@ -1,8 +1,8 @@
-package io.iohk.armadillo.testing
+package io.iohk.armadillo.server.stub
 
 import io.iohk.armadillo.JsonRpcServerEndpoint
+import io.iohk.armadillo.server.tapir.TapirInterpreter
 import io.iohk.armadillo.server.{Interceptor, JsonSupport}
-import io.iohk.armadillo.tapir.TapirInterpreter
 import sttp.client3.testing.SttpBackendStub
 import sttp.client3.{Request, Response}
 import sttp.model.StatusCode
@@ -11,7 +11,7 @@ import sttp.monad.syntax._
 import sttp.tapir.server.ServerEndpoint.Full
 import sttp.tapir.server.stub.TapirStubInterpreter
 
-class StubServerInterpreter[F[_]: MonadError, Raw, R](
+private[stub] class StubServerInterpreter[F[_]: MonadError, Raw, R](
     endpoints: List[JsonRpcServerEndpoint[F]],
     interceptors: List[Interceptor[F, Raw]],
     jsonSupport: JsonSupport[Raw],
