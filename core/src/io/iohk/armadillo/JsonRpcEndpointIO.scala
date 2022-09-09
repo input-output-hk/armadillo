@@ -1,7 +1,6 @@
 package io.iohk.armadillo
 
 import sttp.tapir.Mapping
-import sttp.tapir.internal.{CombineParams, SplitParams, mkCombine, mkSplit}
 import sttp.tapir.typelevel.ParamConcat
 
 case class JsonRpcEndpoint[I, E, O](
@@ -97,7 +96,7 @@ sealed trait JsonRpcInput[T] extends JsonRpcEndpointTransput[T] {
   private[armadillo] type ThisType[X] <: JsonRpcInput[X]
 
   def and[U, TU](param: JsonRpcInput[U])(implicit concat: ParamConcat.Aux[T, U, TU]): JsonRpcInput[TU] = {
-    JsonRpcInput.Pair(this, param, mkCombine(concat), mkSplit(concat))
+    JsonRpcInput.Pair(this, param)
   }
 }
 
@@ -110,8 +109,7 @@ object JsonRpcInput {
     def deprecated(): ThisType[T] = withInfo(info.deprecated(true))
   }
 
-  case class Pair[T, U, TU](left: JsonRpcInput[T], right: JsonRpcInput[U], combine: CombineParams, split: SplitParams)
-      extends JsonRpcInput[TU] {
+  case class Pair[T, U, TU](left: JsonRpcInput[T], right: JsonRpcInput[U]) extends JsonRpcInput[TU] {
     override def show: String = {
       def flattenedPairs(et: JsonRpcInput[_]): Vector[JsonRpcInput[_]] =
         et match {

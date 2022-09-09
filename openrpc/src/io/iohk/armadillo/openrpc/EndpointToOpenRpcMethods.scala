@@ -3,8 +3,8 @@ package io.iohk.armadillo.openrpc
 import io.iohk.armadillo.openrpc.EndpointToOpenRpcMethods.EmptyResult
 import io.iohk.armadillo.openrpc.model._
 import io.iohk.armadillo.{AnyEndpoint, JsonRpcEndpoint, JsonRpcErrorOutput, JsonRpcIO, JsonRpcInput}
+import sttp.apispec.Schema
 import sttp.tapir.SchemaType
-import sttp.tapir.apispec.Schema
 
 class EndpointToOpenRpcMethods(schemas: Schemas) {
 
@@ -38,7 +38,7 @@ class EndpointToOpenRpcMethods(schemas: Schemas) {
     jsonRpcInput match {
       case o: JsonRpcIO.Single[_] => List(convertParam(o))
       case _: JsonRpcIO.Empty[_]  => List.empty
-      case JsonRpcInput.Pair(left, right, _, _) =>
+      case JsonRpcInput.Pair(left, right) =>
         convertParams(left) ++ convertParams(right)
     }
   }

@@ -9,6 +9,7 @@ methods:
     required: false
     schema:
       type: integer
+      format: int32
   result:
     name: response
     schema:

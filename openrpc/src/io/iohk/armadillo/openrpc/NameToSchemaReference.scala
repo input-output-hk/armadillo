@@ -1,6 +1,6 @@
 package io.iohk.armadillo.openrpc
 
-import sttp.tapir.apispec.Reference
+import sttp.apispec.Reference
 import sttp.tapir.{Schema => TSchema}
 
 class NameToSchemaReference(nameToKey: Map[TSchema.SName, String]) {

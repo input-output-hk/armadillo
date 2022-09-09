@@ -20,6 +20,7 @@ methods:
     required: true
     schema:
       type: integer
+      format: int32
     deprecated: true
   result:
     name: response

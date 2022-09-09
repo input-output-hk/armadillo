@@ -1,5 +1,6 @@
 package io.iohk.armadillo.openrpc.model
-import sttp.tapir.apispec.{ReferenceOr, Schema}
+
+import sttp.apispec.{ReferenceOr, Schema}
 
 import scala.collection.immutable.ListMap
 

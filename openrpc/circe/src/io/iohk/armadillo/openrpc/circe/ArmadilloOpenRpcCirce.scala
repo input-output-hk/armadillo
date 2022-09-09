@@ -4,7 +4,7 @@ import io.circe.generic.semiauto._
 import io.circe.parser.parse
 import io.circe.{Encoder, Json}
 import io.iohk.armadillo.openrpc.model._
-import sttp.tapir.apispec._
+import sttp.apispec._
 
 import scala.collection.immutable.ListMap
 

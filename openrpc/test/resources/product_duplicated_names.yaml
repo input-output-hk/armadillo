@@ -34,3 +34,4 @@ components:
       properties:
         age:
           type: integer
+          format: int32

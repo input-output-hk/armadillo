@@ -48,7 +48,7 @@ object ExampleCirce extends IOApp {
       List(new LoggingEndpointInterceptor, new LoggingRequestInterceptor, new GenericIOInterceptor[Json])
     )
     val tapirEndpoints = tapirInterpreter.toTapirEndpoint(List(endpoint)).getOrElse(???)
-    val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
+    val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO]).toRoutes(tapirEndpoints)
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
     import sttp.tapir.client.sttp.SttpClientInterpreter
 
@@ -69,8 +69,8 @@ object ExampleCirce extends IOApp {
             v match {
               case Left(value) =>
                 println(s"error response: $value")
-              case Right((json: Json, code: StatusCode)) =>
-                println(s"response ${json.noSpaces} code: $code")
+              case Right((json: Option[Json], code: StatusCode)) =>
+                println(s"response ${json.map(_.noSpaces)} code: $code")
               case Right(other: Any) =>
                 println(s"response $other")
             }

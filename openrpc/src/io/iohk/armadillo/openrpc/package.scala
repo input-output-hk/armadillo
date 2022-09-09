@@ -1,6 +1,6 @@
 package io.iohk.armadillo
 
-import sttp.tapir.apispec.{ExampleMultipleValue, ExampleSingleValue, ExampleValue}
+import sttp.apispec.{ExampleMultipleValue, ExampleSingleValue, ExampleValue}
 import sttp.tapir.{Codec, Schema => TSchema, SchemaType => TSchemaType}
 
 import scala.collection.immutable
