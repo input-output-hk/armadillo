@@ -62,7 +62,7 @@ object openrpc extends CommonModule with ArmadilloPublishModule {
     override def moduleDeps = Seq(openrpc, json.circe)
     override def ivyDeps = Agg(
       WeaverDep,
-      ivy"org.typelevel::cats-effect::3.2.9"
+      ivy"org.typelevel::cats-effect::${Version.CatsEffect}"
     )
   }
 }
@@ -86,10 +86,10 @@ object server extends CommonModule with ArmadilloPublishModule {
         ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::${Version.Tapir}",
         ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
         ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
-        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.4.1",
+        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::${Version.Sttp}",
         ivy"org.http4s::http4s-blaze-server::${Version.Http4s}",
-        ivy"com.softwaremill.sttp.client3::circe::3.4.1",
-        ivy"org.typelevel::cats-effect::3.2.9"
+        ivy"com.softwaremill.sttp.client3::circe::${Version.Sttp}",
+        ivy"org.typelevel::cats-effect::${Version.CatsEffect}"
       )
     }
   }
@@ -106,9 +106,27 @@ object server extends CommonModule with ArmadilloPublishModule {
     override def moduleDeps = Seq(core, json.circe)
     override def ivyDeps = Agg(
       WeaverDep,
-      ivy"io.circe::circe-literal::0.14.1",
-      ivy"org.typelevel::cats-effect::3.2.9"
+      ivy"io.circe::circe-literal::${Version.Circe}",
+      ivy"org.typelevel::cats-effect::${Version.CatsEffect}"
     )
+  }
+
+  object stub extends CommonModule with ArmadilloPublishModule {
+    override def moduleDeps = Seq(core, server, server.tapir)
+    override def ivyDeps = Agg(
+      ivy"com.softwaremill.sttp.client3::core::${Version.Sttp}", // TODO check if the version is aligned with tapir
+      ivy"com.softwaremill.sttp.tapir::tapir-sttp-stub-server::${Version.Tapir}",
+    )
+    object test extends Tests with CommonTestModule {
+      override def moduleDeps = Seq(json.circe, stub)
+      override def ivyDeps = Agg(
+        WeaverDep,
+        ivy"io.circe::circe-literal::${Version.Circe}",
+        ivy"org.typelevel::cats-effect::${Version.CatsEffect}",
+        ivy"com.softwaremill.sttp.client3::cats::${Version.Sttp}",
+        ivy"com.softwaremill.sttp.client3::circe::${Version.Sttp}",
+      )
+    }
   }
 }
 
@@ -119,7 +137,7 @@ object example extends CommonModule {
 
     override def ivyDeps =
       Agg(
-        ivy"org.typelevel::cats-effect::3.3.5",
+        ivy"org.typelevel::cats-effect::${Version.CatsEffect}",
         ivy"org.http4s::http4s-dsl::${Version.Http4s}",
         ivy"org.http4s::http4s-circe::${Version.Http4s}",
         ivy"org.http4s::http4s-blaze-server::${Version.Http4s}",
@@ -129,7 +147,7 @@ object example extends CommonModule {
         ivy"org.json4s::json4s-jackson:${Version.Json4s}",
         ivy"ch.qos.logback:logback-classic:1.2.7",
         ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
-        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1"
+        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::${Version.Sttp}"
       )
   }
   object circeApp extends CommonModule {
@@ -137,7 +155,7 @@ object example extends CommonModule {
 
     override def ivyDeps =
       Agg(
-        ivy"org.typelevel::cats-effect::3.3.5",
+        ivy"org.typelevel::cats-effect::${Version.CatsEffect}",
         ivy"org.http4s::http4s-dsl::${Version.Http4s}",
         ivy"org.http4s::http4s-circe::${Version.Http4s}",
         ivy"org.http4s::http4s-blaze-server::${Version.Http4s}",
@@ -145,7 +163,7 @@ object example extends CommonModule {
         ivy"com.softwaremill.sttp.tapir::tapir-cats::${Version.Tapir}",
         ivy"ch.qos.logback:logback-classic:1.2.7",
         ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
-        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1",
+        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::${Version.Sttp}",
         ivy"io.circe::circe-literal::${Version.Circe}"
       )
   }
@@ -154,7 +172,7 @@ object example extends CommonModule {
 
     override def ivyDeps =
       Agg(
-        ivy"org.typelevel::cats-effect::3.3.5",
+        ivy"org.typelevel::cats-effect::${Version.CatsEffect}",
         ivy"org.http4s::http4s-dsl::${Version.Http4s}",
         ivy"org.http4s::http4s-blaze-server::${Version.Http4s}",
         ivy"com.softwaremill.sttp.tapir::tapir-http4s-server::${Version.Tapir}",
@@ -165,7 +183,7 @@ object example extends CommonModule {
         ivy"io.janstenpickle::trace4cats-avro-exporter::${Version.Trace4cats}",
         ivy"ch.qos.logback:logback-classic:1.2.7",
         ivy"com.softwaremill.sttp.tapir::tapir-sttp-client::${Version.Tapir}",
-        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::3.5.1"
+        ivy"com.softwaremill.sttp.client3::async-http-client-backend-cats::${Version.Sttp}"
       )
   }
   object circeFs2 extends CommonModule {
@@ -238,4 +256,6 @@ object Version {
   val Http4s = "0.23.10"
   val Json4s = "4.0.4"
   val Circe = "0.14.1"
+  val Sttp = "3.4.1"
+  val CatsEffect = "3.2.9"
 }

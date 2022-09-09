@@ -1,4 +1,4 @@
-package io.iohk.armadillo.fs2
+package io.iohk.armadillo.server.fs2
 
 import cats.effect.kernel.Async
 import io.iohk.armadillo.JsonRpcServerEndpoint

@@ -16,7 +16,7 @@ object MethodNotFoundHandler {
           Some(
             ServerResponse.Failure(
               jsonSupport.encodeResponse(
-                JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(ServerInterpreter.MethodNotFound), Some(id))
+                JsonRpcResponse.error_v2(jsonSupport.encodeErrorNoData(ServerInterpreter.MethodNotFound), id)
               )
             )
           )

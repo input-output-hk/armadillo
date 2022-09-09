@@ -286,6 +286,7 @@ object ServerInterpreter {
   object ServerResponse {
     final case class Success[+Raw](body: Raw) extends ServerResponse[Raw]
     final case class Failure[+Raw](body: Raw) extends ServerResponse[Raw]
+    final case class ServerFailure[+Raw](body: Raw) extends ServerResponse[Raw]
   }
 
   sealed trait ResponseHandlingStatus[+Raw]

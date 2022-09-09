@@ -3,3 +3,5 @@ out
 .vscode
 .metals
 *.iml
+
+mill-bsp.json

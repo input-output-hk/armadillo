@@ -34,7 +34,7 @@ trait Armadillo {
   ): JsonRpcErrorOutput[T] =
     JsonRpcErrorOutput.FixedWithData[T](code, message, codec)
 
-  def error: JsonRpcErrorOutput[JsonRpcError.NoData] =
+  def errorNoData: JsonRpcErrorOutput[JsonRpcError.NoData] =
     JsonRpcErrorOutput.SingleNoData()
 
   def errorWithData[T](implicit codec: JsonRpcCodec[JsonRpcError[T]]): JsonRpcErrorOutput[JsonRpcError[T]] =

@@ -4,7 +4,7 @@ import cats.effect.{ExitCode, IO, IOApp}
 import cats.syntax.all._
 import io.iohk.armadillo._
 import io.iohk.armadillo.json.json4s._
-import io.iohk.armadillo.tapir.TapirInterpreter
+import io.iohk.armadillo.server.tapir.TapirInterpreter
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import org.json4s.{Formats, JValue, NoTypeHints, Serialization}

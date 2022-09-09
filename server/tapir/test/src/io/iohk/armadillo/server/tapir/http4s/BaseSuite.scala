@@ -1,4 +1,4 @@
-package io.iohk.armadillo.tapir.http4s
+package io.iohk.armadillo.server.tapir.http4s
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
@@ -8,7 +8,7 @@ import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.server.AbstractBaseSuite
 import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
 import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerResponse}
-import io.iohk.armadillo.tapir.TapirInterpreter
+import io.iohk.armadillo.server.tapir.TapirInterpreter
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
@@ -106,6 +106,41 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
                   case Left(error) =>
                     error match {
                       case HttpError(body, _)             => ServerResponse.Failure(parser.parse(body).toOption.get)
+                      case DeserializationException(_, _) => throw new RuntimeException("DeserializationException was not expected")
+                    }
+                  case Right(body) =>
+                    body match {
+                      case result @ JsonRpcSuccessResponse(_, _, _) => ServerResponse.Success(jsonSupport.encodeResponse(result))
+                      case error @ JsonRpcErrorResponse(_, _, _)    => ServerResponse.Failure(jsonSupport.encodeResponse(error))
+                    }
+                }
+              )
+            }
+        }
+    }
+  }
+
+  def testServerError[I, E, O, B: Encoder](
+      endpoint: JsonRpcEndpoint[I, E, O],
+      suffix: String = ""
+  )(
+      f: I => IO[Either[E, O]]
+  )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit = {
+    test(endpoint.showDetail + " " + suffix) {
+      testSingleEndpoint(endpoint)(f)
+        .use { case (backend, baseUri) =>
+          basicRequest
+            .post(baseUri)
+            .body(request)
+            .response(asJson[JsonRpcResponse[Json]])
+            .send(backend)
+            .map { response =>
+              expect.same(
+                ServerResponse.ServerFailure(jsonSupport.encodeResponse(expectedResponse)),
+                response.body match {
+                  case Left(error) =>
+                    error match {
+                      case HttpError(body, _)             => ServerResponse.ServerFailure(parser.parse(body).toOption.get)
                       case DeserializationException(_, _) => throw new RuntimeException("DeserializationException was not expected")
                     }
                   case Right(body) =>

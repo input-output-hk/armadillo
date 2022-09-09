@@ -1,4 +1,4 @@
-package io.iohk.armadillo.tapir
+package io.iohk.armadillo.server.tapir
 
 import io.iohk.armadillo._
 import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerResponse}
@@ -39,9 +39,10 @@ class TapirInterpreter[F[_], Raw](
         serverInterpreter
           .dispatchRequest(input)
           .map {
-            case Some(ServerResponse.Success(value)) => Right((Some(value), StatusCode.Ok))
-            case Some(ServerResponse.Failure(value)) => Left((value, StatusCode.BadRequest))
-            case None                                => Right((None, StatusCode.NoContent))
+            case Some(ServerResponse.Success(value))       => Right((Some(value), StatusCode.Ok))
+            case Some(ServerResponse.Failure(value))       => Left((value, StatusCode.BadRequest))
+            case Some(ServerResponse.ServerFailure(value)) => Left((value, StatusCode.InternalServerError))
+            case None                                      => Right((None, StatusCode.NoContent))
           }
       }
   }

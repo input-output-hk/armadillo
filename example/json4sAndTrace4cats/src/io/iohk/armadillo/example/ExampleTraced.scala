@@ -5,7 +5,7 @@ import cats.data.Kleisli
 import cats.effect.kernel.{MonadCancelThrow, Resource, Sync}
 import cats.effect.{ExitCode, IO, IOApp}
 import io.iohk.armadillo.json.json4s._
-import io.iohk.armadillo.tapir.TapirInterpreter
+import io.iohk.armadillo.server.tapir.TapirInterpreter
 import io.iohk.armadillo.trace4cats.syntax._
 import io.iohk.armadillo.{JsonRpcServerEndpoint, _}
 import io.janstenpickle.trace4cats.Span
