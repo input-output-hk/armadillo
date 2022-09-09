@@ -58,7 +58,7 @@ object ExampleTraced extends IOApp {
         Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
       )
       tapirEndpoints = tapirInterpreter.toTapirEndpoint(endpoints.tracedEndpoints(ep)).getOrElse(???)
-      routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
+      routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO]).toRoutes(tapirEndpoints)
     } yield routes
 
     routesR.use { routes =>

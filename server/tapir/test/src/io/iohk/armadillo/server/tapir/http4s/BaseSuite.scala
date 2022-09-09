@@ -193,7 +193,7 @@ trait BaseSuite extends AbstractBaseSuite[StringBody, ServerEndpoint[Any, IO]] {
 
   private def testMultipleEndpoints(se: List[JsonRpcServerEndpoint[IO]]): Resource[IO, (SttpBackend[IO, Any], Uri)] = {
     val tapirEndpoints = toInterpreter(se).getOrElse(throw new RuntimeException("Error during conversion to tapir"))
-    val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
+    val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO]).toRoutes(tapirEndpoints)
     testServer(routes)
   }
 

@@ -17,6 +17,7 @@ methods:
     name: p1
     schema:
       type: integer
+      format: int32
 components:
   schemas:
     ErrorInfo:
@@ -27,3 +28,4 @@ components:
       properties:
         bugId:
           type: integer
+          format: int32

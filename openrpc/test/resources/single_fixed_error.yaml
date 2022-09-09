@@ -9,6 +9,7 @@ methods:
     required: true
     schema:
       type: integer
+      format: int32
   errors:
   - code: 100
     message: My fixed error

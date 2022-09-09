@@ -2,8 +2,8 @@ package io.iohk.armadillo.openrpc
 
 import io.iohk.armadillo.openrpc.OpenRpcDocsInterpreter.NamedSchema
 import io.iohk.armadillo.{AnyEndpoint, JsonRpcErrorOutput, JsonRpcIO, JsonRpcInput, JsonRpcOutput}
+import sttp.apispec.{ReferenceOr, Schema => ASchema, SchemaType => _}
 import sttp.tapir.Schema.SName
-import sttp.tapir.apispec.{ReferenceOr, Schema => ASchema, SchemaType => _}
 
 import scala.collection.immutable.ListMap
 
@@ -27,8 +27,8 @@ class SchemaForEndpoints(es: List[AnyEndpoint], toNamedSchemas: ToNamedSchemas, 
 
   private def forInput(input: JsonRpcInput[_]): List[NamedSchema] = {
     input match {
-      case io: JsonRpcIO[_]                     => forIO(io, replaceOptionWithCoproduct = false)
-      case JsonRpcInput.Pair(left, right, _, _) => forInput(left) ++ forInput(right)
+      case io: JsonRpcIO[_]               => forIO(io, replaceOptionWithCoproduct = false)
+      case JsonRpcInput.Pair(left, right) => forInput(left) ++ forInput(right)
     }
   }
 

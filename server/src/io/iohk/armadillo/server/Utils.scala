@@ -10,7 +10,7 @@ object Utils {
     def traverseInputs[T](handle: PartialFunction[JsonRpcInput[_], Vector[T]]): Vector[T] =
       input match {
         case i: JsonRpcInput[_] if handle.isDefinedAt(i) => handle(i)
-        case JsonRpcInput.Pair(left, right, _, _)        => left.traverseInputs(handle) ++ right.traverseInputs(handle)
+        case JsonRpcInput.Pair(left, right)              => left.traverseInputs(handle) ++ right.traverseInputs(handle)
         case _                                           => Vector.empty
       }
 

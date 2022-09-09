@@ -13,3 +13,4 @@ methods:
     name: p1
     schema:
       type: integer
+      format: int32

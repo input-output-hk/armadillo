@@ -38,7 +38,7 @@ object ExampleJson4s extends IOApp {
       Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
     )
     val tapirEndpoints = tapirInterpreter.toTapirEndpoint(List(endpoint)).getOrElse(???)
-    val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO, IO]).toRoutes(tapirEndpoints)
+    val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO]).toRoutes(tapirEndpoints)
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
     //    IO.unit.as(ExitCode.Success)

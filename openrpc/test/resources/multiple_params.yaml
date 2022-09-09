@@ -9,6 +9,7 @@ methods:
     required: true
     schema:
       type: integer
+      format: int32
   - name: param2
     required: true
     schema:
