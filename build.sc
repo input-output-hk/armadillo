@@ -256,6 +256,6 @@ object Version {
   val Http4s = "0.23.10"
   val Json4s = "4.0.4"
   val Circe = "0.14.1"
-  val Sttp = "3.7.6"
+  val Sttp = "3.4.1"
   val CatsEffect = "3.2.9"
 }
