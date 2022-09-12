@@ -3,6 +3,7 @@ package io.iohk.armadillo.server
 import io.circe.generic.auto._
 import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe._
+import sttp.tapir.Validator
 import sttp.tapir.generic.auto._
 
 object Endpoints {
@@ -17,6 +18,11 @@ object Endpoints {
   val hello_in_int_out_string_by_position: JsonRpcEndpoint[Int, Unit, String] =
     jsonRpcEndpoint(m"hello", ParamStructure.ByPosition)
       .in(param[Int]("param1"))
+      .out[String]("response")
+
+  val hello_in_int_out_string_validated: JsonRpcEndpoint[Int, Unit, String] =
+    jsonRpcEndpoint(m"hello", ParamStructure.Either)
+      .in(param[Int]("param1").validate(Validator.min(0)))
       .out[String]("response")
 
   val hello_in_multiple_int_out_string: JsonRpcEndpoint[(Int, Int), Unit, String] = jsonRpcEndpoint(m"hello")

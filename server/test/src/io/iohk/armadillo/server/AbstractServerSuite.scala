@@ -35,6 +35,21 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
   )
 
+  test(hello_in_int_out_string_validated, "param validation passed")(int => IO.pure(Right(int.toString)))(
+    request = JsonRpcRequest.v2("hello", json"""{"param1": 42}""", 1),
+    expectedResponse = JsonRpcResponse.v2(json"""${"42"}""", 1)
+  )
+
+  test(hello_in_int_out_string_validated, "param by name validation failed")(int => IO.pure(Right(int.toString)))(
+    request = JsonRpcRequest.v2("hello", json"""{"param1": -42}""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
+  )
+
+  test(hello_in_int_out_string_validated, "param by position validation failed")(int => IO.pure(Right(int.toString)))(
+    request = JsonRpcRequest.v2("hello", json"""[ -42 ]""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
+  )
+
   testNotification(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
     request = Notification.v2("hello", json"[42]")
   )
