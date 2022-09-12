@@ -1,7 +1,7 @@
 package io.iohk.armadillo
 
-import sttp.tapir.{Mapping, Validator}
 import sttp.tapir.typelevel.ParamConcat
+import sttp.tapir.{Mapping, Validator}
 
 case class JsonRpcEndpoint[I, E, O](
     methodName: MethodName,
