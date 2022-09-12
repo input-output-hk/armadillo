@@ -220,8 +220,10 @@ class ServerInterpreter[F[_], Raw] private (
     val ss = in.foldLeft(State(List.empty, json.values.toList)) { (acc, input) =>
       acc.paramsToProcess match {
         case currentParam :: restOfParams =>
-          val codec = input.codec
-          codec.decode(currentParam.asInstanceOf[codec.L]) match {
+          val codec = input.codec.asInstanceOf[JsonRpcCodec[Any]]
+          val decoded = codec.decode(currentParam.asInstanceOf[codec.L])
+          val validated = decoded.flatMap(Validation.from(codec.schema.validator))
+          validated match {
             case _: DecodeResult.Failure if codec.schema.isOptional =>
               acc.copy(results = acc.results :+ DecodeResult.Value(None))
             case other => State(acc.results :+ other, restOfParams)
@@ -242,7 +244,9 @@ class ServerInterpreter[F[_], Raw] private (
     if (jsonAsMap.size >= in.count(_.codec.schema.isOptional) && jsonAsMap.size <= in.size) {
       val ss = in.toList.map { case JsonRpcIO.Single(codec, _, name) =>
         jsonAsMap.get(name) match {
-          case Some(r) => codec.decode(r.asInstanceOf[codec.L])
+          case Some(r) =>
+            val decoded = codec.decode(r.asInstanceOf[codec.L])
+            decoded.flatMap(Validation.from(codec.schema.validator))
           case None =>
             if (codec.schema.isOptional) {
               DecodeResult.Value(None)
