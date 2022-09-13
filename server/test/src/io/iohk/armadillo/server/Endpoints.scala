@@ -40,6 +40,14 @@ object Endpoints {
     )
     .out[String]("response")
 
+  sealed trait Entity {
+    def id: Int
+  }
+  final case class Person(name: String, id: Int) extends Entity
+  val hello_with_validated_coproduct: JsonRpcEndpoint[Entity, Unit, String] = jsonRpcEndpoint(m"hello")
+    .in(param[Entity]("param1").validate(Validator.max(10).contramap(_.id)))
+    .out[String]("response")
+
   val empty: JsonRpcEndpoint[Unit, Unit, Unit] = jsonRpcEndpoint(m"empty")
 
   val error_no_data: JsonRpcEndpoint[Unit, JsonRpcError.NoData, Unit] = jsonRpcEndpoint(m"error_no_data")
