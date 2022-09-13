@@ -40,6 +40,10 @@ object Endpoints {
     )
     .out[String]("response")
 
+  val hello_with_validated_product: JsonRpcEndpoint[(Int, String), Unit, String] = jsonRpcEndpoint(m"hello")
+    .in(param[(Int, String)]("param1").validate(Validator.max(10).contramap(_._1)))
+    .out[String]("response")
+
   sealed trait Entity {
     def id: Int
   }

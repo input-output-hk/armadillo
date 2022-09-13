@@ -84,6 +84,16 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
   )
 
+  test(hello_with_validated_product, "product validation passed") { case (a, b) => IO.pure(Right(s"$a-$b")) }(
+    request = JsonRpcRequest.v2("hello", json"""[ [1, "Bob"] ]""", 1),
+    expectedResponse = JsonRpcResponse.v2(json""""1-Bob"""", 1)
+  )
+
+  test(hello_with_validated_product, "product validation failed") { case (a, b) => IO.pure(Right(s"$a-$b")) }(
+    request = JsonRpcRequest.v2("hello", json"""[ [101, "Bob"] ]""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
+  )
+
   test(hello_with_validated_coproduct, "coproduct validation passed") { e => IO.pure(Right(s"Hello ${e.id}")) }(
     request = JsonRpcRequest.v2("hello", json"""[ {"Person": {"name":  "Bob", "id": 1}} ]""", 1),
     expectedResponse = JsonRpcResponse.v2(json""""Hello 1"""", 1)
