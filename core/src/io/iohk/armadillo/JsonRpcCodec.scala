@@ -9,7 +9,7 @@ trait JsonRpcCodec[H] {
   def schema: Schema[H]
 }
 object JsonRpcCodec {
-  implicit class JsonRpcCodecCopy[H](val codec: JsonRpcCodec[H]) {
+  implicit class JsonRpcCodecOps[H](val codec: JsonRpcCodec[H]) {
     def withValidator(validator: Validator[H]): JsonRpcCodec[H] = new JsonRpcCodec[H] {
       override type L = codec.L
 
