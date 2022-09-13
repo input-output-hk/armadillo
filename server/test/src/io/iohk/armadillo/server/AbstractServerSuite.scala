@@ -69,6 +69,21 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     expectedResponse = JsonRpcResponse.v2(json"${"85"}", 1)
   )
 
+  test(hello_in_multiple_validated, "validation passed") { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
+    request = JsonRpcRequest.v2("hello", json"""{"param1": -9, "param2": 12}""", 1),
+    expectedResponse = JsonRpcResponse.v2(json"${"3"}", 1)
+  )
+
+  test(hello_in_multiple_validated, "first param validation failed") { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
+    request = JsonRpcRequest.v2("hello", json"""{"param1": 42, "param2": 12}""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
+  )
+
+  test(hello_in_multiple_validated, "second param validation failed") { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
+    request = JsonRpcRequest.v2("hello", json"""{"param1": -9, "param2": 100}""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
+  )
+
   test(empty)(_ => IO.delay(Right(println("hello from server"))))(
     request = JsonRpcRequest.v2("empty", json"""[]""", 1),
     expectedResponse = JsonRpcResponse.v2(Json.Null, 1)

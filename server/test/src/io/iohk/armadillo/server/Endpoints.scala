@@ -29,6 +29,17 @@ object Endpoints {
     .in(param[Int]("param1").and(param[Int]("param2")))
     .out[String]("response")
 
+  val hello_in_multiple_validated: JsonRpcEndpoint[(Int, Int), Unit, String] = jsonRpcEndpoint(m"hello")
+    .in(
+      param[Int]("param1")
+        .validate(Validator.negative[Int].and(Validator.min(-10)))
+        .and(
+          param[Int]("param2")
+            .validate(Validator.inRange(10, 20))
+        )
+    )
+    .out[String]("response")
+
   val empty: JsonRpcEndpoint[Unit, Unit, Unit] = jsonRpcEndpoint(m"empty")
 
   val error_no_data: JsonRpcEndpoint[Unit, JsonRpcError.NoData, Unit] = jsonRpcEndpoint(m"error_no_data")
