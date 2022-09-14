@@ -4,6 +4,7 @@ info:
   title: Demo Pet Store
 methods:
 - name: oneOf
+  params: []
   errors:
   - code: 201
     message: error1

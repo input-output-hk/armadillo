@@ -48,7 +48,12 @@ trait ArmadilloOpenRpcCirce {
   implicit val extDescriptionEncoder: Encoder[OpenRpcExternalDocs] = deriveEncoder[OpenRpcExternalDocs]
   implicit val tagsEncoder: Encoder[OpenRpcMethodTag] = deriveEncoder[OpenRpcMethodTag]
 
-  implicit val methodEncoder: Encoder[OpenRpcMethod] = deriveEncoder[OpenRpcMethod]
+  implicit val methodEncoder: Encoder[OpenRpcMethod] = deriveEncoder[OpenRpcMethod].mapJsonObject { json =>
+    json("params") match {
+      case Some(Json.Null) => json.add("params", Json.arr())
+      case _               => json
+    }
+  }
   implicit val infoEncoder: Encoder[OpenRpcInfo] = deriveEncoder[OpenRpcInfo]
   implicit val componentsEncoder: Encoder[OpenRpcComponents] = deriveEncoder[OpenRpcComponents]
   implicit val documentEncoder: Encoder[OpenRpcDocument] = deriveEncoder[OpenRpcDocument]
