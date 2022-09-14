@@ -3,8 +3,9 @@ package io.iohk.armadillo.openrpc
 import io.circe.generic.auto._
 import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe._
+import sttp.tapir.Schema.derivedEnumeration
 import sttp.tapir.generic.auto._
-import sttp.tapir.{Schema, SchemaType}
+import sttp.tapir.{Schema, SchemaType, ValidationResult, Validator}
 
 object Basic {
   val basic: JsonRpcEndpoint[Int, Unit, String] = jsonRpcEndpoint(m"hello")
@@ -144,4 +145,54 @@ object Basic {
 
   val sum: JsonRpcEndpoint[Animal, Unit, Unit] = jsonRpcEndpoint(m"createPet")
     .in(param[Animal]("animal"))
+
+  val validatedInts = jsonRpcEndpoint(m"getPetByNumber")
+    .in(
+      param[Int]("number1").validate(Validator.min(1)) and
+        param[Int]("number2").validate(Validator.max(10))
+    )
+
+  val validatedStrings = jsonRpcEndpoint(m"getPetByNumber")
+    .in(
+      param[String]("string1").validate(Validator.minLength(1)) and
+        param[String]("string2").validate(Validator.maxLength(10)) and
+        param[String]("string3").validate(Validator.pattern("\\w+"))
+    )
+
+  val validatedArrays = jsonRpcEndpoint(m"getPetByNumber")
+    .in(
+      param[Seq[String]]("array1").validate(Validator.minSize(1)) and
+        param[Seq[String]]("array2").validate(Validator.maxSize(10))
+    )
+
+  val validatedStringEnumeration = jsonRpcEndpoint(m"getPetByNumber")
+    .in(param[String]("enum").validate(Validator.enumeration(List("opt1", "opt2", "opt3"))))
+
+  sealed trait Enum
+  final case object Val1 extends Enum
+  final case object Val2 extends Enum
+  val validatedEnumeration = jsonRpcEndpoint(m"getPetByNumber")
+    .in(
+      param[Enum]("enum")(jsonRpcCodec(implicitly, implicitly, derivedEnumeration[Enum]())).validate(
+        Validator.enumeration(List(Val1, Val2))
+      )
+    )
+
+  val validatedAll = jsonRpcEndpoint(m"getPetByNumber")
+    .in(
+      param[String]("parameter").validate(
+        Validator.all(
+          Validator.minLength(1),
+          Validator.maxLength(10),
+          Validator.pattern("\\w+")
+        )
+      )
+    )
+
+  val validatedCustom = jsonRpcEndpoint(m"getPetByNumber")
+    .in(
+      param[String]("parameter").validate(
+        Validator.custom(_ => ValidationResult.Valid, Some("Value needs to be correct"))
+      )
+    )
 }

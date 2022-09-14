@@ -40,6 +40,13 @@ object VerifyYamlTest extends SimpleIOSuite {
   compare("one_of_fixed_errors.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(oneOfFixedErrors)))
   compare("one_of_fixed_errors_with_data.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(oneOfFixedErrorsWithData)))
   compare("sum.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(sum)))
+  compare("validatedInts.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(validatedInts)))
+  compare("validatedStrings.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(validatedStrings)))
+  compare("validatedArrays.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(validatedArrays)))
+  compare("validatedStringEnumeration.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(validatedStringEnumeration)))
+  compare("validatedEnumerations.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(validatedEnumeration)))
+  compare("validatedAll.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(validatedAll)))
+  compare("validatedCustom.yaml", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(validatedCustom)))
 
   private def compare(file: String, document: OpenRpcDocument, debug: Boolean = false): Unit = {
     test(file) {
