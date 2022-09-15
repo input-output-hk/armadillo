@@ -1,7 +1,7 @@
 package io.iohk.armadillo
 
-import sttp.tapir.Mapping
 import sttp.tapir.typelevel.ParamConcat
+import sttp.tapir.{Mapping, Validator}
 
 case class JsonRpcEndpoint[I, E, O](
     methodName: MethodName,
@@ -107,6 +107,8 @@ object JsonRpcInput {
     override private[armadillo] type ThisType[X] <: JsonRpcInput.Basic[X]
 
     def deprecated(): ThisType[T] = withInfo(info.deprecated(true))
+
+    def validate(validator: Validator[T]): ThisType[T]
   }
 
   case class Pair[T, U, TU](left: JsonRpcInput[T], right: JsonRpcInput[U]) extends JsonRpcInput[TU] {
@@ -188,6 +190,8 @@ object JsonRpcIO {
     override def show: String = s"single($name)"
     override private[armadillo] type ThisType[X] = Single[X]
     override def withInfo(info: JsonRpcIoInfo): Single[T] = copy(info = info)
+
+    override def validate(validator: Validator[T]): Single[T] = copy(codec = codec.withValidator(validator))
   }
 }
 

@@ -1,7 +1,7 @@
 package io.iohk.armadillo.openrpc
 
-import sttp.apispec.{Discriminator, Reference, ReferenceOr, Schema => ASchema, SchemaFormat, SchemaType}
-import sttp.tapir.{Schema => TSchema, SchemaType => TSchemaType}
+import sttp.apispec.{Discriminator, ExampleSingleValue, Reference, ReferenceOr, Schema => ASchema, SchemaFormat, SchemaType}
+import sttp.tapir.{Schema => TSchema, SchemaType => TSchemaType, Validator}
 
 class SchemaToOpenRpcSchema(
     nameToSchemaReference: NameToSchemaReference,
@@ -66,6 +66,7 @@ class SchemaToOpenRpcSchema(
     result
       .map(s => if (nullable) s.copy(nullable = Some(true)) else s)
       .map(addMetadata(_, schema))
+      .map(addValidatorInfo(_, schema.validator))
   }
 
   private def addMetadata(oschema: ASchema, tschema: TSchema[_]): ASchema = {
@@ -87,4 +88,30 @@ class SchemaToOpenRpcSchema(
     )
     Discriminator(discriminator.name.encodedName, schemas)
   }
+
+  private def addValidatorInfo(schema: ASchema, validator: Validator[_]): ASchema = {
+    validator match {
+      case m @ Validator.Min(value, exclusive) =>
+        val minimum = BigDecimal(m.valueIsNumeric.toDouble(value))
+        schema.copy(minimum = Some(minimum), exclusiveMinimum = Some(exclusive))
+      case m @ Validator.Max(value, exclusive) =>
+        val maximum = BigDecimal(m.valueIsNumeric.toDouble(value))
+        schema.copy(maximum = Some(maximum), exclusiveMaximum = Some(exclusive))
+      case Validator.Enumeration(possibleValues, encode, _) =>
+        val encodedEnumValues = possibleValues.map(v => ExampleSingleValue(encode.flatMap(_(v)).getOrElse(v.toString)))
+        schema.copy(`enum` = Some(encodedEnumValues))
+      case Validator.Pattern(value)   => schema.copy(pattern = Some(value))
+      case Validator.MinLength(value) => schema.copy(minLength = Some(value))
+      case Validator.MaxLength(value) => schema.copy(maxLength = Some(value))
+      case Validator.MinSize(value)   => schema.copy(minItems = Some(value))
+      case Validator.MaxSize(value)   => schema.copy(maxItems = Some(value))
+      case Validator.All(validators)  => validators.foldLeft(schema)(addValidatorInfo)
+      case Validator.Custom(_, showMessage) =>
+        val newDescription = Some(List(schema.description, showMessage).flatten.mkString("\n")).filter(_.nonEmpty)
+        schema.copy(description = newDescription)
+      case Validator.Mapped(_, _) => schema
+      case Validator.Any(_)       => schema
+    }
+  }
+
 }

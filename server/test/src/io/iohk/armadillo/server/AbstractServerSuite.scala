@@ -35,6 +35,21 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
   )
 
+  test(hello_in_int_out_string_validated, "param validation passed")(int => IO.pure(Right(int.toString)))(
+    request = JsonRpcRequest.v2("hello", json"""{"param1": 42}""", 1),
+    expectedResponse = JsonRpcResponse.v2(json"""${"42"}""", 1)
+  )
+
+  test(hello_in_int_out_string_validated, "param by name validation failed")(int => IO.pure(Right(int.toString)))(
+    request = JsonRpcRequest.v2("hello", json"""{"param1": -42}""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
+  )
+
+  test(hello_in_int_out_string_validated, "param by position validation failed")(int => IO.pure(Right(int.toString)))(
+    request = JsonRpcRequest.v2("hello", json"""[ -42 ]""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
+  )
+
   testNotification(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
     request = Notification.v2("hello", json"[42]")
   )
@@ -52,6 +67,41 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
   test(hello_in_multiple_int_out_string, "by_name") { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
     request = JsonRpcRequest.v2("hello", json"""{"param1": 42, "param2": 43}""", 1),
     expectedResponse = JsonRpcResponse.v2(json"${"85"}", 1)
+  )
+
+  test(hello_in_multiple_validated, "validation passed") { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
+    request = JsonRpcRequest.v2("hello", json"""{"param1": -9, "param2": 12}""", 1),
+    expectedResponse = JsonRpcResponse.v2(json"${"3"}", 1)
+  )
+
+  test(hello_in_multiple_validated, "first param validation failed") { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
+    request = JsonRpcRequest.v2("hello", json"""{"param1": 42, "param2": 12}""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
+  )
+
+  test(hello_in_multiple_validated, "second param validation failed") { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
+    request = JsonRpcRequest.v2("hello", json"""{"param1": -9, "param2": 100}""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
+  )
+
+  test(hello_with_validated_product, "product validation passed") { case (a, b) => IO.pure(Right(s"$a-$b")) }(
+    request = JsonRpcRequest.v2("hello", json"""[ [1, "Bob"] ]""", 1),
+    expectedResponse = JsonRpcResponse.v2(json""""1-Bob"""", 1)
+  )
+
+  test(hello_with_validated_product, "product validation failed") { case (a, b) => IO.pure(Right(s"$a-$b")) }(
+    request = JsonRpcRequest.v2("hello", json"""[ [101, "Bob"] ]""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
+  )
+
+  test(hello_with_validated_coproduct, "coproduct validation passed") { e => IO.pure(Right(s"Hello ${e.id}")) }(
+    request = JsonRpcRequest.v2("hello", json"""[ {"Person": {"name":  "Bob", "id": 1}} ]""", 1),
+    expectedResponse = JsonRpcResponse.v2(json""""Hello 1"""", 1)
+  )
+
+  test(hello_with_validated_coproduct, "coproduct validation failed") { e => IO.pure(Right(s"Hello ${e.id}")) }(
+    request = JsonRpcRequest.v2("hello", json"""[ {"Person": {"name":  "Bob", "id": 100}} ]""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
   )
 
   test(empty)(_ => IO.delay(Right(println("hello from server"))))(

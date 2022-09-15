@@ -3,6 +3,7 @@ package io.iohk.armadillo.server
 import io.circe.generic.auto._
 import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe._
+import sttp.tapir.Validator
 import sttp.tapir.generic.auto._
 
 object Endpoints {
@@ -19,8 +20,36 @@ object Endpoints {
       .in(param[Int]("param1"))
       .out[String]("response")
 
+  val hello_in_int_out_string_validated: JsonRpcEndpoint[Int, Unit, String] =
+    jsonRpcEndpoint(m"hello", ParamStructure.Either)
+      .in(param[Int]("param1").validate(Validator.min(0)))
+      .out[String]("response")
+
   val hello_in_multiple_int_out_string: JsonRpcEndpoint[(Int, Int), Unit, String] = jsonRpcEndpoint(m"hello")
     .in(param[Int]("param1").and(param[Int]("param2")))
+    .out[String]("response")
+
+  val hello_in_multiple_validated: JsonRpcEndpoint[(Int, Int), Unit, String] = jsonRpcEndpoint(m"hello")
+    .in(
+      param[Int]("param1")
+        .validate(Validator.negative[Int].and(Validator.min(-10)))
+        .and(
+          param[Int]("param2")
+            .validate(Validator.inRange(10, 20))
+        )
+    )
+    .out[String]("response")
+
+  val hello_with_validated_product: JsonRpcEndpoint[(Int, String), Unit, String] = jsonRpcEndpoint(m"hello")
+    .in(param[(Int, String)]("param1").validate(Validator.max(10).contramap(_._1)))
+    .out[String]("response")
+
+  sealed trait Entity {
+    def id: Int
+  }
+  final case class Person(name: String, id: Int) extends Entity
+  val hello_with_validated_coproduct: JsonRpcEndpoint[Entity, Unit, String] = jsonRpcEndpoint(m"hello")
+    .in(param[Entity]("param1").validate(Validator.max(10).contramap(_.id)))
     .out[String]("response")
 
   val empty: JsonRpcEndpoint[Unit, Unit, Unit] = jsonRpcEndpoint(m"empty")
