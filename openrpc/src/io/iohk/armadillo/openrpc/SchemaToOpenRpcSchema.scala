@@ -98,7 +98,6 @@ class SchemaToOpenRpcSchema(
         val maximum = BigDecimal(m.valueIsNumeric.toDouble(value))
         schema.copy(maximum = Some(maximum), exclusiveMaximum = Some(exclusive))
       case Validator.Enumeration(possibleValues, encode, _) =>
-        println(s"enum: ${possibleValues}")
         val encodedEnumValues = possibleValues.map(v => ExampleSingleValue(encode.flatMap(_(v)).getOrElse(v.toString)))
         schema.copy(`enum` = Some(encodedEnumValues))
       case Validator.Pattern(value)   => schema.copy(pattern = Some(value))
