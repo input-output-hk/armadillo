@@ -56,7 +56,7 @@ jobs:
           fetch-depth: 0
       - name: Extract version from commit message
         run: |
-          version=${GITHUB_REF/refs\/tags/}
+          version=${GITHUB_REF#refs/*/}
           echo "VERSION=$version" >> $GITHUB_ENV
         env:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
@@ -66,7 +66,7 @@ jobs:
           config-name: release-drafter.yaml
           publish: true
           name: "v${{ env.VERSION }}"
-          tag: "v${{ env.VERSION }}"
+          tag: "${{ env.VERSION }}"
           version: "v${{ env.VERSION }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
