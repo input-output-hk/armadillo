@@ -3,8 +3,8 @@ package io.iohk.armadillo.server
 import io.circe.generic.auto._
 import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe._
-import sttp.tapir.Validator
 import sttp.tapir.generic.auto._
+import sttp.tapir.{Schema, ValidationResult, Validator}
 
 object Endpoints {
   val hello_in_int_out_string: JsonRpcEndpoint[Int, Unit, String] = jsonRpcEndpoint(m"hello")
@@ -52,6 +52,13 @@ object Endpoints {
     .in(param[Entity]("param1").validate(Validator.max(10).contramap(_.id)))
     .out[String]("response")
 
+  val hello_with_validated_branch_of_coproduct: JsonRpcEndpoint[Entity, Unit, String] = {
+    implicit val schemaForPerson: Schema[Person] =
+      Schema.derived[Person].validate(Validator.custom(p => ValidationResult.validWhen(p.name.nonEmpty)))
+    jsonRpcEndpoint(m"hello")
+      .in(param[Entity]("param1"))
+      .out[String]("response")
+  }
   val empty: JsonRpcEndpoint[Unit, Unit, Unit] = jsonRpcEndpoint(m"empty")
 
   val error_no_data: JsonRpcEndpoint[Unit, JsonRpcError.NoData, Unit] = jsonRpcEndpoint(m"error_no_data")

@@ -9,8 +9,8 @@ import io.iohk.armadillo.server.Utils.RichEndpointInput
 import io.iohk.armadillo.{JsonRpcErrorOutput, _}
 import sttp.monad.MonadError
 import sttp.monad.syntax._
-import sttp.tapir.DecodeResult
 import sttp.tapir.internal.ParamsAsVector
+import sttp.tapir.{DecodeResult, ValidationError}
 
 import scala.annotation.tailrec
 
@@ -222,7 +222,7 @@ class ServerInterpreter[F[_], Raw] private (
         case currentParam :: restOfParams =>
           val codec = input.codec.asInstanceOf[JsonRpcCodec[Any]]
           val decoded = codec.decode(currentParam.asInstanceOf[codec.L])
-          val validated = decoded.flatMap(Validation.from(codec.schema.validator))
+          val validated = decoded.flatMap(validate(_, codec.schema.applyValidation))
           validated match {
             case _: DecodeResult.Failure if codec.schema.isOptional =>
               acc.copy(results = acc.results :+ DecodeResult.Value(None))
@@ -246,7 +246,7 @@ class ServerInterpreter[F[_], Raw] private (
         jsonAsMap.get(name) match {
           case Some(r) =>
             val decoded = codec.decode(r.asInstanceOf[codec.L])
-            decoded.flatMap(Validation.from(codec.schema.validator))
+            decoded.flatMap(validate(_, codec.schema.applyValidation))
           case None =>
             if (codec.schema.isOptional) {
               DecodeResult.Value(None)
@@ -259,6 +259,15 @@ class ServerInterpreter[F[_], Raw] private (
     } else {
       val msg = "Too many inputs provided"
       DecodeResult.Error(msg, new RuntimeException(msg))
+    }
+  }
+
+  private def validate[T](v: T, applyValidation: T => List[ValidationError[_]]): DecodeResult[T] = {
+    val validationErrors = applyValidation(v)
+    if (validationErrors.isEmpty) {
+      DecodeResult.Value(v)
+    } else {
+      DecodeResult.InvalidValue(validationErrors)
     }
   }
 }
