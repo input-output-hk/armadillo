@@ -4,6 +4,7 @@ info:
   title: Demo Pet Store
 methods:
 - name: empty
+  params: []
   result:
     name: empty result
     schema: {}

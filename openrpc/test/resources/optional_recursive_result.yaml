@@ -4,6 +4,7 @@ info:
   title: Demo Pet Store
 methods:
 - name: createPet
+  params: []
   result:
     name: p1
     schema:

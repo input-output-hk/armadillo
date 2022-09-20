@@ -57,6 +57,11 @@ trait ArmadilloOpenRpcCirce {
     case Nil        => Json.Null
     case l: List[T] => Json.arr(l.map(i => implicitly[Encoder[T]].apply(i)): _*)
   }
+
+  implicit def encodeRequiredList[T: Encoder]: Encoder[RequiredList[T]] = { case requiredList: RequiredList[T] =>
+    Json.arr(requiredList.wrapped.map(i => implicitly[Encoder[T]].apply(i)): _*)
+  }
+
   implicit def encodeListMap[V: Encoder]: Encoder[ListMap[String, V]] = doEncodeListMap(nullWhenEmpty = true)
 
   private def doEncodeListMap[V: Encoder](nullWhenEmpty: Boolean): Encoder[ListMap[String, V]] = {
