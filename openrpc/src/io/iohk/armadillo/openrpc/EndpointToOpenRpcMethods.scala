@@ -16,7 +16,7 @@ class EndpointToOpenRpcMethods(schemas: Schemas) {
     val result = convertResult(endpoint)
     OpenRpcMethod(
       name = endpoint.methodName.asString,
-      params = convertParams(endpoint.input),
+      params = RequiredList(convertParams(endpoint.input)),
       result = result,
       summary = endpoint.info.summary,
       description = endpoint.info.description,

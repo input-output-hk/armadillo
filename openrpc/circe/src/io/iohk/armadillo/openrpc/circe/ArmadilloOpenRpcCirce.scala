@@ -48,12 +48,7 @@ trait ArmadilloOpenRpcCirce {
   implicit val extDescriptionEncoder: Encoder[OpenRpcExternalDocs] = deriveEncoder[OpenRpcExternalDocs]
   implicit val tagsEncoder: Encoder[OpenRpcMethodTag] = deriveEncoder[OpenRpcMethodTag]
 
-  implicit val methodEncoder: Encoder[OpenRpcMethod] = deriveEncoder[OpenRpcMethod].mapJsonObject { json =>
-    json("params") match {
-      case Some(Json.Null) => json.add("params", Json.arr())
-      case _               => json
-    }
-  }
+  implicit val methodEncoder: Encoder[OpenRpcMethod] = deriveEncoder[OpenRpcMethod]
   implicit val infoEncoder: Encoder[OpenRpcInfo] = deriveEncoder[OpenRpcInfo]
   implicit val componentsEncoder: Encoder[OpenRpcComponents] = deriveEncoder[OpenRpcComponents]
   implicit val documentEncoder: Encoder[OpenRpcDocument] = deriveEncoder[OpenRpcDocument]
@@ -62,6 +57,11 @@ trait ArmadilloOpenRpcCirce {
     case Nil        => Json.Null
     case l: List[T] => Json.arr(l.map(i => implicitly[Encoder[T]].apply(i)): _*)
   }
+
+  implicit def encodeRequiredList[T: Encoder]: Encoder[RequiredList[T]] = { case requiredList: RequiredList[T] =>
+    Json.arr(requiredList.wrapped.map(i => implicitly[Encoder[T]].apply(i)): _*)
+  }
+
   implicit def encodeListMap[V: Encoder]: Encoder[ListMap[String, V]] = doEncodeListMap(nullWhenEmpty = true)
 
   private def doEncodeListMap[V: Encoder](nullWhenEmpty: Boolean): Encoder[ListMap[String, V]] = {

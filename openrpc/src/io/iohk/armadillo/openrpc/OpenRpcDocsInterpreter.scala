@@ -14,7 +14,7 @@ case class OpenRpcDocsInterpreter(markOptionsAsNullable: Boolean = true) {
 
     OpenRpcDocument(
       info = info,
-      methods = methodCreator.methods(endpoints),
+      methods = RequiredList(methodCreator.methods(endpoints)),
       components = if (keyToSchema.nonEmpty) Some(OpenRpcComponents(List.empty, keyToSchema.sortByKey)) else None
     )
   }
