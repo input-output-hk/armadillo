@@ -95,12 +95,22 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
   )
 
   test(hello_with_validated_coproduct, "coproduct validation passed") { e => IO.pure(Right(s"Hello ${e.id}")) }(
-    request = JsonRpcRequest.v2("hello", json"""[ {"Person": {"name":  "Bob", "id": 1}} ]""", 1),
+    request = JsonRpcRequest.v2("hello", json"""[ {"Person": {"name": "Bob", "id": 1}} ]""", 1),
     expectedResponse = JsonRpcResponse.v2(json""""Hello 1"""", 1)
   )
 
   test(hello_with_validated_coproduct, "coproduct validation failed") { e => IO.pure(Right(s"Hello ${e.id}")) }(
-    request = JsonRpcRequest.v2("hello", json"""[ {"Person": {"name":  "Bob", "id": 100}} ]""", 1),
+    request = JsonRpcRequest.v2("hello", json"""[ {"Person": {"name": "Bob", "id": 100}} ]""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
+  )
+
+  test(hello_with_validated_branch_of_coproduct, "validation fail when passed as vector") { e => IO.pure(Right(s"Hello ${e.id}")) }(
+    request = JsonRpcRequest.v2("hello", json"""[ {"Person": {"name": "", "id": 100}} ]""", 1),
+    expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
+  )
+
+  test(hello_with_validated_branch_of_coproduct, "validation fail when passed as object") { e => IO.pure(Right(s"Hello ${e.id}")) }(
+    request = JsonRpcRequest.v2("hello", json"""{"param1":{"Person": {"name": "", "id": 100}}}""", 1),
     expectedResponse = JsonRpcResponse.error_v2(json"""{"code": -32602, "message": "Invalid params"}""", 1)
   )
 
