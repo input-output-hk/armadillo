@@ -103,6 +103,12 @@ object Endpoints {
     )
     .out[String]("response")
 
+  val optional_input_last: JsonRpcEndpoint[(String, Option[Int]), Unit, String] = jsonRpcEndpoint(m"optional_input_last")
+    .in(
+      param[String]("p1").and(param[Option[Int]]("p2"))
+    )
+    .out[String]("response")
+
   val optional_output: JsonRpcEndpoint[Unit, Unit, Option[String]] = jsonRpcEndpoint(m"optional_output")
     .out[Option[String]]("response")
 

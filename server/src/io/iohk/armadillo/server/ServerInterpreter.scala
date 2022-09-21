@@ -218,9 +218,9 @@ class ServerInterpreter[F[_], Raw] private (
   private def combineDecodeAsVector(in: Vector[JsonRpcIO.Single[_]]): Json.JsonArray[Raw] => DecodeResult[Vector[_]] = { json =>
     case class State(results: List[DecodeResult[_]], paramsToProcess: List[Raw])
     val ss = in.foldLeft(State(List.empty, json.values.toList)) { (acc, input) =>
+      val codec = input.codec.asInstanceOf[JsonRpcCodec[Any]]
       acc.paramsToProcess match {
         case currentParam :: restOfParams =>
-          val codec = input.codec.asInstanceOf[JsonRpcCodec[Any]]
           val decoded = codec.decode(currentParam.asInstanceOf[codec.L])
           val validated = decoded.flatMap(validate(_, codec.schema.applyValidation))
           validated match {
@@ -228,7 +228,8 @@ class ServerInterpreter[F[_], Raw] private (
               acc.copy(results = acc.results :+ DecodeResult.Value(None))
             case other => State(acc.results :+ other, restOfParams)
           }
-        case Nil => acc.copy(results = acc.results :+ DecodeResult.Missing)
+        case Nil if codec.schema.isOptional => acc.copy(results = acc.results :+ DecodeResult.Value(None))
+        case Nil                            => acc.copy(results = acc.results :+ DecodeResult.Missing)
       }
     }
     if (ss.paramsToProcess.isEmpty) {

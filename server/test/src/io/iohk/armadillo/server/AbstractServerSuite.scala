@@ -292,6 +292,13 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
     expectedResponse = JsonRpcResponse.v2(Json.fromString("1alice"), 1)
   )
 
+  test(optional_input_last, "all inputs provided using positional style (optional param last)") { case (s, i) =>
+    IO.pure(Right(s"$s${i.getOrElse("")}"))
+  }(
+    request = JsonRpcRequest.v2("optional_input_last", json"""["alice", 1]""", 1),
+    expectedResponse = JsonRpcResponse.v2(Json.fromString("alice1"), 1)
+  )
+
   test(optional_input, "all inputs provided using by-name style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
   }(
@@ -302,6 +309,13 @@ trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Int
   test(optional_input, "optional input omitted when using positional style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
   }(request = JsonRpcRequest.v2("optional_input", json"""[1]""", 1), expectedResponse = JsonRpcResponse.v2(Json.fromString("1"), 1))
+
+  test(optional_input_last, "optional input omitted when using positional style (optional param last)") { case (s, i) =>
+    IO.pure(Right(s"$s${i.getOrElse("")}"))
+  }(
+    request = JsonRpcRequest.v2("optional_input_last", json"""["alice"]""", 1),
+    expectedResponse = JsonRpcResponse.v2(Json.fromString("alice"), 1)
+  )
 
   test(optional_input, "optional input omitted when using by-name style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
