@@ -23,23 +23,26 @@ trait AbstractServerInterpreterTest[Raw]
   ): Either[ServerInterpreter.InterpretationError, ServerInterpreter[IO, Raw]] = {
     ServerInterpreter(se, jsonSupport, CustomInterceptors().interceptors)(new CatsMonadError[IO])
   }
-}
 
-object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
-  override def circeJsonToRaw(c: Json): Json = c
-  override def rawEnc: Encoder[Json] = implicitly
+  def requestToString(req: JsonRpcRequest[Raw]): String
 
   override def testNotification[I, E, O](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
       f: I => IO[Either[E, O]]
-  )(request: JsonRpcRequest[Json]): Unit = {
+  )(request: JsonRpcRequest[Raw]): Unit = {
     test(endpoint.showDetail + " as notification " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
-      val strRequest = Encoder[JsonRpcRequest[Json]].apply(request).noSpaces
+      val strRequest = requestToString(request)
       interpreter.dispatchRequest(strRequest).map { response =>
         expect.same(Option.empty, response)
       }
     }
   }
+}
+
+object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
+  override def circeJsonToRaw(c: Json): Json = c
+  override def rawEnc: Encoder[Json] = implicitly
+  def requestToString(req: JsonRpcRequest[Json]): String = jsonRpcRequestEncoder.apply(req).noSpaces
 
   override def testInvalidRequest[I, E, O](name: String)(request: String, expectedResponse: JsonRpcResponse[Json]): Unit = {
     test(name) {
