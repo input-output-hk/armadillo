@@ -3,7 +3,6 @@ package io.iohk.armadillo.server
 import cats.effect.IO
 import io.circe.{Encoder, Json}
 import io.iohk.armadillo._
-import io.iohk.armadillo.json.circe.CirceJsonSupport
 import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
 import io.iohk.armadillo.server.ServerInterpreter.ServerResponse
 import sttp.tapir.integ.cats.CatsMonadError
@@ -15,6 +14,15 @@ trait AbstractServerInterpreterTest[Raw]
   override def invalidJson: String = """{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]"""
 
   override def jsonNotAnObject: String = """["asd"]"""
+
+  protected def createInterpreter(se: List[JsonRpcServerEndpoint[IO]]): ServerInterpreter[IO, Raw] = {
+    toInterpreter(se).getOrElse(throw new RuntimeException("cannot create interpreter"))
+  }
+  override def toInterpreter(
+      se: List[JsonRpcServerEndpoint[IO]]
+  ): Either[ServerInterpreter.InterpretationError, ServerInterpreter[IO, Raw]] = {
+    ServerInterpreter(se, jsonSupport, CustomInterceptors().interceptors)(new CatsMonadError[IO])
+  }
 }
 
 object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
@@ -91,13 +99,4 @@ object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with Ab
     }
   }
 
-  private def createInterpreter(se: List[JsonRpcServerEndpoint[IO]]) = {
-    toInterpreter(se).getOrElse(throw new RuntimeException("cannot create interpreter"))
-  }
-
-  override def toInterpreter(
-      se: List[JsonRpcServerEndpoint[IO]]
-  ): Either[ServerInterpreter.InterpretationError, ServerInterpreter[IO, Json]] = {
-    ServerInterpreter(se, new CirceJsonSupport, CustomInterceptors().interceptors)(new CatsMonadError[IO])
-  }
 }
