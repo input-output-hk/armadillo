@@ -15,8 +15,6 @@ object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with Ab
 
   override def rawEnc: Encoder[Json] = implicitly
 
-  override def prettyPrint(raw: Json): String = raw.noSpaces
-
 }
 
 trait AbstractServerInterpreterTest[Raw]
@@ -36,8 +34,6 @@ trait AbstractServerInterpreterTest[Raw]
     ServerInterpreter(se, jsonSupport, CustomInterceptors().interceptors)(new CatsMonadError[IO])
   }
 
-  def prettyPrint(raw: Raw): String
-
   def encode[B: Enc](b: B): Raw
 
   override def testNotification[I, E, O](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
@@ -45,7 +41,7 @@ trait AbstractServerInterpreterTest[Raw]
   )(request: JsonRpcRequest[Raw]): Unit = {
     test(endpoint.showDetail + " as notification " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
-      val strRequest = prettyPrint(encode(request))
+      val strRequest = jsonSupport.stringify(encode(request))
       interpreter.dispatchRequest(strRequest).map { response =>
         expect.same(Option.empty, response)
       }
@@ -70,7 +66,7 @@ trait AbstractServerInterpreterTest[Raw]
   )(request: B, expectedResponse: JsonRpcResponse[Raw]): Unit = {
     test(endpoint.showDetail + " " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
-      val strRequest = prettyPrint(encode(request))
+      val strRequest = jsonSupport.stringify(encode(request))
       interpreter.dispatchRequest(strRequest).map { response =>
         val expectedServerResponse = expectedResponse match {
           case success @ JsonRpcSuccessResponse(_, _, _) => ServerResponse.Success(jsonSupport.encodeResponse(success))
@@ -86,7 +82,7 @@ trait AbstractServerInterpreterTest[Raw]
   )(request: JsonRpcRequest[Raw], expectedResponse: JsonRpcResponse[Raw]): Unit = {
     test(endpoint.showDetail + " " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
-      val strRequest = prettyPrint(encode(request))
+      val strRequest = jsonSupport.stringify(encode(request))
       interpreter.dispatchRequest(strRequest).map { response =>
         val expectedServerResponse = ServerResponse.ServerFailure(jsonSupport.encodeResponse(expectedResponse))
         expect.same(Some(expectedServerResponse), response)
@@ -99,7 +95,7 @@ trait AbstractServerInterpreterTest[Raw]
   )(request: List[B], expectedResponses: List[JsonRpcResponse[Raw]]): Unit = {
     test(name) {
       val interpreter = createInterpreter(se)
-      val strRequest = prettyPrint(jsonSupport.asArray(request.map(encode[B])))
+      val strRequest = jsonSupport.stringify(jsonSupport.asArray(request.map(encode[B])))
       interpreter.dispatchRequest(strRequest).map { response =>
         val expectedServerInterpreterResponse = if (expectedResponses.isEmpty) {
           Option.empty
