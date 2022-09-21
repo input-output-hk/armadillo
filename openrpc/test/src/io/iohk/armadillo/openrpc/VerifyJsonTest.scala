@@ -15,6 +15,16 @@ object VerifyJsonTest extends SimpleIOSuite {
 
   compare("basic.json", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(basic)))
   compare("empty.json", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(empty)))
+  compare("sorted_basic_empty.json", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(basic, empty)))
+
+  test("OpenRpcDocument's methods are ordered") {
+    IO.pure(
+      expect.same(
+        OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(empty, basic)),
+        OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(basic, empty))
+      )
+    )
+  }
 
   private def compare(file: String, document: OpenRpcDocument): Unit = {
     test(file) {
