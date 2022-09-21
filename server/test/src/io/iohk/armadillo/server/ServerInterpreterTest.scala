@@ -24,7 +24,7 @@ trait AbstractServerInterpreterTest[Raw]
     ServerInterpreter(se, jsonSupport, CustomInterceptors().interceptors)(new CatsMonadError[IO])
   }
 
-  def requestToString(req: JsonRpcRequest[Raw]): String
+  def requestToString[B: Enc](req: B): String
 
   override def testNotification[I, E, O](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
       f: I => IO[Either[E, O]]
@@ -37,14 +37,8 @@ trait AbstractServerInterpreterTest[Raw]
       }
     }
   }
-}
 
-object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
-  override def circeJsonToRaw(c: Json): Json = c
-  override def rawEnc: Encoder[Json] = implicitly
-  def requestToString(req: JsonRpcRequest[Json]): String = jsonRpcRequestEncoder.apply(req).noSpaces
-
-  override def testInvalidRequest[I, E, O](name: String)(request: String, expectedResponse: JsonRpcResponse[Json]): Unit = {
+  override def testInvalidRequest[I, E, O](name: String)(request: String, expectedResponse: JsonRpcResponse[Raw]): Unit = {
     test(name) {
       val interpreter = createInterpreter(List(hello_in_int_out_string.serverLogic[IO](int => IO.pure(Right(int.toString)))))
       interpreter.dispatchRequest(request).map { response =>
@@ -57,12 +51,12 @@ object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with Ab
     }
   }
 
-  override def test[I, E, O, B: Encoder](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
+  override def test[I, E, O, B: Enc](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
       f: I => IO[Either[E, O]]
-  )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit = {
+  )(request: B, expectedResponse: JsonRpcResponse[Raw]): Unit = {
     test(endpoint.showDetail + " " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
-      val strRequest = Encoder[B].apply(request).noSpaces
+      val strRequest = requestToString(request)
       interpreter.dispatchRequest(strRequest).map { response =>
         val expectedServerResponse = expectedResponse match {
           case success @ JsonRpcSuccessResponse(_, _, _) => ServerResponse.Success(jsonSupport.encodeResponse(success))
@@ -75,16 +69,23 @@ object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with Ab
 
   override def testServerError[I, E, O](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
       f: I => IO[Either[E, O]]
-  )(request: JsonRpcRequest[Json], expectedResponse: JsonRpcResponse[Json]): Unit = {
+  )(request: JsonRpcRequest[Raw], expectedResponse: JsonRpcResponse[Raw]): Unit = {
     test(endpoint.showDetail + " " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
-      val strRequest = Encoder[JsonRpcRequest[Json]].apply(request).noSpaces
+      val strRequest = requestToString(request)
       interpreter.dispatchRequest(strRequest).map { response =>
         val expectedServerResponse = ServerResponse.ServerFailure(jsonSupport.encodeResponse(expectedResponse))
         expect.same(Some(expectedServerResponse), response)
       }
     }
   }
+
+}
+
+object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
+  override def circeJsonToRaw(c: Json): Json = c
+  override def rawEnc: Encoder[Json] = implicitly
+  def requestToString[B: Encoder](req: B): String = Encoder[B].apply(req).noSpaces
 
   override def testMultiple[B: Encoder](name: String)(
       se: List[JsonRpcServerEndpoint[IO]]
