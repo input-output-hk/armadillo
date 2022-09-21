@@ -18,7 +18,7 @@ import io.iohk.armadillo.{
 }
 import org.json4s.JsonAST.JValue
 import org.json4s.{Formats, NoTypeHints, Serialization}
-import weaver.SimpleIOSuite
+import weaver.{SimpleIOSuite, TestName}
 
 trait AbstractCirceSuite[Body, Interpreter] extends AbstractBaseSuite[Json, Body, Interpreter] {
   type Enc[T] = Encoder[T]
@@ -46,30 +46,30 @@ trait AbstractBaseSuite[Raw, Body, Interpreter] extends SimpleIOSuite {
 
   def testNotification[I, E, O](
       endpoint: JsonRpcEndpoint[I, E, O],
-      suffix: String = ""
+      suffix: TestName = ""
   )(
       f: I => IO[Either[E, O]]
   )(request: JsonRpcRequest[Raw]): Unit
 
   def testInvalidRequest[I, E, O](
-      suffix: String = ""
+      suffix: TestName = ""
   )(request: Body, expectedResponse: JsonRpcResponse[Raw]): Unit
 
   def test[I, E, O, B: Enc](
       endpoint: JsonRpcEndpoint[I, E, O],
-      suffix: String = ""
+      suffix: TestName = ""
   )(
       f: I => IO[Either[E, O]]
   )(request: B, expectedResponse: JsonRpcResponse[Raw]): Unit
 
   def testServerError[I, E, O](
       endpoint: JsonRpcEndpoint[I, E, O],
-      suffix: String = ""
+      suffix: TestName = ""
   )(
       f: I => IO[Either[E, O]]
   )(request: JsonRpcRequest[Raw], expectedResponse: JsonRpcResponse[Raw]): Unit
 
-  def testMultiple[B: Enc](name: String)(
+  def testMultiple[B: Enc](name: TestName)(
       se: List[JsonRpcServerEndpoint[IO]]
   )(request: List[B], expectedResponse: List[JsonRpcResponse[Raw]]): Unit
 

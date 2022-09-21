@@ -18,6 +18,7 @@ import sttp.model.{MediaType, StatusCode, Uri}
 import sttp.tapir.integ.cats.CatsMonadError
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
+import weaver.TestName
 
 import scala.concurrent.ExecutionContext
 
@@ -30,11 +31,11 @@ trait BaseSuite extends AbstractCirceSuite[StringBody, ServerEndpoint[Any, IO]] 
 
   def testNotification[I, E, O](
       endpoint: JsonRpcEndpoint[I, E, O],
-      suffix: String
+      suffix: TestName
   )(
       f: I => IO[Either[E, O]]
   )(request: JsonRpcRequest[Json]): Unit = {
-    test(endpoint.showDetail + " as notification " + suffix) {
+    test(suffix.copy(endpoint.showDetail + " as notification " + suffix.name)) {
       testSingleEndpoint(endpoint)(f)
         .use { case (backend, baseUri) =>
           basicRequest
@@ -48,7 +49,7 @@ trait BaseSuite extends AbstractCirceSuite[StringBody, ServerEndpoint[Any, IO]] 
     }
   }
 
-  def testInvalidRequest[I, E, O](suffix: String)(request: StringBody, expectedResponse: JsonRpcResponse[Json]): Unit = {
+  def testInvalidRequest[I, E, O](suffix: TestName)(request: StringBody, expectedResponse: JsonRpcResponse[Json]): Unit = {
     test(suffix) {
       testSingleEndpoint(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))
         .use { case (backend, baseUri) =>
@@ -83,11 +84,11 @@ trait BaseSuite extends AbstractCirceSuite[StringBody, ServerEndpoint[Any, IO]] 
 
   def test[I, E, O, B: Encoder](
       endpoint: JsonRpcEndpoint[I, E, O],
-      suffix: String = ""
+      suffix: TestName = ""
   )(
       f: I => IO[Either[E, O]]
   )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit = {
-    test(endpoint.showDetail + " " + suffix) {
+    test(suffix.copy(name = endpoint.showDetail + " " + suffix.name)) {
       testSingleEndpoint(endpoint)(f)
         .use { case (backend, baseUri) =>
           basicRequest
@@ -121,11 +122,11 @@ trait BaseSuite extends AbstractCirceSuite[StringBody, ServerEndpoint[Any, IO]] 
 
   override def testServerError[I, E, O](
       endpoint: JsonRpcEndpoint[I, E, O],
-      suffix: String
+      suffix: TestName
   )(
       f: I => IO[Either[E, O]]
   )(request: JsonRpcRequest[Json], expectedResponse: JsonRpcResponse[Json]): Unit = {
-    test(endpoint.showDetail + " " + suffix) {
+    test(suffix.copy(name = endpoint.showDetail + " " + suffix.name)) {
       testSingleEndpoint(endpoint)(f)
         .use { case (backend, baseUri) =>
           basicRequest
@@ -154,7 +155,7 @@ trait BaseSuite extends AbstractCirceSuite[StringBody, ServerEndpoint[Any, IO]] 
     }
   }
 
-  def testMultiple[B: Encoder](name: String)(
+  def testMultiple[B: Encoder](name: TestName)(
       se: List[JsonRpcServerEndpoint[IO]]
   )(request: List[B], expectedResponse: List[JsonRpcResponse[Json]]): Unit = {
     test(name) {
