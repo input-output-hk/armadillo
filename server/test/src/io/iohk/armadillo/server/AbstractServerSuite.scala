@@ -9,7 +9,7 @@ import io.iohk.armadillo.{JsonRpcError, JsonRpcRequest, JsonRpcResponse, Notific
 
 import java.lang.Integer.parseInt
 
-trait AbstractServerSuite[Body, Interpreter] extends AbstractBaseSuite[Body, Interpreter] {
+trait AbstractServerSuite[Raw, Body, Interpreter] extends AbstractBaseSuite[Raw, Body, Interpreter] {
   test(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
     request = JsonRpcRequest.v2("hello", json"[42]", 1),
     expectedResponse = JsonRpcResponse.v2(json"${"42"}", 1)

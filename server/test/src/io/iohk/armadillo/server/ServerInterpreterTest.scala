@@ -9,8 +9,8 @@ import io.iohk.armadillo.server.ServerInterpreter.ServerResponse
 import sttp.tapir.integ.cats.CatsMonadError
 
 object ServerInterpreterTest
-    extends AbstractServerSuite[String, ServerInterpreter[IO, Json]]
-    with AbstractBaseSuite[String, ServerInterpreter[IO, Json]] {
+    extends AbstractServerSuite[Json, String, ServerInterpreter[IO, Json]]
+    with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
   override def invalidJson: String = """{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]"""
 
   override def jsonNotAnObject: String = """["asd"]"""

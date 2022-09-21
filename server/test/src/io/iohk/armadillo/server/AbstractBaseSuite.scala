@@ -5,6 +5,7 @@ import cats.syntax.all._
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, Json}
 import io.iohk.armadillo.json.circe._
+import io.iohk.armadillo.json.json4s.Json4sSupport
 import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
 import io.iohk.armadillo.{
   JsonRpcEndpoint,
@@ -14,16 +15,27 @@ import io.iohk.armadillo.{
   JsonRpcServerEndpoint,
   JsonRpcSuccessResponse
 }
+import org.json4s.JsonAST.JValue
+import org.json4s.{Formats, NoTypeHints, Serialization}
 import weaver.SimpleIOSuite
 
-trait AbstractBaseSuite[Body, Interpreter] extends SimpleIOSuite {
+trait AbstractCirceSuite[Body, Interpreter] extends AbstractBaseSuite[Json, Body, Interpreter] {
+  override val jsonSupport: CirceJsonSupport = new CirceJsonSupport
+}
+trait AbstractJson4sSuite[Body, Interpreter] extends AbstractBaseSuite[JValue, Body, Interpreter] {
+  implicit val serialization: Serialization = org.json4s.jackson.Serialization
+  implicit val formats: Formats = org.json4s.jackson.Serialization.formats(NoTypeHints)
+  override val jsonSupport: Json4sSupport = Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
+}
+
+trait AbstractBaseSuite[Raw, Body, Interpreter] extends SimpleIOSuite {
   implicit val jsonRpcResponseDecoder: Decoder[JsonRpcResponse[Json]] =
     deriveDecoder[JsonRpcSuccessResponse[Json]].widen.or(deriveDecoder[JsonRpcErrorResponse[Json]].widen)
 
   implicit val jsonRpcRequestEncoder: Encoder[JsonRpcRequest[Json]] = deriveEncoder[JsonRpcRequest[Json]]
   implicit val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
 
-  val jsonSupport = new CirceJsonSupport
+  val jsonSupport: JsonSupport[Raw]
 
   def invalidJson: Body
   def jsonNotAnObject: Body

@@ -103,10 +103,12 @@ object server extends CommonModule with ArmadilloPublishModule {
   }
 
   object test extends Tests with CommonTestModule { // TODO can it be simplified to `test extends CommonTestModule` ?
-    override def moduleDeps = Seq(core, json.circe)
+    override def moduleDeps = Seq(core, json.circe, json.json4s)
     override def ivyDeps = Agg(
       WeaverDep,
       ivy"io.circe::circe-literal::${Version.Circe}",
+      ivy"org.json4s::json4s-core::${Version.Json4s}",
+      ivy"org.json4s::json4s-jackson:${Version.Json4s}",
       ivy"org.typelevel::cats-effect::${Version.CatsEffect}"
     )
   }
