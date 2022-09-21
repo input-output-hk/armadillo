@@ -7,7 +7,7 @@ import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
 import io.iohk.armadillo.server.ServerInterpreter.ServerResponse
 import sttp.tapir.integ.cats.CatsMonadError
 
-object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
+object CirceServerInterpreterTest extends ServerInterpreterTest[Json] with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
 
   override def encode[B: Encoder](b: B): Json = Encoder[B].apply(b)
 
@@ -17,7 +17,7 @@ object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with Ab
 
 }
 
-trait AbstractServerInterpreterTest[Raw]
+trait ServerInterpreterTest[Raw]
     extends AbstractServerSuite[Raw, String, ServerInterpreter[IO, Raw]]
     with AbstractBaseSuite[Raw, String, ServerInterpreter[IO, Raw]] {
 
