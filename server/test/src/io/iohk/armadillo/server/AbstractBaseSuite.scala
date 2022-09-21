@@ -20,7 +20,13 @@ import org.json4s.{Formats, NoTypeHints, Serialization}
 import weaver.SimpleIOSuite
 
 trait AbstractCirceSuite[Body, Interpreter] extends AbstractBaseSuite[Json, Body, Interpreter] {
-  override val jsonSupport: CirceJsonSupport = new CirceJsonSupport
+  type Enc[T] = Encoder[T]
+  override lazy val jsonSupport: CirceJsonSupport = new CirceJsonSupport
+  implicit lazy val jsonRpcResponseDecoder: Decoder[JsonRpcResponse[Json]] =
+    deriveDecoder[JsonRpcSuccessResponse[Json]].widen.or(deriveDecoder[JsonRpcErrorResponse[Json]].widen)
+
+  implicit lazy val jsonRpcRequestEncoder: Encoder[JsonRpcRequest[Json]] = deriveEncoder[JsonRpcRequest[Json]]
+  implicit lazy val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
 }
 trait AbstractJson4sSuite[Body, Interpreter] extends AbstractBaseSuite[JValue, Body, Interpreter] {
   implicit val serialization: Serialization = org.json4s.jackson.Serialization
@@ -29,45 +35,41 @@ trait AbstractJson4sSuite[Body, Interpreter] extends AbstractBaseSuite[JValue, B
 }
 
 trait AbstractBaseSuite[Raw, Body, Interpreter] extends SimpleIOSuite {
-  implicit val jsonRpcResponseDecoder: Decoder[JsonRpcResponse[Json]] =
-    deriveDecoder[JsonRpcSuccessResponse[Json]].widen.or(deriveDecoder[JsonRpcErrorResponse[Json]].widen)
-
-  implicit val jsonRpcRequestEncoder: Encoder[JsonRpcRequest[Json]] = deriveEncoder[JsonRpcRequest[Json]]
-  implicit val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
+  type Enc[T]
 
   val jsonSupport: JsonSupport[Raw]
 
   def invalidJson: Body
   def jsonNotAnObject: Body
 
-  def testNotification[I, E, O, B: Encoder](
+  def testNotification[I, E, O ](
       endpoint: JsonRpcEndpoint[I, E, O],
       suffix: String = ""
   )(
       f: I => IO[Either[E, O]]
-  )(request: B): Unit
+  )(request: JsonRpcRequest[Raw]): Unit
 
   def testInvalidRequest[I, E, O](
       suffix: String = ""
-  )(request: Body, expectedResponse: JsonRpcResponse[Json]): Unit
+  )(request: Body, expectedResponse: JsonRpcResponse[Raw]): Unit
 
-  def test[I, E, O, B: Encoder](
+  def test[I, E, O, B: Enc](
       endpoint: JsonRpcEndpoint[I, E, O],
       suffix: String = ""
   )(
       f: I => IO[Either[E, O]]
-  )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit
+  )(request: B, expectedResponse: JsonRpcResponse[Raw]): Unit
 
-  def testServerError[I, E, O, B: Encoder](
+  def testServerError[I, E, O](
       endpoint: JsonRpcEndpoint[I, E, O],
       suffix: String = ""
   )(
       f: I => IO[Either[E, O]]
-  )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit
+  )(request: JsonRpcRequest[Raw], expectedResponse: JsonRpcResponse[Raw]): Unit
 
-  def testMultiple[B: Encoder](name: String)(
+  def testMultiple[B: Enc](name: String)(
       se: List[JsonRpcServerEndpoint[IO]]
-  )(request: List[B], expectedResponse: List[JsonRpcResponse[Json]]): Unit
+  )(request: List[B], expectedResponse: List[JsonRpcResponse[Raw]]): Unit
 
   def toInterpreter(se: List[JsonRpcServerEndpoint[IO]]): Either[InterpretationError, Interpreter]
 }

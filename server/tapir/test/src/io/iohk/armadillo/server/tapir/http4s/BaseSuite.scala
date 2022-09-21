@@ -5,7 +5,7 @@ import cats.effect.kernel.Resource
 import io.circe.{Encoder, Json, parser}
 import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe.CirceJsonSupport
-import io.iohk.armadillo.server.{AbstractBaseSuite, AbstractCirceSuite}
+import io.iohk.armadillo.server.AbstractCirceSuite
 import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
 import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerResponse}
 import io.iohk.armadillo.server.tapir.TapirInterpreter
@@ -29,12 +29,12 @@ trait BaseSuite extends AbstractCirceSuite[StringBody, ServerEndpoint[Any, IO]] 
 
   override def jsonNotAnObject: StringBody = StringBody("""["asd"]""", "utf-8", MediaType.ApplicationJson)
 
-  def testNotification[I, E, O, B: Encoder](
+  def testNotification[I, E, O](
       endpoint: JsonRpcEndpoint[I, E, O],
-      suffix: String = ""
+      suffix: String
   )(
       f: I => IO[Either[E, O]]
-  )(request: B): Unit = {
+  )(request: JsonRpcRequest[Json]): Unit = {
     test(endpoint.showDetail + " as notification " + suffix) {
       testSingleEndpoint(endpoint)(f)
         .use { case (backend, baseUri) =>
@@ -120,12 +120,12 @@ trait BaseSuite extends AbstractCirceSuite[StringBody, ServerEndpoint[Any, IO]] 
     }
   }
 
-  def testServerError[I, E, O, B: Encoder](
+  override def testServerError[I, E, O](
       endpoint: JsonRpcEndpoint[I, E, O],
-      suffix: String = ""
+      suffix: String
   )(
       f: I => IO[Either[E, O]]
-  )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit = {
+  )(request: JsonRpcRequest[Json], expectedResponse: JsonRpcResponse[Json]): Unit = {
     test(endpoint.showDetail + " " + suffix) {
       testSingleEndpoint(endpoint)(f)
         .use { case (backend, baseUri) =>

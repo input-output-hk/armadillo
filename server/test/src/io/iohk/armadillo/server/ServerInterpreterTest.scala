@@ -26,13 +26,15 @@ trait AbstractServerInterpreterTest[Raw]
 }
 
 object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
+  override def circeJsonToRaw(c: Json): Json = c
+  override def rawEnc: Encoder[Json] = implicitly
 
-  override def testNotification[I, E, O, B: Encoder](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
+  override def testNotification[I, E, O](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
       f: I => IO[Either[E, O]]
-  )(request: B): Unit = {
+  )(request: JsonRpcRequest[Json]): Unit = {
     test(endpoint.showDetail + " as notification " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
-      val strRequest = Encoder[B].apply(request).noSpaces
+      val strRequest = Encoder[JsonRpcRequest[Json]].apply(request).noSpaces
       interpreter.dispatchRequest(strRequest).map { response =>
         expect.same(Option.empty, response)
       }
@@ -68,12 +70,12 @@ object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with Ab
     }
   }
 
-  override def testServerError[I, E, O, B: Encoder](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
+  override def testServerError[I, E, O](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
       f: I => IO[Either[E, O]]
-  )(request: B, expectedResponse: JsonRpcResponse[Json]): Unit = {
+  )(request: JsonRpcRequest[Json], expectedResponse: JsonRpcResponse[Json]): Unit = {
     test(endpoint.showDetail + " " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
-      val strRequest = Encoder[B].apply(request).noSpaces
+      val strRequest = Encoder[JsonRpcRequest[Json]].apply(request).noSpaces
       interpreter.dispatchRequest(strRequest).map { response =>
         val expectedServerResponse = ServerResponse.ServerFailure(jsonSupport.encodeResponse(expectedResponse))
         expect.same(Some(expectedServerResponse), response)
