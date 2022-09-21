@@ -7,6 +7,19 @@ import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
 import io.iohk.armadillo.server.ServerInterpreter.ServerResponse
 import sttp.tapir.integ.cats.CatsMonadError
 
+object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
+
+  override def encode[B: Encoder](b: B): Json = Encoder[B].apply(b)
+
+  override def circeJsonToRaw(c: Json): Json = c
+
+  override def rawEnc: Encoder[Json] = implicitly
+
+  override def prettyPrint(raw: Json): String = raw.noSpaces
+
+  override def makeArray(elems: List[Json]): Json = Json.fromValues(elems)
+}
+
 trait AbstractServerInterpreterTest[Raw]
     extends AbstractServerSuite[Raw, String, ServerInterpreter[IO, Raw]]
     with AbstractBaseSuite[Raw, String, ServerInterpreter[IO, Raw]] {
@@ -24,14 +37,17 @@ trait AbstractServerInterpreterTest[Raw]
     ServerInterpreter(se, jsonSupport, CustomInterceptors().interceptors)(new CatsMonadError[IO])
   }
 
-  def requestToString[B: Enc](req: B): String
+  def prettyPrint(raw: Raw): String
+  def makeArray(elems: List[Raw]): Raw
+
+  def encode[B: Enc](b: B): Raw
 
   override def testNotification[I, E, O](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
       f: I => IO[Either[E, O]]
   )(request: JsonRpcRequest[Raw]): Unit = {
     test(endpoint.showDetail + " as notification " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
-      val strRequest = requestToString(request)
+      val strRequest = prettyPrint(encode(request))
       interpreter.dispatchRequest(strRequest).map { response =>
         expect.same(Option.empty, response)
       }
@@ -56,7 +72,7 @@ trait AbstractServerInterpreterTest[Raw]
   )(request: B, expectedResponse: JsonRpcResponse[Raw]): Unit = {
     test(endpoint.showDetail + " " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
-      val strRequest = requestToString(request)
+      val strRequest = prettyPrint(encode(request))
       interpreter.dispatchRequest(strRequest).map { response =>
         val expectedServerResponse = expectedResponse match {
           case success @ JsonRpcSuccessResponse(_, _, _) => ServerResponse.Success(jsonSupport.encodeResponse(success))
@@ -72,7 +88,7 @@ trait AbstractServerInterpreterTest[Raw]
   )(request: JsonRpcRequest[Raw], expectedResponse: JsonRpcResponse[Raw]): Unit = {
     test(endpoint.showDetail + " " + suffix) {
       val interpreter = createInterpreter(List(endpoint.serverLogic(f)))
-      val strRequest = requestToString(request)
+      val strRequest = prettyPrint(encode(request))
       interpreter.dispatchRequest(strRequest).map { response =>
         val expectedServerResponse = ServerResponse.ServerFailure(jsonSupport.encodeResponse(expectedResponse))
         expect.same(Some(expectedServerResponse), response)
@@ -80,24 +96,17 @@ trait AbstractServerInterpreterTest[Raw]
     }
   }
 
-}
-
-object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
-  override def circeJsonToRaw(c: Json): Json = c
-  override def rawEnc: Encoder[Json] = implicitly
-  def requestToString[B: Encoder](req: B): String = Encoder[B].apply(req).noSpaces
-
-  override def testMultiple[B: Encoder](name: String)(
+  override def testMultiple[B: Enc](name: String)(
       se: List[JsonRpcServerEndpoint[IO]]
-  )(request: List[B], expectedResponses: List[JsonRpcResponse[Json]]): Unit = {
+  )(request: List[B], expectedResponses: List[JsonRpcResponse[Raw]]): Unit = {
     test(name) {
       val interpreter = createInterpreter(se)
-      val strRequest = Json.arr(request.map(b => Encoder[B].apply(b)): _*).noSpaces
+      val strRequest = prettyPrint(makeArray(request.map(encode[B])))
       interpreter.dispatchRequest(strRequest).map { response =>
         val expectedServerInterpreterResponse = if (expectedResponses.isEmpty) {
           Option.empty
         } else {
-          val json = Json.fromValues(expectedResponses.map(jsonSupport.encodeResponse))
+          val json = makeArray(expectedResponses.map(jsonSupport.encodeResponse))
           Some(ServerResponse.Success(json))
         }
         expect.same(expectedServerInterpreterResponse, response)
