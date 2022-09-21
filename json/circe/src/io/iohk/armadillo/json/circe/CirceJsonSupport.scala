@@ -8,7 +8,7 @@ import sttp.tapir.DecodeResult
 
 class CirceJsonSupport extends JsonSupport[Json] {
 
-  override def asArray(seq: Vector[Json]): Json = Json.arr(seq: _*)
+  override def asArray(seq: Seq[Json]): Json = Json.arr(seq: _*)
 
   override def jsNull: Json = Json.Null
 

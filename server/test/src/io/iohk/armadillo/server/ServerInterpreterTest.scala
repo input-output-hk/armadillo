@@ -17,7 +17,6 @@ object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with Ab
 
   override def prettyPrint(raw: Json): String = raw.noSpaces
 
-  override def makeArray(elems: List[Json]): Json = Json.fromValues(elems)
 }
 
 trait AbstractServerInterpreterTest[Raw]
@@ -38,7 +37,6 @@ trait AbstractServerInterpreterTest[Raw]
   }
 
   def prettyPrint(raw: Raw): String
-  def makeArray(elems: List[Raw]): Raw
 
   def encode[B: Enc](b: B): Raw
 
@@ -101,12 +99,12 @@ trait AbstractServerInterpreterTest[Raw]
   )(request: List[B], expectedResponses: List[JsonRpcResponse[Raw]]): Unit = {
     test(name) {
       val interpreter = createInterpreter(se)
-      val strRequest = prettyPrint(makeArray(request.map(encode[B])))
+      val strRequest = prettyPrint(jsonSupport.asArray(request.map(encode[B])))
       interpreter.dispatchRequest(strRequest).map { response =>
         val expectedServerInterpreterResponse = if (expectedResponses.isEmpty) {
           Option.empty
         } else {
-          val json = makeArray(expectedResponses.map(jsonSupport.encodeResponse))
+          val json = jsonSupport.asArray(expectedResponses.map(jsonSupport.encodeResponse))
           Some(ServerResponse.Success(json))
         }
         expect.same(expectedServerInterpreterResponse, response)

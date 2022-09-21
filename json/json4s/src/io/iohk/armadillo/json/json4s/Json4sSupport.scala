@@ -14,7 +14,7 @@ class Json4sSupport private (parseAsJValue: String => JValue, render: JValue => 
     serialization: Serialization
 ) extends JsonSupport[JValue] {
 
-  override def asArray(seq: Vector[JValue]): JValue = JArray(seq.toList)
+  override def asArray(seq: Seq[JValue]): JValue = JArray(seq.toList)
 
   override def jsNull: JValue = JNull
 
