@@ -6,15 +6,17 @@ import sttp.tapir.Schema
 
 case class OpenRpcDocsInterpreter(markOptionsAsNullable: Boolean = true) {
   def toOpenRpc(info: OpenRpcInfo, endpoints: List[AnyEndpoint]): OpenRpcDocument = {
+    val sortedEndpoints = endpoints.sorted
+
     val toNamedSchemas = new ToNamedSchemas
     val (keyToSchema, schemas) =
-      new SchemaForEndpoints(endpoints, toNamedSchemas, markOptionsAsNullable).calculate()
+      new SchemaForEndpoints(sortedEndpoints, toNamedSchemas, markOptionsAsNullable).calculate()
 
     val methodCreator = new EndpointToOpenRpcMethods(schemas)
 
     OpenRpcDocument(
       info = info,
-      methods = RequiredList(methodCreator.methods(endpoints)),
+      methods = RequiredList(methodCreator.methods(sortedEndpoints)),
       components = if (keyToSchema.nonEmpty) Some(OpenRpcComponents(List.empty, keyToSchema.sortByKey)) else None
     )
   }

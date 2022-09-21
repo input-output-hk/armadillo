@@ -40,6 +40,10 @@ case class JsonRpcEndpoint[I, E, O](
   def externalDocs(ed: JsonRpcEndpointExternalDocs): JsonRpcEndpoint[I, E, O] = withInfo(info.externalDocs(ed))
 }
 
+object JsonRpcEndpoint {
+  implicit val ordering: Ordering[JsonRpcEndpoint[_, _, _]] = Ordering.by(_.methodName.asString)
+}
+
 case class JsonRpcEndpointInfo(
     summary: Option[String],
     description: Option[String],
