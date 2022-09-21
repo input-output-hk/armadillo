@@ -10,13 +10,14 @@ import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
 import io.iohk.armadillo.{
   JsonRpcEndpoint,
   JsonRpcErrorResponse,
+  JsonRpcId,
   JsonRpcRequest,
   JsonRpcResponse,
   JsonRpcServerEndpoint,
   JsonRpcSuccessResponse
 }
 import org.json4s.JsonAST.JValue
-import org.json4s.{Formats, NoTypeHints, Serialization}
+import org.json4s.{CustomSerializer, Formats, JInt, JString, NoTypeHints, Serialization}
 import weaver.SimpleIOSuite
 
 trait AbstractCirceSuite[Body, Interpreter] extends AbstractBaseSuite[Json, Body, Interpreter] {
@@ -30,8 +31,21 @@ trait AbstractCirceSuite[Body, Interpreter] extends AbstractBaseSuite[Json, Body
 }
 trait AbstractJson4sSuite[Body, Interpreter] extends AbstractBaseSuite[JValue, Body, Interpreter] {
   type Enc[T] = Unit
+  object JsonRpcIdSerializer
+      extends CustomSerializer[JsonRpcId](_ =>
+        (
+          {
+            case JString(str) => JsonRpcId.StringId(str)
+            case JInt(int)    => JsonRpcId.IntId(int.toInt)
+          },
+          {
+            case JsonRpcId.IntId(int)    => JInt(int)
+            case JsonRpcId.StringId(str) => JString(str)
+          }
+        )
+      )
   implicit lazy val serialization: Serialization = org.json4s.jackson.Serialization
-  implicit lazy val formats: Formats = org.json4s.jackson.Serialization.formats(NoTypeHints)
+  implicit lazy val formats: Formats = org.json4s.jackson.Serialization.formats(NoTypeHints) + JsonRpcIdSerializer
   override lazy val jsonSupport: Json4sSupport = Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
 }
 
@@ -43,7 +57,7 @@ trait AbstractBaseSuite[Raw, Body, Interpreter] extends SimpleIOSuite {
   def invalidJson: Body
   def jsonNotAnObject: Body
 
-  def testNotification[I, E, O ](
+  def testNotification[I, E, O](
       endpoint: JsonRpcEndpoint[I, E, O],
       suffix: String = ""
   )(
