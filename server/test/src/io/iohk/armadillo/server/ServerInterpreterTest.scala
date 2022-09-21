@@ -4,6 +4,7 @@ import cats.effect.IO
 import io.circe.{Encoder, Json}
 import io.iohk.armadillo._
 import io.iohk.armadillo.server.ServerInterpreter.ServerResponse
+import org.json4s.{Extraction, JValue}
 import sttp.tapir.integ.cats.CatsMonadError
 
 object CirceServerInterpreterTest
@@ -17,6 +18,20 @@ object CirceServerInterpreterTest
 
   override def rawEnc: Encoder[Json] = implicitly
 
+}
+
+object Json4sServerInterpreterTest
+    extends ServerInterpreterTest[JValue]
+    with AbstractJson4sSuite[String, ServerInterpreter[IO, JValue]]
+    with Json4sEndpoints {
+
+  override def encode[B: Enc](b: B): JValue = Extraction.decompose(b)
+
+  override def circeJsonToRaw(c: Json): JValue = org.json4s.jackson.parseJson(c.noSpaces)
+
+  override def rawEnc: Enc[JValue] = ()
+
+  override implicit def jsonRpcRequestEncoder: Unit = ()
 }
 
 trait ServerInterpreterTest[Raw]

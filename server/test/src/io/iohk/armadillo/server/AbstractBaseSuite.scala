@@ -29,15 +29,16 @@ trait AbstractCirceSuite[Body, Interpreter] extends AbstractBaseSuite[Json, Body
   implicit lazy val jsonRpcRequestDecoder: Decoder[JsonRpcRequest[Json]] = deriveDecoder[JsonRpcRequest[Json]]
 }
 trait AbstractJson4sSuite[Body, Interpreter] extends AbstractBaseSuite[JValue, Body, Interpreter] {
-  implicit val serialization: Serialization = org.json4s.jackson.Serialization
-  implicit val formats: Formats = org.json4s.jackson.Serialization.formats(NoTypeHints)
-  override val jsonSupport: Json4sSupport = Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
+  type Enc[T] = Unit
+  implicit lazy val serialization: Serialization = org.json4s.jackson.Serialization
+  implicit lazy val formats: Formats = org.json4s.jackson.Serialization.formats(NoTypeHints)
+  override lazy val jsonSupport: Json4sSupport = Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
 }
 
 trait AbstractBaseSuite[Raw, Body, Interpreter] extends SimpleIOSuite {
   type Enc[T]
 
-  val jsonSupport: JsonSupport[Raw]
+  def jsonSupport: JsonSupport[Raw]
 
   def invalidJson: Body
   def jsonNotAnObject: Body
