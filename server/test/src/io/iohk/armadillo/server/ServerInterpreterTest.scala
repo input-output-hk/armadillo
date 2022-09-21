@@ -8,12 +8,16 @@ import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
 import io.iohk.armadillo.server.ServerInterpreter.ServerResponse
 import sttp.tapir.integ.cats.CatsMonadError
 
-object ServerInterpreterTest
-    extends AbstractServerSuite[Json, String, ServerInterpreter[IO, Json]]
-    with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
+trait AbstractServerInterpreterTest[Raw]
+    extends AbstractServerSuite[Raw, String, ServerInterpreter[IO, Raw]]
+    with AbstractBaseSuite[Raw, String, ServerInterpreter[IO, Raw]] {
+
   override def invalidJson: String = """{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]"""
 
   override def jsonNotAnObject: String = """["asd"]"""
+}
+
+object ServerInterpreterTest extends AbstractServerInterpreterTest[Json] with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
 
   override def testNotification[I, E, O, B: Encoder](endpoint: JsonRpcEndpoint[I, E, O], suffix: String)(
       f: I => IO[Either[E, O]]
