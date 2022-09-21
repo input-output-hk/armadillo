@@ -3,7 +3,7 @@ package io.iohk.armadillo.server
 import io.circe.generic.auto._
 import io.iohk.armadillo._
 import io.iohk.armadillo.server.Endpoints._
-import org.json4s.{Formats, Serialization}
+import org.json4s.{CustomSerializer, Extraction, Formats, JField, JObject, JValue, Serialization}
 import sttp.tapir.generic.auto._
 import sttp.tapir.{Schema, ValidationResult, Validator}
 trait CirceEndpoints extends Endpoints {
@@ -161,4 +161,12 @@ object Endpoints {
     def id: Int
   }
   final case class Person(name: String, id: Int) extends Entity
+
+  object EntitySerializer
+      extends CustomSerializer[Entity](implicit formats =>
+        (
+          Function.unlift((_: JValue).extractOpt[Person]).compose { case JObject(JField("Person", v) :: Nil) => v },
+          { case person: Person => JObject("Person" -> Extraction.decompose(person)) }
+        )
+      )
 }
