@@ -151,7 +151,8 @@ trait AbstractServerSuite[Raw, Body, Interpreter] extends AbstractBaseSuite[Raw,
 
   test(oneOf_fixed_errors_with_data, "oneOf_fixed_errors - small")(_ => IO.pure(Left(ErrorInfoSmall("aaa"))))(
     request = JsonRpcRequest.v2[Raw]("fixed_error", json"[]", 1),
-    expectedResponse = JsonRpcResponse.error_v2[Raw](json"""{"code": 201, "message": "something went really wrong", "data":{"msg":"aaa"}}""", 1)
+    expectedResponse =
+      JsonRpcResponse.error_v2[Raw](json"""{"code": 201, "message": "something went really wrong", "data":{"msg":"aaa"}}""", 1)
   )
 
   test(oneOf_fixed_errors_with_data, "oneOf_fixed_errors - big")(_ => IO.pure(Left(ErrorInfoBig("aaa", 123))))(
@@ -312,7 +313,10 @@ trait AbstractServerSuite[Raw, Body, Interpreter] extends AbstractBaseSuite[Raw,
 
   test(optional_input, "optional input omitted when using positional style") { case (s, i) =>
     IO.pure(Right(s"$i${s.getOrElse("")}"))
-  }(request = JsonRpcRequest.v2[Raw]("optional_input", json"""[1]""", 1), expectedResponse = JsonRpcResponse.v2(Json.fromString("1"), 1))
+  }(
+    request = JsonRpcRequest.v2[Raw]("optional_input", json"""[1]""", 1),
+    expectedResponse = JsonRpcResponse.v2(Json.fromString("1"), 1)
+  )
 
   test(optional_input_last, "optional input omitted when using positional style (optional param last)") { case (s, i) =>
     IO.pure(Right(s"$s${i.getOrElse("")}"))

@@ -83,6 +83,7 @@ object Json4sSupport {
         (
           {
             case JInt(value)    => JsonRpcId.IntId(value.intValue)
+            case JString(value) if value.toIntOption.nonEmpty => JsonRpcId.IntId(value.toInt)
             case JString(value) => JsonRpcId.StringId(value)
           },
           {

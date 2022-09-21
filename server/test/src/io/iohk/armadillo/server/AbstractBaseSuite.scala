@@ -6,18 +6,18 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, Json}
 import io.iohk.armadillo.json.circe._
 import io.iohk.armadillo.json.json4s.Json4sSupport
+import io.iohk.armadillo.json.json4s.Json4sSupport.JsonRpcIdSerializer
 import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
 import io.iohk.armadillo.{
   JsonRpcEndpoint,
   JsonRpcErrorResponse,
-  JsonRpcId,
   JsonRpcRequest,
   JsonRpcResponse,
   JsonRpcServerEndpoint,
   JsonRpcSuccessResponse
 }
 import org.json4s.JsonAST.JValue
-import org.json4s.{CustomSerializer, Formats, JInt, JString, NoTypeHints, Serialization}
+import org.json4s.{Formats, NoTypeHints, Serialization}
 import weaver.SimpleIOSuite
 
 trait AbstractCirceSuite[Body, Interpreter] extends AbstractBaseSuite[Json, Body, Interpreter] {
@@ -31,19 +31,6 @@ trait AbstractCirceSuite[Body, Interpreter] extends AbstractBaseSuite[Json, Body
 }
 trait AbstractJson4sSuite[Body, Interpreter] extends AbstractBaseSuite[JValue, Body, Interpreter] {
   type Enc[T] = Unit
-  object JsonRpcIdSerializer
-      extends CustomSerializer[JsonRpcId](_ =>
-        (
-          {
-            case JString(str) => JsonRpcId.StringId(str)
-            case JInt(int)    => JsonRpcId.IntId(int.toInt)
-          },
-          {
-            case JsonRpcId.IntId(int)    => JInt(int)
-            case JsonRpcId.StringId(str) => JString(str)
-          }
-        )
-      )
   implicit lazy val serialization: Serialization = org.json4s.jackson.Serialization
   implicit lazy val formats: Formats = org.json4s.jackson.Serialization.formats(NoTypeHints) + JsonRpcIdSerializer
   override lazy val jsonSupport: Json4sSupport = Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
