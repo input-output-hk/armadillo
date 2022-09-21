@@ -9,7 +9,7 @@ import io.iohk.armadillo.{JsonRpcError, JsonRpcRequest, JsonRpcResponse, Notific
 
 import java.lang.Integer.parseInt
 
-trait AbstractServerSuite[Raw, Body, Interpreter] extends AbstractBaseSuite[Raw, Body, Interpreter] {
+trait AbstractServerSuite[Raw, Body, Interpreter] extends AbstractBaseSuite[Raw, Body, Interpreter] with Endpoints {
   implicit def circeJsonToRaw(c: Json): Raw
   implicit def jsonRpcRequestEncoder: Enc[JsonRpcRequest[Raw]]
   implicit def rawEnc: Enc[Raw]

@@ -3,11 +3,13 @@ package io.iohk.armadillo.server
 import cats.effect.IO
 import io.circe.{Encoder, Json}
 import io.iohk.armadillo._
-import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
 import io.iohk.armadillo.server.ServerInterpreter.ServerResponse
 import sttp.tapir.integ.cats.CatsMonadError
 
-object CirceServerInterpreterTest extends ServerInterpreterTest[Json] with AbstractCirceSuite[String, ServerInterpreter[IO, Json]] {
+object CirceServerInterpreterTest
+    extends ServerInterpreterTest[Json]
+    with AbstractCirceSuite[String, ServerInterpreter[IO, Json]]
+    with CirceEndpoints {
 
   override def encode[B: Encoder](b: B): Json = Encoder[B].apply(b)
 
@@ -19,7 +21,8 @@ object CirceServerInterpreterTest extends ServerInterpreterTest[Json] with Abstr
 
 trait ServerInterpreterTest[Raw]
     extends AbstractServerSuite[Raw, String, ServerInterpreter[IO, Raw]]
-    with AbstractBaseSuite[Raw, String, ServerInterpreter[IO, Raw]] {
+    with AbstractBaseSuite[Raw, String, ServerInterpreter[IO, Raw]]
+    with Endpoints {
 
   override def invalidJson: String = """{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]"""
 

@@ -2,11 +2,55 @@ package io.iohk.armadillo.server
 
 import io.circe.generic.auto._
 import io.iohk.armadillo._
-import io.iohk.armadillo.json.circe._
+import io.iohk.armadillo.server.Endpoints._
+import org.json4s.{Formats, Serialization}
 import sttp.tapir.generic.auto._
 import sttp.tapir.{Schema, ValidationResult, Validator}
+trait CirceEndpoints extends Endpoints {
+  import io.iohk.armadillo.json.circe
 
-object Endpoints {
+  override implicit def intCodec: JsonRpcCodec[Int] = circe.jsonRpcCodec
+  override implicit def stringCodec: JsonRpcCodec[String] = circe.jsonRpcCodec
+  override implicit def stringIntCodec: JsonRpcCodec[(String, Int)] = circe.jsonRpcCodec
+  override implicit def intStringCodec: JsonRpcCodec[(Int, String)] = circe.jsonRpcCodec
+  override implicit def entityCodec(implicit schema: Schema[Entity]): JsonRpcCodec[Entity] = circe.jsonRpcCodec
+  override implicit def intErrorCodec: JsonRpcCodec[JsonRpcError[Int]] = circe.jsonRpcCodec
+  override implicit def smallCodec: JsonRpcCodec[ErrorInfoSmall] = circe.jsonRpcCodec
+  override implicit def bigCodec: JsonRpcCodec[ErrorInfoBig] = circe.jsonRpcCodec
+  override implicit def optionStringCodec: JsonRpcCodec[Option[String]] = circe.jsonRpcCodec
+  override implicit def optionIntCodec: JsonRpcCodec[Option[Int]] = circe.jsonRpcCodec
+}
+
+trait Json4sEndpoints extends Endpoints {
+  import io.iohk.armadillo.json.json4s
+
+  implicit val serialization: Serialization
+  implicit val formats: Formats
+
+  override implicit def intCodec: JsonRpcCodec[Int] = json4s.jsonRpcCodec
+  override implicit def stringCodec: JsonRpcCodec[String] = json4s.jsonRpcCodec
+  override implicit def stringIntCodec: JsonRpcCodec[(String, Int)] = json4s.jsonRpcCodec
+  override implicit def intStringCodec: JsonRpcCodec[(Int, String)] = json4s.jsonRpcCodec
+  override implicit def entityCodec(implicit schema: Schema[Entity]): JsonRpcCodec[Entity] = json4s.jsonRpcCodec
+  override implicit def intErrorCodec: JsonRpcCodec[JsonRpcError[Int]] = json4s.jsonRpcCodec
+  override implicit def smallCodec: JsonRpcCodec[ErrorInfoSmall] = json4s.jsonRpcCodec
+  override implicit def bigCodec: JsonRpcCodec[ErrorInfoBig] = json4s.jsonRpcCodec
+  override implicit def optionStringCodec: JsonRpcCodec[Option[String]] = json4s.jsonRpcCodec
+  override implicit def optionIntCodec: JsonRpcCodec[Option[Int]] = json4s.jsonRpcCodec
+}
+
+trait Endpoints {
+  implicit def intCodec: JsonRpcCodec[Int]
+  implicit def stringCodec: JsonRpcCodec[String]
+  implicit def stringIntCodec: JsonRpcCodec[(String, Int)]
+  implicit def intStringCodec: JsonRpcCodec[(Int, String)]
+  implicit def entityCodec(implicit schema: Schema[Entity]): JsonRpcCodec[Entity]
+  implicit def intErrorCodec: JsonRpcCodec[JsonRpcError[Int]]
+  implicit def smallCodec: JsonRpcCodec[ErrorInfoSmall]
+  implicit def bigCodec: JsonRpcCodec[ErrorInfoBig]
+  implicit def optionStringCodec: JsonRpcCodec[Option[String]]
+  implicit def optionIntCodec: JsonRpcCodec[Option[Int]]
+
   val hello_in_int_out_string: JsonRpcEndpoint[Int, Unit, String] = jsonRpcEndpoint(m"hello")
     .in(param[Int]("param1"))
     .out[String]("response")
@@ -44,10 +88,6 @@ object Endpoints {
     .in(param[(Int, String)]("param1").validate(Validator.max(10).contramap(_._1)))
     .out[String]("response")
 
-  sealed trait Entity {
-    def id: Int
-  }
-  final case class Person(name: String, id: Int) extends Entity
   val hello_with_validated_coproduct: JsonRpcEndpoint[Entity, Unit, String] = jsonRpcEndpoint(m"hello")
     .in(param[Entity]("param1").validate(Validator.max(10).contramap(_.id)))
     .out[String]("response")
@@ -80,11 +120,6 @@ object Endpoints {
         oneOfVariant(fixedErrorWithData[ErrorInfoBig](200, "something went wrong"))
       )
     )
-
-  sealed trait ErrorInfo
-  case class ErrorInfoSmall(msg: String) extends ErrorInfo
-  case class ErrorInfoBig(msg: String, code: Int) extends ErrorInfo
-
   val oneOf_fixed_errors_value_matcher: JsonRpcEndpoint[Unit, Either[Unit, Unit], Unit] = jsonRpcEndpoint(m"fixed_error")
     .errorOut(
       oneOf(
@@ -114,4 +149,16 @@ object Endpoints {
 
   val output_without_params: JsonRpcEndpoint[Unit, Unit, String] = jsonRpcEndpoint(m"output_without_params")
     .out[String]("response")
+}
+
+object Endpoints {
+
+  sealed trait ErrorInfo
+  case class ErrorInfoSmall(msg: String) extends ErrorInfo
+  case class ErrorInfoBig(msg: String, code: Int) extends ErrorInfo
+
+  sealed trait Entity {
+    def id: Int
+  }
+  final case class Person(name: String, id: Int) extends Entity
 }

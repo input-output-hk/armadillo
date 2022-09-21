@@ -5,10 +5,9 @@ import cats.effect.kernel.Resource
 import io.circe.{Encoder, Json, parser}
 import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe.CirceJsonSupport
-import io.iohk.armadillo.server.AbstractCirceSuite
-import io.iohk.armadillo.server.Endpoints.hello_in_int_out_string
 import io.iohk.armadillo.server.ServerInterpreter.{InterpretationError, ServerResponse}
 import io.iohk.armadillo.server.tapir.TapirInterpreter
+import io.iohk.armadillo.server.{AbstractCirceSuite, CirceEndpoints}
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
@@ -22,7 +21,7 @@ import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 
 import scala.concurrent.ExecutionContext
 
-trait BaseSuite extends AbstractCirceSuite[StringBody, ServerEndpoint[Any, IO]] {
+trait BaseSuite extends AbstractCirceSuite[StringBody, ServerEndpoint[Any, IO]] with CirceEndpoints {
 
   override def invalidJson: StringBody =
     StringBody("""{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]""", "utf-8", MediaType.ApplicationJson)
