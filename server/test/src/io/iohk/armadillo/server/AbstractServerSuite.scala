@@ -14,7 +14,7 @@ trait AbstractServerSuite[Raw, Body, Interpreter] extends AbstractBaseSuite[Raw,
   implicit def jsonRpcRequestEncoder: Enc[JsonRpcRequest[Raw]]
   implicit def rawEnc: Enc[Raw]
 
-  test(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
+  test(hello_in_int_out_string, "simple call")(int => IO.pure(Right(int.toString)))(
     request = JsonRpcRequest.v2[Raw]("hello", json"[42]", 1),
     expectedResponse = JsonRpcResponse.v2[Raw](json"${"42"}", 1)
   )
@@ -54,7 +54,7 @@ trait AbstractServerSuite[Raw, Body, Interpreter] extends AbstractBaseSuite[Raw,
     expectedResponse = JsonRpcResponse.error_v2[Raw](json"""{"code": -32602, "message": "Invalid params"}""", 1)
   )
 
-  testNotification(hello_in_int_out_string)(int => IO.pure(Right(int.toString)))(
+  testNotification(hello_in_int_out_string, "notification")(int => IO.pure(Right(int.toString)))(
     request = Notification.v2[Raw]("hello", json"[42]")
   )
 
@@ -63,7 +63,7 @@ trait AbstractServerSuite[Raw, Body, Interpreter] extends AbstractBaseSuite[Raw,
     expectedResponse = JsonRpcResponse.v2[Raw](json"${"42"}", 1)
   )
 
-  test(hello_in_multiple_int_out_string) { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
+  test(hello_in_multiple_int_out_string, "by_position") { case (int1, int2) => IO.pure(Right(s"${int1 + int2}")) }(
     request = JsonRpcRequest.v2[Raw]("hello", json"[42, 43]", 1),
     expectedResponse = JsonRpcResponse.v2[Raw](json"${"85"}", 1)
   )
@@ -118,7 +118,7 @@ trait AbstractServerSuite[Raw, Body, Interpreter] extends AbstractBaseSuite[Raw,
     expectedResponse = JsonRpcResponse.error_v2[Raw](json"""{"code": -32602, "message": "Invalid params"}""", 1)
   )
 
-  test(empty)(_ => IO.delay(Right(println("hello from server"))))(
+  test(empty, "empty response")(_ => IO.delay(Right(println("hello from server"))))(
     request = JsonRpcRequest.v2[Raw]("empty", json"""[]""", 1),
     expectedResponse = JsonRpcResponse.v2[Raw](Json.Null, 1)
   )
