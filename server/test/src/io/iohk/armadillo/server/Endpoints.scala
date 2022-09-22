@@ -174,4 +174,7 @@ object Endpoints {
       extends CustomSerializer[(Int, String)](_ =>
         ({ case JArray(JInt(int) :: JString(str) :: Nil) => (int.toInt, str) }, PartialFunction.empty)
       )
+
+  object StrictStringSerializer extends CustomSerializer[String](_ =>
+    ({case JString(str) => str}, { case str: String => JString(str)}))
 }
