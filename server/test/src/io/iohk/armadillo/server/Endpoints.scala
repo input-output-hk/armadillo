@@ -3,7 +3,7 @@ package io.iohk.armadillo.server
 import io.circe.generic.auto._
 import io.iohk.armadillo._
 import io.iohk.armadillo.server.Endpoints._
-import org.json4s.{CustomSerializer, Extraction, Formats, JArray, JField, JInt, JObject, JString, JValue, Serialization}
+import org.json4s.{CustomSerializer, Extraction, Formats, JArray, JField, JInt, JNothing, JNull, JObject, JString, JValue, Serialization}
 import sttp.tapir.generic.auto._
 import sttp.tapir.{Schema, ValidationResult, Validator}
 trait CirceEndpoints extends Endpoints {
@@ -175,6 +175,7 @@ object Endpoints {
         ({ case JArray(JInt(int) :: JString(str) :: Nil) => (int.toInt, str) }, PartialFunction.empty)
       )
 
-  object StrictStringSerializer extends CustomSerializer[String](_ =>
-    ({case JString(str) => str}, { case str: String => JString(str)}))
+  object StrictStringSerializer extends CustomSerializer[String](_ => ({ case JString(str) => str }, { case str: String => JString(str) }))
+
+  object NoneSerializer extends CustomSerializer[None.type](_ => ({ case JNothing | JNull => None }, { case None => JNull }))
 }

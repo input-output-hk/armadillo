@@ -7,7 +7,7 @@ import io.circe.{Decoder, Encoder, Json}
 import io.iohk.armadillo.json.circe._
 import io.iohk.armadillo.json.json4s.Json4sSupport
 import io.iohk.armadillo.json.json4s.Json4sSupport.JsonRpcIdSerializer
-import io.iohk.armadillo.server.Endpoints.{EntitySerializer, IntStringPairSerializer, StrictStringSerializer}
+import io.iohk.armadillo.server.Endpoints.{EntitySerializer, IntStringPairSerializer, NoneSerializer, StrictStringSerializer}
 import io.iohk.armadillo.server.ServerInterpreter.InterpretationError
 import io.iohk.armadillo.{
   JsonRpcEndpoint,
@@ -35,7 +35,8 @@ trait AbstractJson4sSuite[Body, Interpreter] extends AbstractBaseSuite[JValue, B
   implicit lazy val serialization: Serialization = org.json4s.jackson.Serialization
   implicit lazy val formats: Formats =
     org.json4s.jackson.Serialization
-      .formats(NoTypeHints) + JsonRpcIdSerializer + EntitySerializer + IntStringPairSerializer + StrictStringSerializer
+      .formats(NoTypeHints) + JsonRpcIdSerializer + EntitySerializer + IntStringPairSerializer + StrictStringSerializer + NoneSerializer
+
   override lazy val jsonSupport: Json4sSupport = Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
 }
 
