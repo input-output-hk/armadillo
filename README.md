@@ -20,6 +20,21 @@ See https://github.com/softwaremill/tapir/issues/621 for details.
 
 Head over to the [examples](./example) to see armadillo in action!
 
+## Quickstart with sbt
+Add the following dependency:
+
+```
+"io.iohk.armadillo" %% "armadillo-core" % "0.0.9"
+```
+
+## Quickstart with mill
+Add the following dependency:
+
+```
+ivy"io.iohk.armadillo::armadillo-core::0.0.9"
+```
+
+
 ## Modules description
 
 - core - pure definition of armadillo
