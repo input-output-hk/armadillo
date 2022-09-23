@@ -248,6 +248,8 @@ trait ArmadilloPublishModule extends PublishModule {
       Developer("ghostbuster91", "Kasper Kondzielski", "https://github.com/ghostbuster91")
     )
   )
+
+  override def artifactName: T[String] = s"armadillo-${millModuleSegments.parts.mkString("-")}"
 }
 
 object Version {
