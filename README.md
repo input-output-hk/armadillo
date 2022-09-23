@@ -38,15 +38,15 @@ BlazeServerBuilder[IO]
   .resource
   .flatMap { _ =>
     AsyncHttpClientCatsBackend.resource[IO]()
-    .use { client =>
-      val request = json"""{"jsonrpc": "2.0", "method": "say_hello", "params": ["kasper"], "id": 1}"""
-      SttpClientInterpreter()
-              .toClient(tapirEndpoint.endpoint, Some(Uri.apply("localhost", 8080)), client)
-              .apply(request.noSpaces)
-              .map { response =>
-                println(s"Response: $response")
-              }
-    }
+  }
+  .use { client =>
+    val request = json"""{"jsonrpc": "2.0", "method": "say_hello", "params": ["kasper"], "id": 1}"""
+    SttpClientInterpreter()
+      .toClient(tapirEndpoint.endpoint, Some(Uri.apply("localhost", 8080)), client)
+      .apply(request.noSpaces)
+      .map { response =>
+        println(s"Response: $response")
+      }
   }
   .unsafeRunSync()
 ```
