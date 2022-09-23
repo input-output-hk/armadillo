@@ -48,7 +48,7 @@ ivy"io.iohk.armadillo::armadillo-core::0.0.9"
 - openrpc - interpreter to openrpc 
     - model - openrpc structures
     - circe - circe codecs for openrpc structures
-    - circeYaml - extension methos to convert openrpc doc into yaml file
+    - circeYaml - extension methods to convert openrpc doc into yaml file
 - trace4cats - support for tracing library
 
 ## Roadmap
