@@ -5,3 +5,6 @@ out
 *.iml
 
 mill-bsp.json
+
+project
+target
