@@ -9,6 +9,7 @@ always up-to-date [openRpc](https://open-rpc.org/getting-started) documentation.
 We created armadillo because we wanted to have always up-to-date, automatically generated documentation for our api. 
 We looked into tapir as we liked the idea of representing endpoints as pure values but since it is build around http protocol it lacked
 ability to represent json-rpc routing which from the http perspective is a single dynamic route (the routing is based on the part of the json payload).
+See https://github.com/softwaremill/tapir/issues/621 for details.
 
 ## How does it work
 
