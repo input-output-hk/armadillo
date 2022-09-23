@@ -1,7 +1,23 @@
 # armadillo
 
-Armadillo allows you to easily represent your json-rpc endpoints as regular scala values.
-These endpoints can be later turn into a http server via tapir or always up-to-date [openRpc](https://open-rpc.org/getting-started) documentation.
+Armadillo allows you to easily represent your [json-rpc](https://www.jsonrpc.org/) endpoints as regular scala values.
+These endpoints can be later turn into a http server via [tapir](https://github.com/softwaremill/tapir) or 
+always up-to-date [openRpc](https://open-rpc.org/getting-started) documentation.
+
+## Why another library
+
+We created armadillo because we wanted to have always up-to-date, automatically generated documentation for our api. 
+We looked into tapir as we liked the idea of representing endpoints as pure values but since it is build around http protocol it lacked
+ability to represent json-rpc routing which from the http perspective is a single dynamic route (the routing is based on the part of the json payload).
+
+## How does it work
+
+1. Using armadillo building blocks describe your jsonrpc endpoints
+2. Attach server logic to created endpoints descriptions
+3. Convert armadillo endpoints to a single tapir endpoint and expose it via one of available http servers
+4. Bonus: automatically generate openRpc documentation and expose it under rpc.discover endpoint  
+
+Head over to the [examples](./example) to see armadillo in action!
 
 ## Modules description
 
@@ -41,7 +57,7 @@ Note that mill will try to use the tag name directly as a maven artifact version
 
 ## Credits
 
-This library is **heavily** inspired by [tapir](https://github.com/softwaremill/tapir). In fact it is just a copy-pasted
+This library is **heavily** inspired by [tapir](https://github.com/softwaremill/tapir). In fact, it is just a copy-pasted
 version of tapir adapted to the json-rpc standard.
 
 Also, big thanks to [Adam Warski](https://github.com/adamw) for reviewing my initial design and patiently answering all of
