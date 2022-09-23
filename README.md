@@ -24,14 +24,14 @@ Head over to the [examples](./example) to see armadillo in action!
 Add the following dependency:
 
 ```
-"io.iohk.armadillo" %% "armadillo-core" % "0.0.9"
+"io.iohk.armadillo" %% "armadillo-core" % "0.0.10"
 ```
 
 ## Quickstart with mill
 Add the following dependency:
 
 ```
-ivy"io.iohk.armadillo::armadillo-core::0.0.9"
+ivy"io.iohk.armadillo::armadillo-core::0.0.10"
 ```
 
 
