@@ -79,8 +79,7 @@ To run only selected tests, weaver allows you to tag them with: `test("test name
 
 ## Credits
 
-This library is **heavily** inspired by [tapir](https://github.com/softwaremill/tapir). In fact, it is just a copy-pasted
-version of tapir adapted to the json-rpc standard.
+This library is inspired by another great library - [tapir](https://github.com/softwaremill/tapir).
 
 Also, big thanks to [Adam Warski](https://github.com/adamw) for reviewing my initial design and patiently answering all of
 my questions about design choices he took in tapir.
