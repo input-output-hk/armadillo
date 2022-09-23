@@ -195,4 +195,14 @@ object Basic {
         Validator.custom(_ => ValidationResult.Valid, Some("Value needs to be correct"))
       )
     )
+
+  val validatedMapped: JsonRpcEndpoint[Int, Unit, Unit] = {
+    implicit val numberFromString: Schema[Int] = sttp.tapir.Schema.schemaForString
+      .validate(Validator.maxLength(10))
+      .validate(Validator.pattern("^[0-9]$"))
+      .map(_.toIntOption)(_.toString)
+      .name(Schema.SName("NumberFromString"))
+    jsonRpcEndpoint(m"methodWithNumberFromString")
+      .in(param[Int]("numberFromString"))
+  }
 }

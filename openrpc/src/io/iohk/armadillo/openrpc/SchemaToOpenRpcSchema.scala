@@ -109,8 +109,8 @@ class SchemaToOpenRpcSchema(
       case Validator.Custom(_, showMessage) =>
         val newDescription = Some(List(schema.description, showMessage).flatten.mkString("\n")).filter(_.nonEmpty)
         schema.copy(description = newDescription)
-      case Validator.Mapped(_, _) => schema
-      case Validator.Any(_)       => schema
+      case Validator.Mapped(wrapped, _) => addValidatorInfo(schema, wrapped)
+      case Validator.Any(_)             => schema
     }
   }
 
