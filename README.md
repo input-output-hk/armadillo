@@ -11,6 +11,46 @@ We looked into tapir as we liked the idea of representing endpoints as pure valu
 ability to represent json-rpc routing which from the http perspective is a single dynamic route (the routing is based on the part of the json payload).
 See https://github.com/softwaremill/tapir/issues/621 for details.
 
+## Quick demo
+
+```scala
+  implicit val rpcBlockResponseEncoder: Encoder[GreetingResponse] = deriveEncoder
+  implicit val rpcBlockResponseDecoder: Decoder[GreetingResponse] = deriveDecoder
+  implicit val rpcBlockResponseSchema: Schema[GreetingResponse] = Schema.derived
+
+  case class GreetingResponse(msg: String)
+
+  val helloEndpoint: JsonRpcServerEndpoint[IO] = jsonRpcEndpoint(m"say_hello")
+    .in(param[String]("name"))
+    .out[GreetingResponse]("greetings")
+    .serverLogic[IO] { name =>
+      IO(Right(GreetingResponse(s"Hello $name")))
+    }
+
+  val tapirInterpreter = new TapirInterpreter[IO, Json](new CirceJsonSupport)
+  val tapirEndpoint = tapirInterpreter.toTapirEndpointUnsafe(List(helloEndpoint))
+  val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO]).toRoutes(tapirEndpoint)
+
+  BlazeServerBuilder[IO]
+    .withExecutionContext(ec)
+    .bindHttp(8080, "localhost")
+    .withHttpApp(Router("/" -> routes).orNotFound)
+    .resource
+    .flatMap { _ =>
+      AsyncHttpClientCatsBackend.resource[IO]()
+      .use { client =>
+        val request = json"""{"jsonrpc": "2.0", "method": "say_hello", "params": ["kasper"], "id": 1}"""
+        SttpClientInterpreter()
+                .toClient(tapirEndpoint.endpoint, Some(Uri.apply("localhost", 8080)), client)
+                .apply(request.noSpaces)
+                .map { response =>
+                  println(s"Response: $response")
+                }
+      }
+    }
+    .unsafeRunSync()
+```
+
 ## How does it work
 
 1. Using armadillo building blocks describe your jsonrpc endpoints

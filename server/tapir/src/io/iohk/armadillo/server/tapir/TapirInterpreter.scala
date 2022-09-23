@@ -25,10 +25,19 @@ class TapirInterpreter[F[_], Raw](
   def toTapirEndpoint(
       jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]
   ): Either[InterpretationError, ServerEndpoint.Full[Unit, Unit, String, (Raw, StatusCode), (Option[Raw], StatusCode), Any, F]] = {
-    ServerInterpreter[F, Raw](jsonRpcEndpoints, jsonSupport, interceptors).map(toTapirEndpointUnsafe)
+    ServerInterpreter[F, Raw](jsonRpcEndpoints, jsonSupport, interceptors).map(toTapirEndpoint)
   }
 
-  private def toTapirEndpointUnsafe(
+  def toTapirEndpointUnsafe(
+      jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]]
+  ): ServerEndpoint.Full[Unit, Unit, String, (Raw, StatusCode), (Option[Raw], StatusCode), Any, F] = {
+    ServerInterpreter[F, Raw](jsonRpcEndpoints, jsonSupport, interceptors).map(toTapirEndpoint) match {
+      case Left(value)   => throw new RuntimeException(value.toString)
+      case Right(result) => result
+    }
+  }
+
+  private def toTapirEndpoint(
       serverInterpreter: ServerInterpreter[F, Raw]
   ): Full[Unit, Unit, String, (Raw, StatusCode), (Option[Raw], StatusCode), Any, F] = {
     sttp.tapir.endpoint.post

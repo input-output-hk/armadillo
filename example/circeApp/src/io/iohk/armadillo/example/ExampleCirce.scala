@@ -47,7 +47,7 @@ object ExampleCirce extends IOApp {
       new CirceJsonSupport,
       List(new LoggingEndpointInterceptor, new LoggingRequestInterceptor, new GenericIOInterceptor[Json])
     )
-    val tapirEndpoints = tapirInterpreter.toTapirEndpoint(List(endpoint)).getOrElse(???)
+    val tapirEndpoints = tapirInterpreter.toTapirEndpointUnsafe(List(endpoint))
     val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO]).toRoutes(tapirEndpoints)
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
     import sttp.tapir.client.sttp.SttpClientInterpreter
