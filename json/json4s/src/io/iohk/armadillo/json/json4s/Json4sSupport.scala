@@ -14,7 +14,7 @@ class Json4sSupport private (parseAsJValue: String => JValue, render: JValue => 
     serialization: Serialization
 ) extends JsonSupport[JValue] {
 
-  override def asArray(seq: Vector[JValue]): JValue = JArray(seq.toList)
+  override def asArray(seq: Seq[JValue]): JValue = JArray(seq.toList)
 
   override def jsNull: JValue = JNull
 
@@ -82,8 +82,9 @@ object Json4sSupport {
       extends CustomSerializer[JsonRpcId](_ =>
         (
           {
-            case JInt(value)    => JsonRpcId.IntId(value.intValue)
-            case JString(value) => JsonRpcId.StringId(value)
+            case JInt(value)                                  => JsonRpcId.IntId(value.intValue)
+            case JString(value) if value.toIntOption.nonEmpty => JsonRpcId.IntId(value.toInt)
+            case JString(value)                               => JsonRpcId.StringId(value)
           },
           {
             case JsonRpcId.IntId(v)    => JInt(v)
