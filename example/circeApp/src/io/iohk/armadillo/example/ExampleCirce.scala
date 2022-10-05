@@ -87,8 +87,8 @@ class GenericIOInterceptor[Raw] extends EndpointInterceptor[IO, Raw] {
       endpointHandler: EndpointHandler[IO, Raw]
   ): EndpointHandler[IO, Raw] = {
     new EndpointHandler[IO, Raw] {
-      override def onDecodeSuccess[I](
-          ctx: EndpointHandler.DecodeSuccessContext[IO, I, Raw]
+      override def onDecodeSuccess[I, E, O](
+          ctx: EndpointHandler.DecodeSuccessContext[IO, I, E, O, Raw]
       )(implicit monad: MonadError[IO]): IO[ResponseHandlingStatus[Raw]] = {
         println(s"onDecodeSuccess ${ctx.endpoint.endpoint.methodName}")
         endpointHandler.onDecodeSuccess(ctx).flatTap(_ => IO.println(s"after onDecodeSuccess ${ctx.endpoint.endpoint.methodName}"))
@@ -112,8 +112,8 @@ class LoggingEndpointInterceptor extends EndpointInterceptor[IO, Json] {
       endpointHandler: EndpointHandler[IO, Json]
   ): EndpointHandler[IO, Json] = {
     new EndpointHandler[IO, Json] {
-      override def onDecodeSuccess[I](
-          ctx: EndpointHandler.DecodeSuccessContext[IO, I, Json]
+      override def onDecodeSuccess[I, E, O](
+          ctx: EndpointHandler.DecodeSuccessContext[IO, I, E, O, Json]
       )(implicit monad: MonadError[IO]): IO[ResponseHandlingStatus[Json]] = {
         println(s"onDecodeSuccess ${ctx.endpoint.endpoint.methodName}")
         endpointHandler.onDecodeSuccess(ctx).flatTap(_ => IO.println(s"after onDecodeSuccess ${ctx.endpoint.endpoint.methodName}"))
