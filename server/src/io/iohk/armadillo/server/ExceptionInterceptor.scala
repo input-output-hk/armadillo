@@ -14,7 +14,7 @@ class ExceptionInterceptor[F[_], Raw](handler: ExceptionHandler[Raw]) extends En
       endpointHandler: EndpointHandler[F, Raw]
   ): EndpointHandler[F, Raw] = {
     new EndpointHandler[F, Raw] {
-      override def onDecodeSuccess[I](ctx: EndpointHandler.DecodeSuccessContext[F, I, Raw])(implicit
+      override def onDecodeSuccess[I, E, O](ctx: EndpointHandler.DecodeSuccessContext[F, I, E, O, Raw])(implicit
           monad: MonadError[F]
       ): F[ResponseHandlingStatus[Raw]] = {
         monad.handleError(endpointHandler.onDecodeSuccess(ctx)) { case NonFatal(e) =>

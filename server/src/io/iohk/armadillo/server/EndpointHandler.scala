@@ -8,13 +8,13 @@ import sttp.monad.MonadError
 import sttp.tapir.DecodeResult
 
 trait EndpointHandler[F[_], Raw] {
-  def onDecodeSuccess[I](ctx: DecodeSuccessContext[F, I, Raw])(implicit monad: MonadError[F]): F[ResponseHandlingStatus[Raw]]
+  def onDecodeSuccess[I, E, O](ctx: DecodeSuccessContext[F, I, E, O, Raw])(implicit monad: MonadError[F]): F[ResponseHandlingStatus[Raw]]
   def onDecodeFailure(ctx: DecodeFailureContext[F, Raw])(implicit monad: MonadError[F]): F[ResponseHandlingStatus[Raw]]
 }
 
 object EndpointHandler {
-  case class DecodeSuccessContext[F[_], I, Raw](
-      endpoint: JsonRpcServerEndpoint.Full[I, _, _, F],
+  case class DecodeSuccessContext[F[_], I, E, O, Raw](
+      endpoint: JsonRpcServerEndpoint.Full[I, E, O, F],
       request: JsonRpcRequest[Json[Raw]],
       input: I
   )

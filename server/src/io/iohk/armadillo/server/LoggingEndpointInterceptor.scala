@@ -13,8 +13,8 @@ class LoggingEndpointInterceptor[F[_], Raw](serverLog: ServerLog[F, Raw]) extend
       endpointHandler: EndpointHandler[F, Raw]
   ): EndpointHandler[F, Raw] = {
     new EndpointHandler[F, Raw] {
-      override def onDecodeSuccess[I](
-          ctx: EndpointHandler.DecodeSuccessContext[F, I, Raw]
+      override def onDecodeSuccess[I, E, O](
+          ctx: EndpointHandler.DecodeSuccessContext[F, I, E, O, Raw]
       )(implicit monad: MonadError[F]): F[ResponseHandlingStatus[Raw]] = {
         endpointHandler
           .onDecodeSuccess(ctx)
@@ -39,7 +39,7 @@ class LoggingEndpointInterceptor[F[_], Raw](serverLog: ServerLog[F, Raw]) extend
 }
 
 trait ServerLog[F[_], Raw] {
-  def requestHandled(ctx: EndpointHandler.DecodeSuccessContext[F, _, Raw], response: ResponseHandlingStatus[Raw]): F[Unit]
+  def requestHandled(ctx: EndpointHandler.DecodeSuccessContext[F, _, _, _, Raw], response: ResponseHandlingStatus[Raw]): F[Unit]
   def exception(endpoint: JsonRpcServerEndpoint[F], request: JsonRpcRequest[Json[Raw]], e: Throwable): F[Unit]
   def decodeFailure(ctx: EndpointHandler.DecodeFailureContext[F, Raw], response: ResponseHandlingStatus[Raw]): F[Unit]
 }

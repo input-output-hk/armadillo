@@ -167,22 +167,76 @@ class ServerInterpreter[F[_], Raw] private (
       handler: EndpointHandler[F, Raw],
       matchedBody: I
   ): F[ResponseHandlingStatus[Raw]] = {
-    handler.onDecodeSuccess[serverEndpoint.INPUT](
-      DecodeSuccessContext[F, serverEndpoint.INPUT, Raw](serverEndpoint, request, matchedBody)
+    handler.onDecodeSuccess[serverEndpoint.INPUT, serverEndpoint.ERROR_OUTPUT, serverEndpoint.OUTPUT](
+      DecodeSuccessContext[F, serverEndpoint.INPUT, serverEndpoint.ERROR_OUTPUT, serverEndpoint.OUTPUT, Raw](
+        serverEndpoint,
+        request,
+        matchedBody
+      )
     )
   }
 
-  private val defaultResponder: Responder[F, Raw] = new Responder[F, Raw] {
-    override def apply(response: Option[JsonRpcResponse[Raw]]): F[Option[ServerResponse[Raw]]] = {
-      response match {
+  private val defaultResponder: Responder[F, Raw] = new DefaultResponder
+
+  class DefaultResponder extends Responder[F, Raw] {
+    def apply[E, O](
+        result: Either[E, O],
+        endpoint: JsonRpcEndpoint[_, E, O],
+        requestId: Option[JsonRpcId]
+    ): F[ResponseHandlingStatus[Raw]] = {
+      wrap(result match {
+        case Left(value) =>
+          val encodedError = handleErrorReturnType(jsonSupport)(value, endpoint.error)
+          requestId.map(id => JsonRpcErrorResponse("2.0", encodedError, Some(id)))
+        case Right(value) =>
+          val encodedOutput = endpoint.output match {
+            case _: JsonRpcIO.Empty[O]  => jsonSupport.jsNull
+            case o: JsonRpcIO.Single[O] => o.codec.encode(value).asInstanceOf[Raw]
+          }
+          requestId.map(JsonRpcSuccessResponse("2.0", encodedOutput, _))
+      })
+    }
+
+    private def wrap(response: Option[JsonRpcResponse[Raw]]): F[ResponseHandlingStatus[Raw]] = {
+      val serverResponse = response match {
         case Some(value) =>
           value match {
             case successResponse @ JsonRpcSuccessResponse(_, _, _) =>
-              monadError.unit(ServerResponse.Success(jsonSupport.encodeResponse(successResponse)).some)
+              ServerResponse.Success(jsonSupport.encodeResponse(successResponse)).some
             case errorResponse @ JsonRpcErrorResponse(_, _, _) =>
-              monadError.unit(ServerResponse.Failure(jsonSupport.encodeResponse(errorResponse)).some)
+              ServerResponse.Failure(jsonSupport.encodeResponse(errorResponse)).some
           }
-        case None => monadError.unit(None)
+        case None => None
+      }
+      monadError.unit(ResponseHandlingStatus.Handled(serverResponse))
+    }
+
+    @tailrec
+    private def handleErrorReturnType[I, E, O](jsonSupport: JsonSupport[Raw])(
+        value: E,
+        errorOutput: JsonRpcErrorOutput[E]
+    ): Raw = {
+      errorOutput match {
+        case _: JsonRpcErrorOutput.SingleNoData =>
+          jsonSupport.encodeErrorNoData(value.asInstanceOf[NoData])
+        case single: JsonRpcErrorOutput.SingleWithData[E] =>
+          single.codec.encode(value.asInstanceOf[single.DATA]).asInstanceOf[Raw]
+        case JsonRpcErrorOutput.Fixed(code, message) =>
+          jsonSupport.encodeErrorNoData(JsonRpcError.noData(code, message))
+        case _: JsonRpcErrorOutput.Empty =>
+          jsonSupport.jsNull
+        case JsonRpcErrorOutput.FixedWithData(code, message, codec) =>
+          val encodedData = codec.encode(value).asInstanceOf[Raw]
+          jsonSupport.encodeErrorWithData(JsonRpcError.withData(code, message, encodedData))
+        case JsonRpcErrorOutput.OneOf(variants, _) =>
+          variants.find(v => v.appliesTo(value)) match {
+            case Some(matchedVariant) =>
+              handleErrorReturnType(jsonSupport)(
+                value,
+                matchedVariant.output.asInstanceOf[JsonRpcErrorOutput[E]]
+              )
+            case None => throw new IllegalArgumentException(s"OneOf variant not matched. Variants: $variants, value: $value")
+          }
       }
     }
   }
@@ -293,6 +347,15 @@ object ServerInterpreter {
     )
   }
 
+  def applyUnsafe[F[_]: MonadError, Raw](
+      jsonRpcEndpoints: List[JsonRpcServerEndpoint[F]],
+      jsonSupport: JsonSupport[Raw],
+      interceptors: List[Interceptor[F, Raw]]
+  ): ServerInterpreter[F, Raw] =
+    apply(jsonRpcEndpoints, jsonSupport, interceptors).left
+      .map(e => throw new IllegalArgumentException(e.toString))
+      .merge
+
   sealed trait ServerResponse[+Raw] {
     def body: Raw
   }
@@ -316,24 +379,12 @@ object ServerInterpreter {
 
   private def defaultEndpointHandler[F[_], Raw](responder: Responder[F, Raw], jsonSupport: JsonSupport[Raw]): EndpointHandler[F, Raw] = {
     new EndpointHandler[F, Raw] {
-      override def onDecodeSuccess[I](
-          ctx: DecodeSuccessContext[F, I, Raw]
+      override def onDecodeSuccess[I, E, O](
+          ctx: DecodeSuccessContext[F, I, E, O, Raw]
       )(implicit monad: MonadError[F]): F[ResponseHandlingStatus[Raw]] = {
         ctx.endpoint
           .logic(monad)(ctx.input)
-          .map {
-            case Left(value) =>
-              val encodedError = handleErrorReturnType(jsonSupport, ctx)(value, ctx.endpoint.endpoint.error)
-              ctx.request.id.map(id => JsonRpcErrorResponse("2.0", encodedError, Some(id)))
-            case Right(value) =>
-              val encodedOutput = ctx.endpoint.endpoint.output match {
-                case _: JsonRpcIO.Empty[ctx.endpoint.OUTPUT]  => jsonSupport.jsNull
-                case o: JsonRpcIO.Single[ctx.endpoint.OUTPUT] => o.codec.encode(value).asInstanceOf[Raw]
-              }
-              ctx.request.id.map(JsonRpcSuccessResponse("2.0", encodedOutput, _))
-          }
-          .flatMap(responder.apply)
-          .map(ResponseHandlingStatus.Handled.apply)
+          .flatMap(r => responder.apply(r, ctx.endpoint.endpoint, ctx.request.id))
       }
 
       override def onDecodeFailure(ctx: DecodeFailureContext[F, Raw])(implicit monad: MonadError[F]): F[ResponseHandlingStatus[Raw]] = {
@@ -351,32 +402,4 @@ object ServerInterpreter {
     }
   }
 
-  @tailrec
-  private def handleErrorReturnType[Raw, F[_], I](jsonSupport: JsonSupport[Raw], ctx: DecodeSuccessContext[F, I, Raw])(
-      value: ctx.endpoint.ERROR_OUTPUT,
-      errorOutput: JsonRpcErrorOutput[ctx.endpoint.ERROR_OUTPUT]
-  ): Raw = {
-    errorOutput match {
-      case _: JsonRpcErrorOutput.SingleNoData =>
-        jsonSupport.encodeErrorNoData(value.asInstanceOf[NoData])
-      case single: JsonRpcErrorOutput.SingleWithData[ctx.endpoint.ERROR_OUTPUT] =>
-        single.codec.encode(value.asInstanceOf[single.DATA]).asInstanceOf[Raw]
-      case JsonRpcErrorOutput.Fixed(code, message) =>
-        jsonSupport.encodeErrorNoData(JsonRpcError.noData(code, message))
-      case _: JsonRpcErrorOutput.Empty =>
-        jsonSupport.jsNull
-      case JsonRpcErrorOutput.FixedWithData(code, message, codec) =>
-        val encodedData = codec.encode(value).asInstanceOf[Raw]
-        jsonSupport.encodeErrorWithData(JsonRpcError.withData(code, message, encodedData))
-      case JsonRpcErrorOutput.OneOf(variants, _) =>
-        variants.find(v => v.appliesTo(value)) match {
-          case Some(matchedVariant) =>
-            handleErrorReturnType(jsonSupport, ctx)(
-              value,
-              matchedVariant.output.asInstanceOf[JsonRpcErrorOutput[ctx.endpoint.ERROR_OUTPUT]]
-            )
-          case None => throw new IllegalArgumentException(s"OneOf variant not matched. Variants: $variants, value: $value")
-        }
-    }
-  }
 }

@@ -1,7 +1,7 @@
 package io.iohk.armadillo.server
 
-import io.iohk.armadillo.server.ServerInterpreter.ServerResponse
-import io.iohk.armadillo.{JsonRpcError, JsonRpcResponse, JsonRpcServerEndpoint}
+import io.iohk.armadillo.server.ServerInterpreter.ResponseHandlingStatus
+import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcError, JsonRpcId, JsonRpcServerEndpoint}
 
 trait Interceptor[F[_], Raw]
 
@@ -44,7 +44,11 @@ object EndpointInterceptor {
 }
 
 trait Responder[F[_], Raw] {
-  def apply(response: Option[JsonRpcResponse[Raw]]): F[Option[ServerResponse[Raw]]]
+  def apply[E, O](
+      result: Either[E, O],
+      endpoint: JsonRpcEndpoint[_, E, O],
+      requestId: Option[JsonRpcId]
+  ): F[ResponseHandlingStatus[Raw]]
 }
 
 object Responder {

@@ -6,6 +6,7 @@ case class CustomInterceptors[F[_], Raw](
     methodNotFoundHandler: MethodNotFoundHandler[Raw] = MethodNotFoundHandler.default[Raw],
     exceptionHandler: ExceptionHandler[Raw] = ExceptionHandler.default[Raw],
     invalidRequestHandler: InvalidRequestHandler[Raw] = InvalidRequestHandler.default[Raw],
+    overriddenEndpoints: List[EndpointOverride[F]] = List.empty,
     additionalInterceptors: List[Interceptor[F, Raw]] = Nil,
     serverLog: Option[ServerLog[F, Raw]] = None
 ) {
@@ -16,7 +17,8 @@ case class CustomInterceptors[F[_], Raw](
       new DecodeFailureInterceptor[F, Raw](decodeFailureHandler),
       new MethodNotFoundInterceptor[F, Raw](methodNotFoundHandler),
       new InvalidRequestMethodInterceptor[F, Raw](invalidRequestHandler),
-      new InvalidRequestStructureInterceptor[F, Raw]
+      new InvalidRequestStructureInterceptor[F, Raw],
+      new OverrideInterceptor[F, Raw](overriddenEndpoints)
     ) ++
       serverLog.map(new LoggingEndpointInterceptor[F, Raw](_)).toList ++
       additionalInterceptors
