@@ -21,7 +21,7 @@ object OverrideInterceptorTest extends SimpleIOSuite with CirceEndpoints {
   implicit val monadError: CatsMonadError[IO] = new CatsMonadError[IO]
   private val jsonSupport = new CirceJsonSupport
 
-  test("should return method not found when calling non-existing overrided endpoint") {
+  test("should return method not found when calling non-existing overridden endpoint") {
     val interpreter = ServerInterpreter.applyUnsafe(List.empty, jsonSupport, CustomInterceptors[IO, Json]().interceptors)
 
     interpreter
@@ -39,7 +39,7 @@ object OverrideInterceptorTest extends SimpleIOSuite with CirceEndpoints {
       }
   }
 
-  test("should not call the original endpoint and return overrided response") {
+  test("should not call the original endpoint and return overridden response") {
     val ref = Ref.unsafe(0)
     val originalEndpoint = hello_in_int_out_string.serverLogic { i =>
       ref.update(_ + 1) >> IO.pure(s"greetings $i".asRight[Unit])
@@ -48,7 +48,7 @@ object OverrideInterceptorTest extends SimpleIOSuite with CirceEndpoints {
     val interpreter = ServerInterpreter.applyUnsafe(
       List(originalEndpoint),
       jsonSupport,
-      CustomInterceptors[IO, Json](overridedEndpoints = List(overridingEndpoint)).interceptors
+      CustomInterceptors[IO, Json](overriddenEndpoints = List(overridingEndpoint)).interceptors
     )
 
     interpreter
@@ -77,7 +77,7 @@ object OverrideInterceptorTest extends SimpleIOSuite with CirceEndpoints {
     val interpreter = ServerInterpreter.applyUnsafe(
       List(originalEndpoint),
       jsonSupport,
-      CustomInterceptors[IO, Json](overridedEndpoints = List(overridingEndpoint)).interceptors
+      CustomInterceptors[IO, Json](overriddenEndpoints = List(overridingEndpoint)).interceptors
     )
 
     interpreter
@@ -106,7 +106,7 @@ object OverrideInterceptorTest extends SimpleIOSuite with CirceEndpoints {
     val interpreter = ServerInterpreter.applyUnsafe(
       List(originalEndpoint),
       jsonSupport,
-      CustomInterceptors[IO, Json](overridedEndpoints = List(overridingEndpoint)).interceptors
+      CustomInterceptors[IO, Json](overriddenEndpoints = List(overridingEndpoint)).interceptors
     )
 
     interpreter

@@ -4,7 +4,7 @@ import io.iohk.armadillo.server.EndpointOverride.Full
 import io.iohk.armadillo.{JsonRpcEndpoint, JsonRpcServerEndpoint}
 import sttp.monad.MonadError
 
-class OverrideInterceptor[F[_], Raw](overridedEndpoints: List[EndpointOverride[F]]) extends EndpointInterceptor[F, Raw] {
+class OverrideInterceptor[F[_], Raw](overriddenEndpoints: List[EndpointOverride[F]]) extends EndpointInterceptor[F, Raw] {
   override def apply(
       responder: Responder[F, Raw],
       jsonSupport: JsonSupport[Raw],
@@ -14,7 +14,7 @@ class OverrideInterceptor[F[_], Raw](overridedEndpoints: List[EndpointOverride[F
       override def onDecodeSuccess[I, E, O](ctx: EndpointHandler.DecodeSuccessContext[F, I, E, O, Raw])(implicit
           monad: MonadError[F]
       ): F[ServerInterpreter.ResponseHandlingStatus[Raw]] = {
-        overridedEndpoints.find(_.endpoint.methodName == ctx.endpoint.endpoint.methodName) match {
+        overriddenEndpoints.find(_.endpoint.methodName == ctx.endpoint.endpoint.methodName) match {
           case Some(oe) =>
             monad.flatMap(oe.asInstanceOf[Full[I, E, O, F]].logic(monad, ctx.input, ctx.endpoint))(s =>
               responder.apply(s, ctx.endpoint.endpoint, ctx.request.id)
