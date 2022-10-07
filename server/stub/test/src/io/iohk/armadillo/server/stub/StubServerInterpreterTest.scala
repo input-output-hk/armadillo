@@ -28,6 +28,11 @@ object StubServerInterpreterTest extends SimpleIOSuite {
     .out[Greeting]("greeting")
     .errorOut(errorNoData)
 
+  private val testEndpointWithNonPrimitiveInputs = jsonRpcEndpoint(m"hello")
+    .in(param[Greeting]("greeting"))
+    .out[String]("name")
+    .errorOut(errorNoData)
+
   test("should return stubbed response from endpoint") {
     val stubbedResponse = Greeting("Hello test subject")
     val backendStub = stubInterpreter
@@ -98,6 +103,69 @@ object StubServerInterpreterTest extends SimpleIOSuite {
     )
     responseF.map { r =>
       expect.same(Right(JsonRpcResponse.v2(Greeting("Hello kasper"), 1)), r.body)
+    }
+  }
+
+  test("should validate the serialization of input parameters") {
+    val serverEndpoint = testEndpoint.serverLogic { name =>
+      IO.pure(Right(Greeting(s"Hello $name")): Either[JsonRpcError.NoData, Greeting])
+    }
+    val backendStub = stubInterpreter
+      .whenServerEndpoint(serverEndpoint)
+      .assertInputs("kasper")
+      .thenRunLogic()
+      .backend()
+
+    val responseF = backendStub.send(
+      sttp.client3.basicRequest
+        .post(uri"http://localhost:7654")
+        .body(JsonRpcRequest.v2("hello", json"""[ "kasper" ]""", 1))
+        .response(asJson[JsonRpcSuccessResponse[Greeting]])
+    )
+    responseF.map { r =>
+      expect.same(Right(JsonRpcResponse.v2(Greeting("Hello kasper"), 1)), r.body)
+    }
+  }
+
+  test("should validate the serialization of non-primitive input parameters") {
+    val serverEndpoint = testEndpointWithNonPrimitiveInputs.serverLogic { _ =>
+      IO.pure(Right("Greeting received !"): Either[JsonRpcError.NoData, String])
+    }
+    val backendStub = stubInterpreter
+      .whenServerEndpoint(serverEndpoint)
+      .assertInputs(Greeting("hello kasper"))
+      .thenRunLogic()
+      .backend()
+
+    val responseF = backendStub.send(
+      sttp.client3.basicRequest
+        .post(uri"http://localhost:7654")
+        .body(JsonRpcRequest.v2("hello", json"""[{ "msg": "hello kasper" }]""", 1))
+        .response(asJson[JsonRpcSuccessResponse[String]])
+    )
+    responseF.map { r =>
+      expect.same(Right(JsonRpcResponse.v2("Greeting received !", 1)), r.body)
+    }
+  }
+
+  test("should throw error when the check on input parameters fails") {
+    val serverEndpoint = testEndpointWithNonPrimitiveInputs.serverLogic { _ =>
+      IO.pure(Right("Greeting received !"): Either[JsonRpcError.NoData, String])
+    }
+    val backendStub = stubInterpreter
+      .whenServerEndpoint(serverEndpoint)
+      .assertInputs(Greeting("kasper hello"))
+      .thenRunLogic()
+      .backend()
+
+    val responseF = backendStub.send(
+      sttp.client3.basicRequest
+        .post(uri"http://localhost:7654")
+        .body(JsonRpcRequest.v2("hello", json"""[{ "msg": "hello kasper" }]""", 1))
+        .response(asJsonEither[JsonRpcErrorResponse[JsonRpcError.NoData], JsonRpcSuccessResponse[String]])
+    )
+    responseF.map { r =>
+      expect.same(Left(HttpError(JsonRpcResponse.error_v2(ServerInterpreter.InternalError, 1), StatusCode.InternalServerError)), r.body)
     }
   }
 }

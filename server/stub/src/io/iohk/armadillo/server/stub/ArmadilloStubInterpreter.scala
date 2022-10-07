@@ -7,11 +7,14 @@ import sttp.client3.{Request, SttpBackend}
 import sttp.monad.MonadError
 import sttp.monad.syntax._
 
+final case class InputCheck[T](expected: T)
+
 class ArmadilloStubInterpreter[F[_], Raw, R](
     ses: List[JsonRpcServerEndpoint[F]],
     interceptors: List[Interceptor[F, Raw]],
     stub: SttpBackendStub[F, R],
-    jsonSupport: JsonSupport[Raw]
+    jsonSupport: JsonSupport[Raw],
+    private val inputChecksByEndpoints: Map[JsonRpcServerEndpoint[F], InputCheck[_]] = Map.empty[JsonRpcServerEndpoint[F], InputCheck[_]]
 ) {
 
   def whenServerEndpoint[I, E, O](se: JsonRpcServerEndpoint.Full[I, E, O, F]): ArmadilloServerEndpointStub[I, E, O] = {
@@ -22,43 +25,72 @@ class ArmadilloStubInterpreter[F[_], Raw, R](
     new ArmadilloEndpointStub(e)
   }
 
-  class ArmadilloEndpointStub[I, E, O](endpoint: JsonRpcEndpoint[I, E, O]) {
+  class ArmadilloEndpointStub[I, E, O](
+      endpoint: JsonRpcEndpoint[I, E, O],
+      private val inputCheck: Option[I] = None
+  ) {
 
-    def thenRespond(response: O): ArmadilloStubInterpreter[F, Raw, R] = append(
-      endpoint.serverLogic(_ => (Right(response): Either[E, O]).unit)
-    )
+    def assertInputs(expectedInputs: Option[I]): ArmadilloEndpointStub[I, E, O] =
+      new ArmadilloEndpointStub[I, E, O](endpoint, expectedInputs)
 
-    def thenRespondError(error: E): ArmadilloStubInterpreter[F, Raw, R] = append(
-      endpoint.serverLogic(_ => (Left(error): Either[E, O]).unit)
-    )
+    def thenRespond(response: O): ArmadilloStubInterpreter[F, Raw, R] =
+      append(endpoint.serverLogic(_ => (Right(response): Either[E, O]).unit), inputCheck)
 
-    def thenThrowError(error: Throwable): ArmadilloStubInterpreter[F, Raw, R] = append(endpoint.serverLogic(_ => throw error))
+    def thenRespondError(error: E): ArmadilloStubInterpreter[F, Raw, R] =
+      append(endpoint.serverLogic(_ => (Left(error): Either[E, O]).unit), inputCheck)
+
+    def thenThrowError(error: Throwable): ArmadilloStubInterpreter[F, Raw, R] =
+      append(endpoint.serverLogic(_ => throw error), inputCheck)
   }
 
-  class ArmadilloServerEndpointStub[I, E, O](se: JsonRpcServerEndpoint.Full[I, E, O, F]) {
-    def thenRespond(response: O): ArmadilloStubInterpreter[F, Raw, R] = append(
-      se.endpoint.serverLogic(_ => (Right(response): Either[E, O]).unit)
-    )
+  class ArmadilloServerEndpointStub[I, E, O](
+      se: JsonRpcServerEndpoint.Full[I, E, O, F],
+      private val inputCheck: Option[I] = None
+  ) {
 
-    def thenRespondError(error: E): ArmadilloStubInterpreter[F, Raw, R] = append(
-      se.endpoint.serverLogic(_ => (Left(error): Either[E, O]).unit)
-    )
+    def assertInputs(expectedInputs: I): ArmadilloServerEndpointStub[I, E, O] =
+      new ArmadilloServerEndpointStub[I, E, O](se, Some(expectedInputs))
 
-    def thenThrowError(error: Throwable): ArmadilloStubInterpreter[F, Raw, R] = append(se.endpoint.serverLogic(_ => throw error))
+    def thenRespond(response: O): ArmadilloStubInterpreter[F, Raw, R] =
+      append(se.endpoint.serverLogic(_ => (Right(response): Either[E, O]).unit), inputCheck)
 
-    def thenRunLogic(): ArmadilloStubInterpreter[F, Raw, R] = append(se)
+    def thenRespondError(error: E): ArmadilloStubInterpreter[F, Raw, R] =
+      append(se.endpoint.serverLogic(_ => (Left(error): Either[E, O]).unit), inputCheck)
+
+    def thenThrowError(error: Throwable): ArmadilloStubInterpreter[F, Raw, R] =
+      append(se.endpoint.serverLogic(_ => throw error), inputCheck)
+
+    def thenRunLogic(): ArmadilloStubInterpreter[F, Raw, R] = append(se, inputCheck)
   }
 
-  private def append(se: JsonRpcServerEndpoint[F]): ArmadilloStubInterpreter[F, Raw, R] = {
-    new ArmadilloStubInterpreter[F, Raw, R](ses :+ se, interceptors, stub, jsonSupport)
+  private def append(se: JsonRpcServerEndpoint[F], maybeInputCheck: Option[_]): ArmadilloStubInterpreter[F, Raw, R] = {
+    new ArmadilloStubInterpreter[F, Raw, R](
+      ses :+ se,
+      interceptors,
+      stub,
+      jsonSupport,
+      maybeInputCheck.foldLeft(inputChecksByEndpoints) { case (acc, inputCheck) => acc + (se -> InputCheck(inputCheck)) }
+    )
   }
 
   private implicit val monad: MonadError[F] = stub.responseMonad
 
-  def backend(): SttpBackend[F, R] =
+  def backend(): SttpBackend[F, R] = {
+    val updatedServerEndpoints = ses.map { se =>
+      inputChecksByEndpoints.get(se) match {
+        case Some(inputCheck: InputCheck[_]) =>
+          se.endpoint.serverLogic { input =>
+            val expected = inputCheck.expected.asInstanceOf[se.INPUT]
+            assert(input == expected)
+            se.logic(monad)(input)
+          }
+        case None => se
+      }
+    }
     stub.whenAnyRequest.thenRespondF(req =>
-      new StubServerInterpreter(ses, interceptors, jsonSupport, stub).apply(req.asInstanceOf[Request[Any, R]])
+      new StubServerInterpreter(updatedServerEndpoints, interceptors, jsonSupport, stub).apply(req.asInstanceOf[Request[Any, R]])
     )
+  }
 }
 
 object ArmadilloStubInterpreter {
