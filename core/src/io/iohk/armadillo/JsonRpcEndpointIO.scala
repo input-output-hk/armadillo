@@ -196,6 +196,8 @@ object JsonRpcIO {
     override def withInfo(info: JsonRpcIoInfo): Single[T] = copy(info = info)
 
     override def validate(validator: Validator[T]): Single[T] = copy(codec = codec.withValidator(validator))
+
+    def optional(implicit codec: JsonRpcCodec[Option[T]]): Single[Option[T]] = new Single[Option[T]](codec, info, name)
   }
 }
 
