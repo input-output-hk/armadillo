@@ -17,9 +17,7 @@ private[stub] class StubServerInterpreter[F[_]: MonadError, Raw, R](
     jsonSupport: JsonSupport[Raw],
     backendStub: SttpBackendStub[F, R]
 ) {
-  def apply[T](
-      req: Request[T, R]
-  ): F[Response[_]] = {
+  def apply[T](req: Request[T, R]): F[Response[_]] = {
     val tapirInterpreter = new TapirInterpreter[F, Raw](jsonSupport, interceptors)
     val tapirEndpoint: Full[Unit, Unit, String, (Raw, StatusCode), (Option[Raw], StatusCode), Any, F] = tapirInterpreter
       .toTapirEndpoint(endpoints)
