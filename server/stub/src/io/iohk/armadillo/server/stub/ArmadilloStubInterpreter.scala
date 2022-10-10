@@ -69,7 +69,7 @@ class ArmadilloStubInterpreter[F[_], Raw, R](
       interceptors,
       stub,
       jsonSupport,
-      maybeInputCheck.foldLeft(inputChecksByEndpoints) { case (acc, inputCheck) => acc + (se -> InputCheck(inputCheck)) }
+      maybeInputCheck.fold(inputChecksByEndpoints)(inputCheck => inputChecksByEndpoints + (se -> InputCheck(inputCheck)))
     )
   }
 
