@@ -1,6 +1,17 @@
 package io.iohk.armadillo.openrpc
 
-import sttp.apispec.{Discriminator, ExampleSingleValue, Reference, ReferenceOr, Schema => ASchema, SchemaFormat, SchemaType}
+import sttp.apispec.{
+  ArraySchemaType,
+  BasicSchemaType,
+  Discriminator,
+  ExampleSingleValue,
+  Pattern,
+  Reference,
+  ReferenceOr,
+  Schema => ASchema,
+  SchemaFormat,
+  SchemaType
+}
 import sttp.tapir.{Schema => TSchema, SchemaType => TSchemaType, Validator}
 
 class SchemaToOpenRpcSchema(
@@ -46,8 +57,14 @@ class SchemaToOpenRpcSchema(
                   case t                                                 => apply(t)
                 }
                 .sortBy {
-                  case Left(Reference(ref)) => ref
-                  case Right(schema)        => schema.`type`.map(_.value).getOrElse("") + schema.toString
+                  case Left(Reference(ref, _, _)) => ref
+                  case Right(schema) =>
+                    schema.`type`
+                      .map {
+                        case ArraySchemaType(value)      => value.sortBy(schemaType => schemaType.value).mkString
+                        case schemaType: BasicSchemaType => schemaType.value
+                      }
+                      .getOrElse("") + schema.toString
                 },
               d.map(tDiscriminatorToADiscriminator)
             )
@@ -100,7 +117,7 @@ class SchemaToOpenRpcSchema(
       case Validator.Enumeration(possibleValues, encode, _) =>
         val encodedEnumValues = possibleValues.map(v => ExampleSingleValue(encode.flatMap(_(v)).getOrElse(v.toString)))
         schema.copy(`enum` = Some(encodedEnumValues))
-      case Validator.Pattern(value)   => schema.copy(pattern = Some(value))
+      case Validator.Pattern(value)   => schema.copy(pattern = Some(Pattern(value)))
       case Validator.MinLength(value) => schema.copy(minLength = Some(value))
       case Validator.MaxLength(value) => schema.copy(maxLength = Some(value))
       case Validator.MinSize(value)   => schema.copy(minItems = Some(value))

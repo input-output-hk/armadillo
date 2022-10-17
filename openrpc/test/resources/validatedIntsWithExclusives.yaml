@@ -10,13 +10,13 @@ methods:
     schema:
       type: integer
       format: int32
-      minimum: 1.0
+      exclusiveMinimum: 1.0
   - name: number2
     required: true
     schema:
       type: integer
       format: int32
-      maximum: 10.0
+      exclusiveMaximum: 10.0
   result:
     name: empty result
     schema: {}
