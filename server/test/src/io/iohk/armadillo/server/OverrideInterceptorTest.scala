@@ -116,12 +116,51 @@ object OverrideInterceptorTest extends SimpleIOSuite with CirceEndpoints {
       .product(ref.get)
       .map {
         case (Some(ServerResponse.Success(json)), counter) =>
-          expect(json == json"""{
+          expect(
+            json ==
+              json"""{
                           "jsonrpc" : "2.0",
                           "result" : "greetings 42",
                           "id" : 1
                         }
-                        """).and(expect(counter == 4))
+                        """
+          ).and(expect(counter == 4))
+        case _ => failure("Expected server success response")
+      }
+  }
+
+  test("should replace the logic by the logic of another endpoints") {
+    val ref = Ref.unsafe(0)
+    val originalEndpoint = hello_in_int_out_string.serverLogic { i =>
+      ref.update(_ + 2) >> IO.pure(s"greetings $i".asRight[Unit])
+    }
+    val anotherEndpoint = hello_in_int_out_string.serverLogic { i =>
+      ref.update(_ + 3) >> IO.pure(s"greetings $i".asRight[Unit])
+    }
+
+    val overridingEndpoint = originalEndpoint.`override`.replaceLogic(anotherEndpoint.logic)
+    val interpreter = ServerInterpreter.applyUnsafe(
+      List(originalEndpoint),
+      jsonSupport,
+      CustomInterceptors[IO, Json](overriddenEndpoints = List(overridingEndpoint)).interceptors
+    )
+
+    interpreter
+      .dispatchRequest(
+        jsonSupport.stringify(Encoder[JsonRpcRequest[Json]].apply(JsonRpcRequest.v2[Json]("hello", json"[42]", 1)))
+      )
+      .product(ref.get)
+      .map {
+        case (Some(ServerResponse.Success(json)), counter) =>
+          expect(
+            json ==
+              json"""{
+                          "jsonrpc" : "2.0",
+                          "result" : "greetings 42",
+                          "id" : 1
+                        }
+                        """
+          ).and(expect(counter == 3))
         case _ => failure("Expected server success response")
       }
   }
