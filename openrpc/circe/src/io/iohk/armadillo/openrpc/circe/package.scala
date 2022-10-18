@@ -1,3 +1,7 @@
 package io.iohk.armadillo.openrpc
 
-package object circe extends ArmadilloOpenRpcCirce
+import sttp.apispec.AnySchema
+
+package object circe extends ArmadilloOpenRpcCirce {
+  override val anyObjectEncoding: AnySchema.Encoding = AnySchema.Encoding.Boolean
+}

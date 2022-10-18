@@ -152,6 +152,12 @@ object Basic {
         param[Int]("number2").validate(Validator.max(10))
     )
 
+  val validatedIntsWithExclusives = jsonRpcEndpoint(m"getPetByNumber")
+    .in(
+      param[Int]("number1").validate(Validator.min(1, exclusive = true)) and
+        param[Int]("number2").validate(Validator.max(10, exclusive = true))
+    )
+
   val validatedStrings = jsonRpcEndpoint(m"getPetByNumber")
     .in(
       param[String]("string1").validate(Validator.minLength(1)) and

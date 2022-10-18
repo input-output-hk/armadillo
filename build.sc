@@ -40,7 +40,10 @@ object json extends CommonModule {
 
 object openrpc extends CommonModule with ArmadilloPublishModule {
   object model extends CommonModule with ArmadilloPublishModule {
-    override def ivyDeps = Agg(ivy"com.softwaremill.sttp.apispec::apispec-model::0.2.1")
+    override def ivyDeps = Agg(
+      ivy"com.softwaremill.sttp.apispec::apispec-model::${Version.Apispec}",
+      ivy"com.softwaremill.sttp.apispec::jsonschema-circe::${Version.Apispec}"
+    )
   }
   object circe extends CommonModule with ArmadilloPublishModule {
     override def moduleDeps = Seq(model)
@@ -255,11 +258,12 @@ trait ArmadilloPublishModule extends PublishModule {
 }
 
 object Version {
-  val Trace4cats = "0.12.0"
-  val Tapir = "1.1.0"
+  val Trace4cats = "0.13.1"
+  val Tapir = "1.1.2"
   val Http4s = "0.23.10"
-  val Json4s = "4.0.4"
+  val Json4s = "4.0.6"
   val Circe = "0.14.1"
-  val Sttp = "3.7.6"
-  val CatsEffect = "3.2.9"
+  val Sttp = "3.8.2"
+  val CatsEffect = "3.3.12"
+  val Apispec = "0.3.1"
 }
