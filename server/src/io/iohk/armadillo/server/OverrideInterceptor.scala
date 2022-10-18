@@ -32,6 +32,15 @@ class OverrideInterceptor[F[_], Raw](overriddenEndpoints: List[EndpointOverride[
 }
 
 case class OverridingEndpoint[I, E, O](e: JsonRpcEndpoint[I, E, O]) {
+  def replaceLogic[F[_]](logic: MonadError[F] => I => F[Either[E, O]]): EndpointOverride[F] = {
+    EndpointOverride[I, E, O, F](
+      e,
+      { case (m, i, _) =>
+        logic(m)(i)
+      }
+    )
+  }
+
   def thenReturn[F[_]](o: F[Either[E, O]]): EndpointOverride[F] = {
     EndpointOverride[I, E, O, F](
       e,
