@@ -21,10 +21,10 @@ trait Armadillo {
     )
 
   def param[T: JsonRpcCodec](name: String): JsonRpcInput.Basic[T] =
-    JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], JsonRpcIoInfo.Empty, name)
+    JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], JsonRpcIoInfo.empty[T], name)
 
   def result[T: JsonRpcCodec](name: String): JsonRpcOutput.Basic[T] =
-    JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], JsonRpcIoInfo.Empty, name)
+    JsonRpcIO.Single(implicitly[JsonRpcCodec[T]], JsonRpcIoInfo.empty[T], name)
 
   def fixedError[T](code: Int, message: String): JsonRpcErrorOutput[T] =
     JsonRpcErrorOutput.Fixed[T](code, message)

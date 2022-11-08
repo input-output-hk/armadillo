@@ -3,7 +3,7 @@ package io.iohk.armadillo.openrpc
 import io.iohk.armadillo.openrpc.EndpointToOpenRpcMethods.EmptyResult
 import io.iohk.armadillo.openrpc.model._
 import io.iohk.armadillo.{AnyEndpoint, JsonRpcEndpoint, JsonRpcErrorOutput, JsonRpcIO, JsonRpcInput}
-import sttp.apispec.Schema
+import sttp.apispec.{ExampleMultipleValue, Schema}
 import sttp.tapir.SchemaType
 
 class EndpointToOpenRpcMethods(schemas: Schemas) {
@@ -47,7 +47,7 @@ class EndpointToOpenRpcMethods(schemas: Schemas) {
     val schema = schemas(jsonRpcInput.codec, replaceOptionWithCoproduct = false)
     OpenRpcParam(
       name = jsonRpcInput.name,
-      schema = schema,
+      schema = schema.map(updateSchema(_, jsonRpcInput.info.examples)),
       required = jsonRpcInput.codec.schema.schemaType match {
         case SchemaType.SOption(_) => false
         case _                     => true
@@ -63,7 +63,26 @@ class EndpointToOpenRpcMethods(schemas: Schemas) {
       case _: JsonRpcIO.Empty[_] => EmptyResult
       case single: JsonRpcIO.Single[_] =>
         val schema = schemas(single.codec, replaceOptionWithCoproduct = true)
-        OpenRpcResult(name = single.name, schema = schema, summary = single.info.summary, description = single.info.description)
+        OpenRpcResult(
+          name = single.name,
+          schema = schema.map(updateSchema(_, single.info.examples)),
+          summary = single.info.summary,
+          description = single.info.description
+        )
+    }
+  }
+
+  private def updateSchema(schema: Schema, examples: Set[_]) = {
+    val examplesWithoutNone = examples.flatMap {
+      case Some(x) => List(x)
+      case None    => List.empty
+      case value   => List(value)
+    }
+
+    if (examplesWithoutNone.isEmpty) {
+      schema
+    } else {
+      schema.copy(example = Some(ExampleMultipleValue(examplesWithoutNone.toList)))
     }
   }
 

@@ -28,7 +28,8 @@ package object openrpc {
       element = opt.element.copy(
         description = schema.description.orElse(opt.element.description),
         format = schema.format.orElse(opt.element.format),
-        deprecated = schema.deprecated || opt.element.deprecated
+        deprecated = schema.deprecated || opt.element.deprecated,
+        encodedExample = schema.encodedExample.orElse(opt.element.encodedExample)
       )
     )(opt.toOption)
   }

@@ -88,9 +88,11 @@ object JsonRpcEndpointTransput {
   sealed trait Basic[T] extends JsonRpcEndpointTransput[T] {
     def summary(s: String): ThisType[T] = withInfo(info.summary(s))
     def description(d: String): ThisType[T] = withInfo(info.description(d))
+    def example(a: T): ThisType[T] = examples(Set(a))
+    def examples(l: Set[T]): ThisType[T] = withInfo(info.examples(l))
 
-    def withInfo(value: JsonRpcIoInfo): ThisType[T]
-    def info: JsonRpcIoInfo
+    def withInfo(value: JsonRpcIoInfo[T]): ThisType[T]
+    def info: JsonRpcIoInfo[T]
   }
 }
 
@@ -187,26 +189,35 @@ object JsonRpcIO {
     override def show: String = "-"
   }
 
-  case class Single[T](codec: JsonRpcCodec[T], info: JsonRpcIoInfo, name: String)
+  case class Single[T](codec: JsonRpcCodec[T], info: JsonRpcIoInfo[T], name: String)
       extends JsonRpcIO[T]
       with JsonRpcInput.Basic[T]
       with JsonRpcOutput.Basic[T] {
     override def show: String = s"single($name)"
     override private[armadillo] type ThisType[X] = Single[X]
-    override def withInfo(info: JsonRpcIoInfo): Single[T] = copy(info = info)
+    override def withInfo(info: JsonRpcIoInfo[T]): Single[T] = copy(info = info)
 
     override def validate(validator: Validator[T]): Single[T] = copy(codec = codec.withValidator(validator))
 
-    def optional(implicit codec: JsonRpcCodec[Option[T]]): Single[Option[T]] = new Single[Option[T]](codec, info, name)
+    def optional(implicit codec: JsonRpcCodec[Option[T]]): Single[Option[T]] = new Single[Option[T]](codec, info.optional, name)
   }
 }
 
-case class JsonRpcIoInfo(description: Option[String], summary: Option[String], deprecated: Option[Boolean] = None) {
-  def description(d: String): JsonRpcIoInfo = copy(description = Some(d))
-  def summary(s: String): JsonRpcIoInfo = copy(summary = Some(s))
-  def deprecated(d: Boolean): JsonRpcIoInfo = copy(deprecated = Some(d))
+case class JsonRpcIoInfo[T](
+    description: Option[String],
+    summary: Option[String],
+    deprecated: Option[Boolean] = None,
+    examples: Set[T] = Set.empty[T]
+) {
+  def description(d: String): JsonRpcIoInfo[T] = copy(description = Some(d))
+  def summary(s: String): JsonRpcIoInfo[T] = copy(summary = Some(s))
+  def deprecated(d: Boolean): JsonRpcIoInfo[T] = copy(deprecated = Some(d))
+  def example(e: T): JsonRpcIoInfo[T] = copy(examples = examples + e)
+  def examples(es: Set[T]): JsonRpcIoInfo[T] = copy(examples = es)
+
+  def optional: JsonRpcIoInfo[Option[T]] = copy(examples = examples.map(Some(_)))
 }
 
 object JsonRpcIoInfo {
-  val Empty: JsonRpcIoInfo = JsonRpcIoInfo(None, None)
+  def empty[T]: JsonRpcIoInfo[T] = JsonRpcIoInfo[T](None, None, None, Set.empty[T])
 }

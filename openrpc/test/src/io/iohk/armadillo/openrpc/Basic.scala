@@ -12,6 +12,14 @@ object Basic {
     .in(param[Int]("param1"))
     .out[String]("response")
 
+  val basicWithSingleExample: JsonRpcEndpoint[(Int, Option[String]), Unit, String] = jsonRpcEndpoint(m"hello")
+    .in(param[Int]("param1").example(42).and(param[Option[String]]("param2").example(Some("test"))))
+    .out(result[String]("response").example("ok"))
+
+  val basicWithMultipleExamples: JsonRpcEndpoint[(Int, Option[String]), Unit, String] = jsonRpcEndpoint(m"hello")
+    .in(param[Int]("param1").examples(Set(42, 43)).and(param[Option[String]]("param2").examples(Set(Some("test"), None))))
+    .out(result[String]("response").examples(Set("ok", "ko")))
+
   val multiple_params: JsonRpcEndpoint[(Int, String), Unit, String] = jsonRpcEndpoint(m"hello")
     .in(param[Int]("param1") and param[String]("param2"))
     .out[String]("response")

@@ -3,7 +3,7 @@ package io.iohk.armadillo.openrpc
 import cats.effect.IO
 import io.circe.Printer
 import io.circe.syntax.EncoderOps
-import io.iohk.armadillo.openrpc.Basic.{basic, empty}
+import io.iohk.armadillo.openrpc.Basic.{basic, basicWithMultipleExamples, basicWithSingleExample, empty}
 import io.iohk.armadillo.openrpc.TestUtils.{load, noIndentation}
 import io.iohk.armadillo.openrpc.circe._
 import io.iohk.armadillo.openrpc.model.{OpenRpcDocument, OpenRpcInfo}
@@ -14,6 +14,8 @@ object VerifyJsonTest extends SimpleIOSuite {
   private val PetStoreInfo: OpenRpcInfo = OpenRpcInfo("1.0.0", "Demo Pet Store")
 
   compare("basic.json", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(basic)))
+  compare("basic_with_single_example.json", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(basicWithSingleExample)))
+  compare("basic_with_multiple_examples.json", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(basicWithMultipleExamples)))
   compare("empty.json", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(empty)))
   compare("sorted_basic_empty.json", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(basic, empty)))
 
