@@ -4,11 +4,12 @@ import sttp.tapir.{DecodeResult, Schema, Validator}
 
 trait JsonRpcCodec[H] {
   type L
+  type T = H
   def decode(l: L): DecodeResult[H]
-  def encode(h: H): L
-  def schema: Schema[H]
+  def encode(h: T): L
+  def schema: Schema[T]
 
-  def print(l: L): String
+  def show(l: L): String
 }
 object JsonRpcCodec {
   implicit class JsonRpcCodecOps[H](val codec: JsonRpcCodec[H]) {
@@ -21,7 +22,7 @@ object JsonRpcCodec {
 
       override def schema: Schema[H] = codec.schema.copy(validator = codec.schema.validator.and(validator))
 
-      override def print(l: codec.L): String = codec.print(l)
+      override def show(l: codec.L): String = codec.show(l)
     }
   }
 }

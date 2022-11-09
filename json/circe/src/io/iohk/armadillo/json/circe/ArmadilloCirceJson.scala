@@ -22,7 +22,7 @@ trait ArmadilloCirceJson {
       }
     }
 
-    override def print(l: Json): String = l.noSpaces
+    override def show(l: Json): String = l.noSpaces
   }
 
   implicit val jsonRpcIdEncoder: Encoder[JsonRpcId] = Encoder.instance[JsonRpcId] {

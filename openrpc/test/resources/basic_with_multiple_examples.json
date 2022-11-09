@@ -26,7 +26,8 @@
           "schema": {
             "type": "string",
             "examples": [
-              "test"
+              "test",
+              null
             ]
           }
         }

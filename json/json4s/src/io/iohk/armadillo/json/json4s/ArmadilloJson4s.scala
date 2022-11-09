@@ -3,13 +3,13 @@ package io.iohk.armadillo.json.json4s
 import io.iohk.armadillo._
 import org.json4s.JsonAST.JValue
 import org.json4s.jackson.JsonMethods.{compact, render}
-import org.json4s.{Extraction, Formats, JNothing, JNull, Serialization}
+import org.json4s.{Extraction, Formats, JNothing, JNull}
 import sttp.tapir.{DecodeResult, Schema}
 
 import scala.util.{Failure, Success, Try}
 
 trait ArmadilloJson4s {
-  implicit def jsonRpcCodec[H: Schema](implicit formats: Formats, serialization: Serialization, manifest: Manifest[H]): JsonRpcCodec[H] =
+  implicit def jsonRpcCodec[H: Schema](implicit formats: Formats, manifest: Manifest[H]): JsonRpcCodec[H] =
     new JsonRpcCodec[H] {
       override type L = JValue
 
@@ -32,6 +32,6 @@ trait ArmadilloJson4s {
         }
       }
 
-      override def print(l: JValue): String = compact(render(l))
+      override def show(l: JValue): String = compact(render(l))
     }
 }

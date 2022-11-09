@@ -16,13 +16,14 @@
           }
         },
         {
-          "name": "age",
-          "required": true,
+          "name": "data",
+          "required": false,
           "schema": {
-            "type": "integer",
-            "format": "int32",
+            "type": "string",
+            "format": "binary",
             "examples": [
-              42
+              "data: some_data",
+              null
             ]
           }
         }

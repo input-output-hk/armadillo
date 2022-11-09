@@ -221,12 +221,21 @@ object Basic {
       .in(param[Int]("numberFromString"))
   }
 
-  case class Human(name: String, nickname: String)
+  final case class Human(name: String, nickname: String)
   object Human {
     implicit val humanEncoder: Encoder[Human] = (human: Human) => Json.fromString(human.nickname)
   }
 
-  val customEncoder: JsonRpcEndpoint[(Human, Int), Unit, Boolean] = jsonRpcEndpoint(m"createHuman")
-    .in(param[Human]("human").example(Human("John", "Unknown")).and(param[Int]("age").example(42)))
+  final case class Data(bytes: Array[Byte]) extends AnyVal
+  object Data {
+    implicit val dataEncoder: Encoder[Data] = (data: Data) => Json.fromString("data: " + new String(data.bytes))
+  }
+
+  val customEncoder: JsonRpcEndpoint[(Human, Option[Data]), Unit, Boolean] = jsonRpcEndpoint(m"createHuman")
+    .in(
+      param[Human]("human")
+        .example(Human("John", "Unknown"))
+        .and(param[Option[Data]]("data").examples(Set(Some(Data("some_data".getBytes)), None)))
+    )
     .out[Boolean]("result")
 }

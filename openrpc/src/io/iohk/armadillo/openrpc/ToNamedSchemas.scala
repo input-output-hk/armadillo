@@ -34,7 +34,7 @@ class ToNamedSchemas {
       if (info.examples.isEmpty) {
         None
       } else {
-        Some(ExampleMultipleValue(info.examples.map(example => codec.print(codec.encode(example))).toList))
+        Some(ExampleMultipleValue(info.examples.map(example => codec.show(codec.encode(example))).toList))
       }
     }
 
