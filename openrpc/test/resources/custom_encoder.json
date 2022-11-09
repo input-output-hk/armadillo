@@ -22,8 +22,7 @@
             "type": "string",
             "format": "binary",
             "examples": [
-              "data: some_data",
-              null
+              "data: some_data"
             ]
           }
         }

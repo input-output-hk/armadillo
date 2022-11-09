@@ -3,7 +3,7 @@ package io.iohk.armadillo.openrpc
 import io.iohk.armadillo.openrpc.EndpointToOpenRpcMethods.EmptyResult
 import io.iohk.armadillo.openrpc.model._
 import io.iohk.armadillo.{AnyEndpoint, JsonRpcCodec, JsonRpcEndpoint, JsonRpcErrorOutput, JsonRpcIO, JsonRpcInput}
-import sttp.apispec.{ExampleMultipleValue, Schema}
+import sttp.apispec.Schema
 import sttp.tapir.SchemaType
 
 class EndpointToOpenRpcMethods(schemas: Schemas) {
@@ -73,13 +73,7 @@ class EndpointToOpenRpcMethods(schemas: Schemas) {
   }
 
   private def updateSchema(schema: Schema, codec: JsonRpcCodec[_], examples: Set[_]) = {
-    if (examples.isEmpty) {
-      schema
-    } else {
-      schema.copy(example =
-        Some(ExampleMultipleValue(examples.map(example => codec.show(codec.encode(example.asInstanceOf[codec.T]))).toList))
-      )
-    }
+    schema.copy(example = exampleValue(codec, examples))
   }
 
   private def convertError(errorOutput: JsonRpcErrorOutput[_]): List[OpenRpcError] = {

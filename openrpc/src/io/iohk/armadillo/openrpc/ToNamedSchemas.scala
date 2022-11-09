@@ -2,7 +2,7 @@ package io.iohk.armadillo.openrpc
 
 import io.iohk.armadillo.openrpc.OpenRpcDocsInterpreter.NamedSchema
 import io.iohk.armadillo.{JsonRpcCodec, JsonRpcIoInfo}
-import sttp.apispec.{ExampleMultipleValue, ExampleValue}
+import sttp.apispec.ExampleValue
 import sttp.tapir.{Schema => TSchema, SchemaType => TSchemaType}
 
 import scala.collection.mutable.ListBuffer
@@ -30,13 +30,7 @@ class ToNamedSchemas {
       codec.schema
     }
 
-    val examples: Option[ExampleValue] = maybeInfo.flatMap { info =>
-      if (info.examples.isEmpty) {
-        None
-      } else {
-        Some(ExampleMultipleValue(info.examples.map(example => codec.show(codec.encode(example))).toList))
-      }
-    }
+    val examples: Option[ExampleValue] = maybeInfo.flatMap(info => exampleValue(codec, info.examples))
 
     apply(schema, examples)
   }
