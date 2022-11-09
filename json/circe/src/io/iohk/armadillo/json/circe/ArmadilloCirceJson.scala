@@ -21,6 +21,8 @@ trait ArmadilloCirceJson {
         case Right(value) => DecodeResult.Value(value)
       }
     }
+
+    override def print(l: Json): String = l.noSpaces
   }
 
   implicit val jsonRpcIdEncoder: Encoder[JsonRpcId] = Encoder.instance[JsonRpcId] {

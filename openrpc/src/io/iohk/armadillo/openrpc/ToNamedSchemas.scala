@@ -1,14 +1,15 @@
 package io.iohk.armadillo.openrpc
 
-import io.iohk.armadillo.JsonRpcCodec
 import io.iohk.armadillo.openrpc.OpenRpcDocsInterpreter.NamedSchema
+import io.iohk.armadillo.{JsonRpcCodec, JsonRpcIoInfo}
+import sttp.apispec.{ExampleMultipleValue, ExampleValue}
 import sttp.tapir.{Schema => TSchema, SchemaType => TSchemaType}
 
 import scala.collection.mutable.ListBuffer
 
 class ToNamedSchemas {
-  def apply[T](codec: JsonRpcCodec[T], replaceOptionWithCoproduct: Boolean): List[NamedSchema] = {
-    if (replaceOptionWithCoproduct) {
+  def apply[T](codec: JsonRpcCodec[T], maybeInfo: Option[JsonRpcIoInfo[T]], replaceOptionWithCoproduct: Boolean): List[NamedSchema] = {
+    val schema = if (replaceOptionWithCoproduct) {
       val synthesized = codec.schema match {
         case t @ TSchema(o @ TSchemaType.SOption(element), _, _, _, _, _, _, _, _, _, _) =>
           val element1 = propagateMetadataForOption(t, o).element
@@ -24,15 +25,25 @@ class ToNamedSchemas {
           )
         case other => other
       }
-      apply(synthesized)
+      synthesized
     } else {
-      apply(codec.schema)
+      codec.schema
     }
+
+    val examples: Option[ExampleValue] = maybeInfo.flatMap { info =>
+      if (info.examples.isEmpty) {
+        None
+      } else {
+        Some(ExampleMultipleValue(info.examples.map(example => codec.print(codec.encode(example))).toList))
+      }
+    }
+
+    apply(schema, examples)
   }
 
-  private def apply(schema: TSchema[_]): List[NamedSchema] = {
-    val thisSchema = schema.name match {
-      case Some(name) => List(name -> schema)
+  private def apply(schema: TSchema[_], examples: Option[ExampleValue] = None): List[NamedSchema] = {
+    val thisSchema: List[NamedSchema] = schema.name match {
+      case Some(name) => List((name, schema, examples))
       case None       => Nil
     }
     val nestedSchemas = schema match {
@@ -40,7 +51,7 @@ class ToNamedSchemas {
       case t @ TSchema(o: TSchemaType.SOption[_, _], _, _, _, _, _, _, _, _, _, _) =>
         // #1168: if there's an optional field which is an object, with metadata defined (such as description), this
         // needs to be propagated to the target object, so that it isn't omitted.
-        apply(propagateMetadataForOption(t, o).element)
+        apply(propagateMetadataForOption(t, o).element, examples)
       case TSchema(st: TSchemaType.SProduct[_], _, _, _, _, _, _, _, _, _, _)        => productSchemas(st)
       case TSchema(st: TSchemaType.SCoproduct[_], _, _, _, _, _, _, _, _, _, _)      => coproductSchemas(st)
       case TSchema(st: TSchemaType.SOpenProduct[_, _], _, _, _, _, _, _, _, _, _, _) => apply(st.valueSchema)
@@ -50,9 +61,9 @@ class ToNamedSchemas {
     thisSchema ++ nestedSchemas
   }
 
-  private def productSchemas[T](st: TSchemaType.SProduct[T]): List[NamedSchema] = st.fields.flatMap(a => apply(a.schema))
+  private def productSchemas[T](st: TSchemaType.SProduct[T]): List[NamedSchema] = st.fields.flatMap(a => apply(a.schema, None))
 
-  private def coproductSchemas[T](st: TSchemaType.SCoproduct[T]): List[NamedSchema] = st.subtypes.flatMap(apply)
+  private def coproductSchemas[T](st: TSchemaType.SCoproduct[T]): List[NamedSchema] = st.subtypes.flatMap(subSchema => apply(subSchema))
 }
 
 object ToNamedSchemas {

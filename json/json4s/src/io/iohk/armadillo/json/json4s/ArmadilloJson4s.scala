@@ -2,6 +2,7 @@ package io.iohk.armadillo.json.json4s
 
 import io.iohk.armadillo._
 import org.json4s.JsonAST.JValue
+import org.json4s.jackson.JsonMethods.{compact, render}
 import org.json4s.{Extraction, Formats, JNothing, JNull, Serialization}
 import sttp.tapir.{DecodeResult, Schema}
 
@@ -30,5 +31,7 @@ trait ArmadilloJson4s {
           case Success(value)     => DecodeResult.Value(value)
         }
       }
+
+      override def print(l: JValue): String = compact(render(l))
     }
 }

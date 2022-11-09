@@ -20,7 +20,7 @@ class SchemaForEndpoints(es: List[AnyEndpoint], toNamedSchemas: ToNamedSchemas, 
     val objectToSchemaReference = new NameToSchemaReference(infoToKey)
     val schemaConverter = new SchemaToOpenRpcSchema(objectToSchemaReference, markOptionsAsNullable, infoToKey)
     val schemas = new Schemas(schemaConverter, objectToSchemaReference, markOptionsAsNullable)
-    val infosToSchema = sObjects.map(td => (td._1, schemaConverter(td._2))).toListMap
+    val infosToSchema = sObjects.map(td => (td._1, schemaConverter(td._2, td._3))).toListMap
     val schemaKeys = infosToSchema.map { case (k, v) => k -> ((infoToKey(k), v)) }
     (schemaKeys.values.toListMap, schemas)
   }
@@ -34,8 +34,8 @@ class SchemaForEndpoints(es: List[AnyEndpoint], toNamedSchemas: ToNamedSchemas, 
 
   private def forIO(io: JsonRpcIO[_], replaceOptionWithCoproduct: Boolean): List[NamedSchema] = {
     io match {
-      case JsonRpcIO.Empty()             => List.empty
-      case JsonRpcIO.Single(codec, _, _) => toNamedSchemas(codec, replaceOptionWithCoproduct)
+      case JsonRpcIO.Empty()                => List.empty
+      case JsonRpcIO.Single(codec, info, _) => toNamedSchemas(codec, Some(info), replaceOptionWithCoproduct)
     }
   }
 
@@ -47,7 +47,7 @@ class SchemaForEndpoints(es: List[AnyEndpoint], toNamedSchemas: ToNamedSchemas, 
 
   private def forErrorOutput(output: JsonRpcErrorOutput[_]): List[NamedSchema] = {
     output match {
-      case JsonRpcErrorOutput.FixedWithData(_, _, codec) => toNamedSchemas(codec, replaceOptionWithCoproduct = true)
+      case JsonRpcErrorOutput.FixedWithData(_, _, codec) => toNamedSchemas(codec, None, replaceOptionWithCoproduct = true)
       case JsonRpcErrorOutput.OneOf(variants, _)         => variants.flatMap(v => forErrorOutput(v.output))
       case _                                             => List.empty
     }

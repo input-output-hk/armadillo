@@ -5,6 +5,7 @@ import sttp.apispec.{
   BasicSchemaType,
   Discriminator,
   ExampleSingleValue,
+  ExampleValue,
   Pattern,
   Reference,
   ReferenceOr,
@@ -19,7 +20,7 @@ class SchemaToOpenRpcSchema(
     markOptionsAsNullable: Boolean,
     infoToKey: Map[TSchema.SName, String]
 ) {
-  def apply[T](schema: TSchema[T], isOptionElement: Boolean = false): ReferenceOr[ASchema] = {
+  def apply[T](schema: TSchema[T], examples: Option[ExampleValue] = None, isOptionElement: Boolean = false): ReferenceOr[ASchema] = {
     val nullable = markOptionsAsNullable && isOptionElement
     val result = schema.schemaType match {
       case TSchemaType.SInteger() => Right(ASchema(SchemaType.Integer))
@@ -42,7 +43,7 @@ class SchemaToOpenRpcSchema(
         Right(ASchema(SchemaType.Array).copy(items = Some(Left(nameToSchemaReference.map(name)))))
       case TSchemaType.SArray(el) => Right(ASchema(SchemaType.Array).copy(items = Some(apply(el))))
       case TSchemaType.SOption(TSchema(_, Some(name), _, _, _, _, _, _, _, _, _)) => Left(nameToSchemaReference.map(name))
-      case TSchemaType.SOption(el)                                                => apply(el, isOptionElement = true)
+      case TSchemaType.SOption(el)                                                => apply(el, examples, isOptionElement = true)
       case TSchemaType.SBinary()      => Right(ASchema(SchemaType.String).copy(format = SchemaFormat.Binary))
       case TSchemaType.SDate()        => Right(ASchema(SchemaType.String).copy(format = SchemaFormat.Date))
       case TSchemaType.SDateTime()    => Right(ASchema(SchemaType.String).copy(format = SchemaFormat.DateTime))
@@ -82,16 +83,16 @@ class SchemaToOpenRpcSchema(
     }
     result
       .map(s => if (nullable) s.copy(nullable = Some(true)) else s)
-      .map(addMetadata(_, schema))
+      .map(addMetadata(_, schema, examples))
       .map(addValidatorInfo(_, schema.validator))
   }
 
-  private def addMetadata(oschema: ASchema, tschema: TSchema[_]): ASchema = {
+  private def addMetadata(oschema: ASchema, tschema: TSchema[_], examples: Option[ExampleValue]): ASchema = {
     oschema.copy(
       title = tschema.name.flatMap(infoToKey.get),
       description = tschema.description.orElse(oschema.description),
       default = tschema.default.flatMap { case (_, raw) => raw.flatMap(r => exampleValue(tschema, r)) }.orElse(oschema.default),
-      example = tschema.encodedExample.flatMap(exampleValue(tschema, _)).orElse(oschema.example),
+      example = examples.orElse(tschema.encodedExample.flatMap(exampleValue(tschema, _))).orElse(oschema.example),
       format = tschema.format.orElse(oschema.format),
       deprecated = (if (tschema.deprecated) Some(true) else None).orElse(oschema.deprecated)
     )

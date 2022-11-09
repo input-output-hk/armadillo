@@ -1,0 +1,61 @@
+{
+  "openrpc": "1.2.1",
+  "info": {
+    "version": "1.0.0",
+    "title": "Demo Pet Store"
+  },
+  "methods": [
+    {
+      "name": "createHuman",
+      "params": [
+        {
+          "name": "human",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Human"
+          }
+        },
+        {
+          "name": "age",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32",
+            "examples": [
+              42
+            ]
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "type": "boolean"
+        }
+      }
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Human": {
+        "title": "Human",
+        "required": [
+          "name",
+          "nickname"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          }
+        },
+        "examples": [
+          "Unknown"
+        ]
+      }
+    }
+  }
+}

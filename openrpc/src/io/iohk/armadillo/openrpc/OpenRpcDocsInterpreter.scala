@@ -2,6 +2,7 @@ package io.iohk.armadillo.openrpc
 
 import io.iohk.armadillo.AnyEndpoint
 import io.iohk.armadillo.openrpc.model._
+import sttp.apispec.ExampleValue
 import sttp.tapir.Schema
 
 case class OpenRpcDocsInterpreter(markOptionsAsNullable: Boolean = true) {
@@ -25,5 +26,5 @@ case class OpenRpcDocsInterpreter(markOptionsAsNullable: Boolean = true) {
 
 object OpenRpcDocsInterpreter {
 
-  type NamedSchema = (Schema.SName, Schema[_])
+  type NamedSchema = (Schema.SName, Schema[_], Option[ExampleValue])
 }

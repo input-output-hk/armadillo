@@ -31,7 +31,8 @@ object json extends CommonModule {
   object json4s extends CommonModule with ArmadilloPublishModule {
     override def moduleDeps = Seq(core, server)
     override def ivyDeps = Agg(
-      ivy"com.softwaremill.sttp.tapir::tapir-json-json4s:${Version.Tapir}"
+      ivy"com.softwaremill.sttp.tapir::tapir-json-json4s:${Version.Tapir}",
+      ivy"org.json4s::json4s-jackson:${Version.Json4s}"
     )
 
     object test extends Tests with CommonTestModule
@@ -120,7 +121,7 @@ object server extends CommonModule with ArmadilloPublishModule {
     override def moduleDeps = Seq(core, server, server.tapir)
     override def ivyDeps = Agg(
       ivy"com.softwaremill.sttp.client3::core::${Version.Sttp}", // TODO check if the version is aligned with tapir
-      ivy"com.softwaremill.sttp.tapir::tapir-sttp-stub-server::${Version.Tapir}",
+      ivy"com.softwaremill.sttp.tapir::tapir-sttp-stub-server::${Version.Tapir}"
     )
     object test extends Tests with CommonTestModule {
       override def moduleDeps = Seq(json.circe, stub)
@@ -129,7 +130,7 @@ object server extends CommonModule with ArmadilloPublishModule {
         ivy"io.circe::circe-literal::${Version.Circe}",
         ivy"org.typelevel::cats-effect::${Version.CatsEffect}",
         ivy"com.softwaremill.sttp.client3::cats::${Version.Sttp}",
-        ivy"com.softwaremill.sttp.client3::circe::${Version.Sttp}",
+        ivy"com.softwaremill.sttp.client3::circe::${Version.Sttp}"
       )
     }
   }

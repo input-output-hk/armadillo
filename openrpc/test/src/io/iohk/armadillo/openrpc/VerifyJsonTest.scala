@@ -3,7 +3,7 @@ package io.iohk.armadillo.openrpc
 import cats.effect.IO
 import io.circe.Printer
 import io.circe.syntax.EncoderOps
-import io.iohk.armadillo.openrpc.Basic.{basic, basicWithMultipleExamples, basicWithSingleExample, empty}
+import io.iohk.armadillo.openrpc.Basic.{basic, basicWithMultipleExamples, basicWithSingleExample, customEncoder, empty}
 import io.iohk.armadillo.openrpc.TestUtils.{load, noIndentation}
 import io.iohk.armadillo.openrpc.circe._
 import io.iohk.armadillo.openrpc.model.{OpenRpcDocument, OpenRpcInfo}
@@ -18,6 +18,7 @@ object VerifyJsonTest extends SimpleIOSuite {
   compare("basic_with_multiple_examples.json", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(basicWithMultipleExamples)))
   compare("empty.json", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(empty)))
   compare("sorted_basic_empty.json", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(basic, empty)))
+  compare("custom_encoder.json", OpenRpcDocsInterpreter().toOpenRpc(PetStoreInfo, List(customEncoder)))
 
   test("OpenRpcDocument's methods are ordered") {
     IO.pure(

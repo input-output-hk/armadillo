@@ -1,6 +1,7 @@
 package io.iohk.armadillo.openrpc
 
 import io.circe.generic.auto._
+import io.circe.{Encoder, Json}
 import io.iohk.armadillo._
 import io.iohk.armadillo.json.circe._
 import sttp.tapir.Schema.derivedEnumeration
@@ -219,4 +220,13 @@ object Basic {
     jsonRpcEndpoint(m"methodWithNumberFromString")
       .in(param[Int]("numberFromString"))
   }
+
+  case class Human(name: String, nickname: String)
+  object Human {
+    implicit val humanEncoder: Encoder[Human] = (human: Human) => Json.fromString(human.nickname)
+  }
+
+  val customEncoder: JsonRpcEndpoint[(Human, Int), Unit, Boolean] = jsonRpcEndpoint(m"createHuman")
+    .in(param[Human]("human").example(Human("John", "Unknown")).and(param[Int]("age").example(42)))
+    .out[Boolean]("result")
 }

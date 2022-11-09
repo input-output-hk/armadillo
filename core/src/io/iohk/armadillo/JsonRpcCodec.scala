@@ -7,6 +7,8 @@ trait JsonRpcCodec[H] {
   def decode(l: L): DecodeResult[H]
   def encode(h: H): L
   def schema: Schema[H]
+
+  def print(l: L): String
 }
 object JsonRpcCodec {
   implicit class JsonRpcCodecOps[H](val codec: JsonRpcCodec[H]) {
@@ -18,6 +20,8 @@ object JsonRpcCodec {
       override def encode(h: H): L = codec.encode(h)
 
       override def schema: Schema[H] = codec.schema.copy(validator = codec.schema.validator.and(validator))
+
+      override def print(l: codec.L): String = codec.print(l)
     }
   }
 }
