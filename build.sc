@@ -31,8 +31,7 @@ object json extends CommonModule {
   object json4s extends CommonModule with ArmadilloPublishModule {
     override def moduleDeps = Seq(core, server)
     override def ivyDeps = Agg(
-      ivy"com.softwaremill.sttp.tapir::tapir-json-json4s:${Version.Tapir}",
-      ivy"org.json4s::json4s-jackson:${Version.Json4s}"
+      ivy"com.softwaremill.sttp.tapir::tapir-json-json4s:${Version.Tapir}"
     )
 
     object test extends Tests with CommonTestModule

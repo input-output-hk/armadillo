@@ -2,6 +2,7 @@ package io.iohk.armadillo.server
 
 import io.circe.generic.auto._
 import io.iohk.armadillo._
+import io.iohk.armadillo.json.json4s.Json4sSupport
 import io.iohk.armadillo.server.Endpoints._
 import org.json4s.{CustomSerializer, Extraction, Formats, JArray, JField, JInt, JNothing, JNull, JObject, JString, JValue, Serialization}
 import sttp.tapir.generic.auto._
@@ -26,6 +27,7 @@ trait Json4sEndpoints extends Endpoints {
 
   implicit val serialization: Serialization
   implicit val formats: Formats
+  implicit val jsonSupport: Json4sSupport
 
   override implicit def intCodec: JsonRpcCodec[Int] = json4s.jsonRpcCodec
   override implicit def stringCodec: JsonRpcCodec[String] = json4s.jsonRpcCodec

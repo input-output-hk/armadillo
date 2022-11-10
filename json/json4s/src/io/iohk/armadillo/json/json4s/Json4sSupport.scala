@@ -9,10 +9,8 @@ import sttp.tapir.DecodeResult
 
 import scala.util.{Failure, Success, Try}
 
-class Json4sSupport private (parseAsJValue: String => JValue, render: JValue => String)(implicit
-    formats: Formats,
-    serialization: Serialization
-) extends JsonSupport[JValue] {
+class Json4sSupport private (parseAsJValue: String => JValue, render: JValue => String)(implicit formats: Formats)
+    extends JsonSupport[JValue] {
 
   override def asArray(seq: Seq[JValue]): JValue = JArray(seq.toList)
 
@@ -71,11 +69,8 @@ class Json4sSupport private (parseAsJValue: String => JValue, render: JValue => 
 }
 
 object Json4sSupport {
-  def apply(parseAsJValue: String => JValue, render: JValue => String)(implicit
-      formats: Formats,
-      serialization: Serialization
-  ): Json4sSupport = {
-    new Json4sSupport(parseAsJValue, render)(formats + JsonRpcIdSerializer, serialization)
+  def apply(parseAsJValue: String => JValue, render: JValue => String)(implicit formats: Formats): Json4sSupport = {
+    new Json4sSupport(parseAsJValue, render)(formats + JsonRpcIdSerializer)
   }
 
   object JsonRpcIdSerializer

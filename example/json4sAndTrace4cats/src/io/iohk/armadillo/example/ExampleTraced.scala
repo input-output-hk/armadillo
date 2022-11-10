@@ -27,6 +27,7 @@ object ExampleTraced extends IOApp {
   implicit val rpcBlockResponseSchema: Schema[RpcBlockResponse] = Schema.derived
   implicit val serialization: Serialization = org.json4s.jackson.Serialization
   implicit val formats: Formats = org.json4s.jackson.Serialization.formats(NoTypeHints)
+  implicit val json4sSupport: Json4sSupport = Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
 
   case class RpcBlockResponse(number: Int)
 
@@ -54,9 +55,7 @@ object ExampleTraced extends IOApp {
     val routesR = for {
       completer <- Resource.eval(LogSpanCompleter.create[IO](TraceProcess("example")))
       ep = EntryPoint(SpanSampler.always[IO], completer)
-      tapirInterpreter = new TapirInterpreter[IO, JValue](
-        Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
-      )
+      tapirInterpreter = new TapirInterpreter[IO, JValue](json4sSupport)
       tapirEndpoints = tapirInterpreter.toTapirEndpoint(endpoints.tracedEndpoints(ep)).getOrElse(???)
       routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO]).toRoutes(tapirEndpoints)
     } yield routes

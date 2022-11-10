@@ -18,6 +18,7 @@ object ExampleJson4s extends IOApp {
   implicit val rpcBlockResponseSchema: Schema[RpcBlockResponse] = Schema.derived
   implicit val serialization: Serialization = org.json4s.jackson.Serialization
   implicit val formats: Formats = org.json4s.jackson.Serialization.formats(NoTypeHints)
+  implicit val json4sSupport: Json4sSupport = Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
 
   case class RpcBlockResponse(number: Int)
 
@@ -34,9 +35,7 @@ object ExampleJson4s extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = {
     implicit val catsMonadError: CatsMonadError[IO] = new CatsMonadError
-    val tapirInterpreter = new TapirInterpreter[IO, JValue](
-      Json4sSupport(org.json4s.jackson.parseJson(_), org.json4s.jackson.compactJson)
-    )
+    val tapirInterpreter = new TapirInterpreter[IO, JValue](json4sSupport)
     val tapirEndpoints = tapirInterpreter.toTapirEndpoint(List(endpoint)).getOrElse(???)
     val routes = Http4sServerInterpreter[IO](Http4sServerOptions.default[IO]).toRoutes(tapirEndpoints)
     implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
