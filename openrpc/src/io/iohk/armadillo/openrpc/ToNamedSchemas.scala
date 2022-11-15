@@ -62,13 +62,15 @@ class ToNamedSchemas {
 
 object ToNamedSchemas {
 
-  /** Keeps only the first object data for each `SName`. In case of recursive objects, the first one is the most complete as it contains the
-    * built-up structure, unlike subsequent ones, which only represent leaves (tapir#354).
+  /** Keeps only the first object data for each `SName`. Objects are first sorted in order to make sure that if multiple `SName` exists, and
+    * if an example isn't defined for all of them, the first instance will have an example. In case of recursive objects, the first one is
+    * the most complete as it contains the built-up structure, unlike subsequent ones, which only represent leaves (tapir#354).
     */
   def unique(objs: Iterable[NamedSchema]): Iterable[NamedSchema] = {
+    val sortedObj = objs.toList.sortBy { case (name, _, maybeExample) => (name.fullName, maybeExample.isEmpty) }
     val seen: collection.mutable.Set[TSchema.SName] = collection.mutable.Set()
     val result: ListBuffer[NamedSchema] = ListBuffer()
-    objs.foreach { obj =>
+    sortedObj.foreach { obj =>
       if (!seen.contains(obj._1)) {
         seen.add(obj._1)
         result += obj

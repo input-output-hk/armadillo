@@ -238,4 +238,8 @@ object Basic {
         .and(param[Option[Data]]("data").examples(Set(Some(Data("some_data".getBytes)), None)))
     )
     .out[Boolean]("result")
+
+  val customSimplifiedEncoder: JsonRpcEndpoint[Human, Unit, Boolean] = jsonRpcEndpoint(m"createHumanSimplified")
+    .in(param[Human]("human"))
+    .out[Boolean]("result")
 }
