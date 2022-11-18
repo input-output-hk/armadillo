@@ -4,10 +4,9 @@ import sttp.tapir.{DecodeResult, Schema, Validator}
 
 trait JsonRpcCodec[H] {
   type L
-  type T = H
   def decode(l: L): DecodeResult[H]
-  def encode(h: T): L
-  def schema: Schema[T]
+  def encode(h: H): L
+  def schema: Schema[H]
 
   def show(l: L): String
 }
