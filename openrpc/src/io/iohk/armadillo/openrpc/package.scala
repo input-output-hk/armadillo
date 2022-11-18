@@ -45,20 +45,23 @@ package object openrpc {
     }
   }
 
-  private[openrpc] def exampleValue[T](jsonRpcCodec: JsonRpcCodec[T], examples: Set[_]): Option[ExampleValue] = {
-    val examplesWithoutNone: Set[_] = examples.flatMap {
-      case x @ Some(_) => Set(x)
-      case None        => Set.empty
-      case value       => Set(value)
+  private[openrpc] def exampleValue[T](jsonRpcCodec: JsonRpcCodec[T], examples: Set[T]): Option[ExampleValue] = {
+    val filtered = if (jsonRpcCodec.schema.isOptional) {
+      examples
+        .collect { case Some(t) =>
+          Some(t)
+        }
+        .asInstanceOf[Set[T]]
+    } else {
+      examples
     }
-
-    if (examplesWithoutNone.isEmpty) {
+    if (filtered.isEmpty) {
       None
     } else {
       Some(
         ExampleMultipleValue(
-          examplesWithoutNone.map { example =>
-            jsonRpcCodec.show(jsonRpcCodec.encode(example.asInstanceOf[T]))
+          filtered.map { example =>
+            jsonRpcCodec.show(jsonRpcCodec.encode(example))
           }.toList
         )
       )

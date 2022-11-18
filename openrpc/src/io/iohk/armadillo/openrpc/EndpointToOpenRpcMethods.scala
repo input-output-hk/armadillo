@@ -43,7 +43,7 @@ class EndpointToOpenRpcMethods(schemas: Schemas) {
     }
   }
 
-  private def convertParam(jsonRpcInput: JsonRpcIO.Single[_]) = {
+  private def convertParam[I](jsonRpcInput: JsonRpcIO.Single[I]) = {
     val schema = schemas(jsonRpcInput.codec, replaceOptionWithCoproduct = false)
     OpenRpcParam(
       name = jsonRpcInput.name,
@@ -58,10 +58,10 @@ class EndpointToOpenRpcMethods(schemas: Schemas) {
     )
   }
 
-  private def convertResult(endpoint: JsonRpcEndpoint[_, _, _]) = {
+  private def convertResult[O](endpoint: JsonRpcEndpoint[_, _, O]) = {
     endpoint.output match {
-      case _: JsonRpcIO.Empty[_] => EmptyResult
-      case single: JsonRpcIO.Single[_] =>
+      case _: JsonRpcIO.Empty[O] => EmptyResult
+      case single: JsonRpcIO.Single[O] =>
         val schema = schemas(single.codec, replaceOptionWithCoproduct = true)
         OpenRpcResult(
           name = single.name,
@@ -72,7 +72,7 @@ class EndpointToOpenRpcMethods(schemas: Schemas) {
     }
   }
 
-  private def updateSchema(schema: Schema, codec: JsonRpcCodec[_], examples: Set[_]) = {
+  private def updateSchema[T](schema: Schema, codec: JsonRpcCodec[T], examples: Set[T]) = {
     schema.copy(example = exampleValue(codec, examples))
   }
 
