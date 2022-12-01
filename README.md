@@ -68,6 +68,12 @@ Add the following dependency:
 ```
 "io.iohk.armadillo" %% "armadillo-core" % "0.0.10"
 ```
+and IOG nexus repository:
+```scala
+resolvers ++= Seq(
+   "IOG Nexus".at("https://nexus.iog.solutions/repository/maven-release/")
+),
+```
 
 ## Quickstart with mill
 Add the following dependency:
@@ -75,7 +81,12 @@ Add the following dependency:
 ```
 ivy"io.iohk.armadillo::armadillo-core::0.0.10"
 ```
-
+and IOG nexus repository:
+```scala
+def repositoriesTask = T.task { super.repositoriesTask() ++ Seq(
+  MavenRepository("https://nexus.iog.solutions/repository/maven-release/")
+) }
+```
 
 ## Modules description
 
