@@ -11,7 +11,7 @@ import io.iohk.armadillo.server._
 import io.iohk.armadillo.server.tapir.TapirInterpreter
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
-import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
+import sttp.client3.armeria.cats.ArmeriaCatsBackend
 import sttp.model.{StatusCode, Uri}
 import sttp.monad.MonadError
 import sttp.tapir.integ.cats._
@@ -58,7 +58,7 @@ object ExampleCirce extends IOApp {
       .withHttpApp(Router("/" -> routes).orNotFound)
       .resource
       .flatMap { _ =>
-        AsyncHttpClientCatsBackend.resource[IO]()
+        ArmeriaCatsBackend.resource[IO]()
       }
       .use { client =>
         val sttpClient = SttpClientInterpreter().toClient(tapirEndpoints.endpoint, Some(Uri.apply("localhost", 8545)), client)

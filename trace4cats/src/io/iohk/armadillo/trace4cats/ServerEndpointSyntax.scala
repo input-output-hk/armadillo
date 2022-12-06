@@ -4,9 +4,8 @@ import cats.Monad
 import cats.effect.kernel.MonadCancelThrow
 import cats.syntax.either._
 import io.iohk.armadillo.JsonRpcServerEndpoint
-import io.janstenpickle.trace4cats.Span
-import io.janstenpickle.trace4cats.base.context.Provide
-import io.janstenpickle.trace4cats.inject.{EntryPoint, ResourceKleisli, Trace}
+import trace4cats.context.Provide
+import trace4cats.{EntryPoint, ResourceKleisli, Span, Trace}
 
 trait ServerEndpointSyntax {
   implicit class TracedServerEndpoint[I, E, O, F[_], G[_]](

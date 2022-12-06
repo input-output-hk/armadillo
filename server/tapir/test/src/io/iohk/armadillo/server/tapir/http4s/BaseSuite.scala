@@ -11,7 +11,7 @@ import io.iohk.armadillo.server.{AbstractCirceSuite, CirceEndpoints}
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
-import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
+import sttp.client3.armeria.cats.ArmeriaCatsBackend
 import sttp.client3.circe._
 import sttp.client3.{DeserializationException, HttpError, StringBody, SttpBackend, basicRequest}
 import sttp.model.{MediaType, StatusCode, Uri}
@@ -211,7 +211,7 @@ trait BaseSuite extends AbstractCirceSuite[StringBody, ServerEndpoint[Any, IO]] 
       .resource
       .map(_.address.getPort)
       .flatMap { port =>
-        AsyncHttpClientCatsBackend.resource[IO]().map { backend =>
+        ArmeriaCatsBackend.resource[IO]().map { backend =>
           import sttp.model.Uri._
           (backend, uri"http://localhost:$port")
         }
