@@ -3,9 +3,9 @@ package io.iohk.armadillo.trace4cats
 import cats.Monad
 import cats.data.{EitherT, Kleisli}
 import cats.effect.kernel.Resource
-import io.janstenpickle.trace4cats.inject.{ResourceKleisli, SpanParams}
-import io.janstenpickle.trace4cats.model.{SpanKind, TraceHeaders}
-import io.janstenpickle.trace4cats.{ErrorHandler, Span}
+import trace4cats.kernel.ErrorHandler
+import trace4cats.model.{SpanKind, TraceHeaders}
+import trace4cats.{ResourceKleisli, Span, SpanParams}
 
 object ArmadilloResourceKleislis {
   def fromInput[F[_], I](

@@ -4,9 +4,9 @@ import cats.Monad
 import cats.data.EitherT
 import cats.effect.kernel.MonadCancelThrow
 import io.iohk.armadillo.JsonRpcServerEndpoint
-import io.janstenpickle.trace4cats.base.context.Provide
-import io.janstenpickle.trace4cats.inject.{ResourceKleisli, Trace}
 import sttp.tapir.integ.cats.MonadErrorSyntax._
+import trace4cats.context.Provide
+import trace4cats.{ResourceKleisli, Trace}
 
 object ServerEndpointTracer {
   def inject[I, E, O, F[_], G[_], Ctx](

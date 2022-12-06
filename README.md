@@ -39,7 +39,7 @@ BlazeServerBuilder[IO]
   .withHttpApp(Router("/" -> routes).orNotFound)
   .resource
   .flatMap { _ =>
-    AsyncHttpClientCatsBackend.resource[IO]()
+    ArmeriaCatsBackend.resource[IO]()
   }
   .use { client =>
     val request = json"""{"jsonrpc": "2.0", "method": "say_hello", "params": ["kasper"], "id": 1}"""

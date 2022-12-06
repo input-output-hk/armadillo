@@ -1,5 +1,8 @@
 package io.iohk.armadillo.example
 
+import _root_.trace4cats.context.Provide
+import _root_.trace4cats.log.LogSpanCompleter
+import _root_.trace4cats.{EntryPoint, Span, SpanSampler, Trace, TraceProcess}
 import cats.Applicative
 import cats.data.Kleisli
 import cats.effect.kernel.{MonadCancelThrow, Resource, Sync}
@@ -8,12 +11,6 @@ import io.iohk.armadillo.json.json4s._
 import io.iohk.armadillo.server.tapir.TapirInterpreter
 import io.iohk.armadillo.trace4cats.syntax._
 import io.iohk.armadillo.{JsonRpcServerEndpoint, _}
-import io.janstenpickle.trace4cats.Span
-import io.janstenpickle.trace4cats.base.context.Provide
-import io.janstenpickle.trace4cats.inject.{EntryPoint, Trace}
-import io.janstenpickle.trace4cats.kernel.SpanSampler
-import io.janstenpickle.trace4cats.log.LogSpanCompleter
-import io.janstenpickle.trace4cats.model.TraceProcess
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import org.json4s.{Formats, JValue, NoTypeHints, Serialization}
