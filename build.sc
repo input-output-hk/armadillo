@@ -279,7 +279,7 @@ object Version {
   val Trace4cats = "0.14.1"
   val Tapir = "1.2.3"
   val Http4s = "0.23.16"
-  val Http4sBlazeServer = "0.23.12"
+  val Http4sBlazeServer = "0.23.13"
   val Json4s = "4.0.6"
   val Circe = "0.14.3"
   val CirceYaml = "0.14.2"
