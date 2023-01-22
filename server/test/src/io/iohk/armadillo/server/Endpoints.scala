@@ -101,6 +101,11 @@ trait Endpoints {
       .in(param[Entity]("param1"))
       .out[String]("response")
   }
+
+  val echo_with_optional_param: JsonRpcEndpoint[(Option[String], String), Unit, String] = jsonRpcEndpoint(m"echo")
+    .in(param[Option[String]]("first").and(param[String]("second")))
+    .out[String]("echoed")
+
   val empty: JsonRpcEndpoint[Unit, Unit, Unit] = jsonRpcEndpoint(m"empty")
 
   val error_no_data: JsonRpcEndpoint[Unit, JsonRpcError.NoData, Unit] = jsonRpcEndpoint(m"error_no_data")
