@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - uses: coursier/cache-action@v5
+      - uses: coursier/cache-action@v6
       - uses: coursier/setup-action@v1.1.2
         with:
           jvm: adopt:11
