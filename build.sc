@@ -216,6 +216,45 @@ object example extends CommonModule {
       ivy"io.circe::circe-literal::${Version.Circe}"
     )
   }
+
+  object circeOpenRpc extends CommonModule {
+    override def moduleDeps = Seq(core, json.circe, server.tapir, openrpc, openrpc.circe)
+    override def ivyDeps = Agg(
+      ivy"com.softwaremill.sttp.tapir::tapir-core::${Version.Tapir}",
+      ivy"io.circe::circe-core::${Version.Circe}",
+      ivy"io.circe::circe-generic::${Version.Circe}",
+      ivy"io.circe::circe-literal::${Version.Circe}",
+      ivy"org.typelevel::cats-effect::${Version.CatsEffect}"
+    )
+  }
+
+  object json4sOpenRpc extends CommonModule {
+    override def moduleDeps = Seq(core, json.json4s, server.tapir, openrpc, openrpc.circe)
+    override def ivyDeps = Agg(
+      ivy"com.softwaremill.sttp.tapir::tapir-core::${Version.Tapir}",
+      ivy"io.circe::circe-core::${Version.Circe}",
+      ivy"org.json4s::json4s-core::${Version.Json4s}",
+      ivy"org.json4s::json4s-jackson:${Version.Json4s}",
+      ivy"org.typelevel::cats-effect::${Version.CatsEffect}"
+    )
+  }
+
+  object testing extends CommonModule {
+    override def moduleDeps = Seq(core, json.circe, server.tapir, openrpc, openrpc.circe)
+
+    object test extends Tests with CommonTestModule {
+      override def moduleDeps = Seq(json.circe, server.stub)
+      override def ivyDeps = Agg(
+        WeaverDep,
+        ivy"com.softwaremill.sttp.client3::cats::${Version.Sttp}",
+        ivy"com.softwaremill.sttp.client3::core::${Version.Sttp}",
+        ivy"com.softwaremill.sttp.client3::circe::${Version.Sttp}",
+        ivy"com.softwaremill.sttp.tapir::tapir-sttp-stub-server::${Version.Tapir}",
+        ivy"io.circe::circe-literal::${Version.Circe}",
+        ivy"org.typelevel::cats-effect::${Version.CatsEffect}"
+      )
+    }
+  }
 }
 
 object trace4cats extends CommonModule with ArmadilloPublishModule {

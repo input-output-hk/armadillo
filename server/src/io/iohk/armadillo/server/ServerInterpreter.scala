@@ -296,7 +296,7 @@ class ServerInterpreter[F[_], Raw] private (
 
   private def combineDecodeAsObject(in: Vector[JsonRpcIO.Single[_]]): Json.JsonObject[Raw] => DecodeResult[Vector[_]] = { json =>
     val jsonAsMap = json.fields.toMap
-    if (jsonAsMap.size >= in.count(_.codec.schema.isOptional) && jsonAsMap.size <= in.size) {
+    if (jsonAsMap.size >= in.count(i => !i.codec.schema.isOptional) && jsonAsMap.size <= in.size) {
       val ss = in.toList.map { case JsonRpcIO.Single(codec, _, name) =>
         jsonAsMap.get(name) match {
           case Some(r) =>
