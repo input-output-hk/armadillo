@@ -287,7 +287,7 @@ trait CommonTestModule extends BaseModule with TestModule {
 }
 
 trait CommonModule extends BaseModule {
-  def scalaVersion = "2.13.8"
+  def scalaVersion = "2.13.10"
   override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++ Agg(
     ivy"org.typelevel:::kind-projector:0.13.2"
   )
