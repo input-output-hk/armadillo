@@ -320,7 +320,7 @@ object Version {
   val Http4s = "0.23.16"
   val Http4sBlazeServer = "0.23.12"
   val Json4s = "4.0.6"
-  val Circe = "0.14.3"
+  val Circe = "0.14.5"
   val CirceYaml = "0.14.2"
   val Sttp = "3.8.5"
   val CatsEffect = "3.4.2"
