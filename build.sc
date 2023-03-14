@@ -325,6 +325,6 @@ object Version {
   val Sttp = "3.8.5"
   val CatsEffect = "3.4.2"
   val Apispec = "0.3.1"
-  val Fs2 = "3.4.0"
+  val Fs2 = "3.6.1"
   val Logback = "1.4.5"
 }
