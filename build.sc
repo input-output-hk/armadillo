@@ -324,7 +324,7 @@ object Version {
   val CirceYaml = "0.14.2"
   val Sttp = "3.8.5"
   val CatsEffect = "3.4.2"
-  val Apispec = "0.3.1"
+  val Apispec = "0.3.2"
   val Fs2 = "3.4.0"
   val Logback = "1.4.5"
 }
