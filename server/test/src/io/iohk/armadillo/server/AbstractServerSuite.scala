@@ -118,16 +118,6 @@ trait AbstractServerSuite[Raw, Body, Interpreter] extends AbstractBaseSuite[Raw,
     expectedResponse = JsonRpcResponse.error_v2[Raw](json"""{"code": -32602, "message": "Invalid params"}""", 1)
   )
 
-  test(echo_with_optional_param, "omitting optional param") { p => IO.pure(Right(p._1.map(_ + p._2).getOrElse(p._2))) }(
-    request = JsonRpcRequest.v2[Raw]("echo", json"""{"second": "Test!"}""", 1),
-    expectedResponse = JsonRpcResponse.v2[Raw](json""""Test!"""", 1)
-  )
-
-  test(echo_with_optional_param, "combining optional and required params") { p => IO.pure(Right(p._1.map(_ + p._2).getOrElse(p._2))) }(
-    request = JsonRpcRequest.v2[Raw]("echo", json"""{"first":  "Test!", "second": "Test!"}""", 1),
-    expectedResponse = JsonRpcResponse.v2[Raw](json""""Test!Test!"""", 1)
-  )
-
   test(empty, "empty response")(_ => IO.delay(Right(println("hello from server"))))(
     request = JsonRpcRequest.v2[Raw]("empty", json"""[]""", 1),
     expectedResponse = JsonRpcResponse.v2[Raw](Json.Null, 1)
@@ -375,6 +365,19 @@ trait AbstractServerSuite[Raw, Body, Interpreter] extends AbstractBaseSuite[Raw,
     expectedResponse = JsonRpcResponse.v2[Raw](Json.Null, 1)
   )
 
+  test(echo_with_optional_params, "omitting multiple optinal params") { p =>
+    IO.pure(Right(p._1.getOrElse("") ++ p._2.getOrElse("") ++ p._3))
+  }(
+    request = JsonRpcRequest.v2[Raw]("echo", json"""{"third": "Test!"}""", 1),
+    expectedResponse = JsonRpcResponse.v2[Raw](json""""Test!"""", 1)
+  )
+
+  test(echo_with_optional_params, "combining optional and required params and omitting one optinal param") { p =>
+    IO.pure(Right(p._1.getOrElse("") ++ p._2.getOrElse("") ++ p._3))
+  }(
+    request = JsonRpcRequest.v2[Raw]("echo", json"""{"first":  "Test!", "third": "Test!"}""", 1),
+    expectedResponse = JsonRpcResponse.v2[Raw](json""""Test!Test!"""", 1)
+  )
   test(output_without_params, "should return response when no params attribute is missing")(_ => IO.pure(Right("params is not required")))(
     request = JsonRpcRequest.v2[Raw]("output_without_params", 1),
     expectedResponse = JsonRpcResponse.v2[Raw](Json.fromString("params is not required"), 1)

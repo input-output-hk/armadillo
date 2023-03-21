@@ -8,3 +8,5 @@ mill-bsp.json
 
 project
 target
+
+.bloop
