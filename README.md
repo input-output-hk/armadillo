@@ -79,7 +79,7 @@ resolvers ++= Seq(
 Add the following dependency:
 
 ```
-ivy"io.iohk.armadillo::armadillo-core::0.0.10"
+ivy"io.iohk.armadillo::armadillo-core::0.1.0"
 ```
 and IOG nexus repository:
 ```scala
