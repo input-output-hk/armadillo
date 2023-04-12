@@ -322,7 +322,7 @@ object Version {
   val Json4s = "4.0.6"
   val Circe = "0.14.3"
   val CirceYaml = "0.14.2"
-  val Sttp = "3.8.5"
+  val Sttp = "3.8.15"
   val CatsEffect = "3.4.2"
   val Apispec = "0.3.1"
   val Fs2 = "3.4.0"
