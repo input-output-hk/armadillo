@@ -280,7 +280,7 @@ trait BaseModule extends ScalaModule with ScalafmtModule with TpolecatModule wit
 }
 
 trait CommonTestModule extends BaseModule with TestModule {
-  val WeaverDep = ivy"com.disneystreaming::weaver-cats:0.8.1"
+  val WeaverDep = ivy"com.disneystreaming::weaver-cats:0.8.3"
 
   override def ivyDeps = Agg(WeaverDep)
   override def testFramework = "weaver.framework.CatsEffect"
