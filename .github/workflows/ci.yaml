@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: coursier/cache-action@v6
-      - uses: coursier/setup-action@v1.3.0
+      - uses: coursier/setup-action@v1.3.4
         with:
           jvm: zulu:17
       - name: Check format
